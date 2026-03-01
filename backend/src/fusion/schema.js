@@ -7,6 +7,8 @@ const VALID_DECISIONS = ['allow', 'review', 'block'];
 
 const RISK_CATEGORIES = ['low', 'medium', 'high', 'critical'];
 
+const STALE_STATES = ['fresh', 'stale', 'unknown'];
+
 /**
  * Validate a Fusion Evaluator request payload.
  * Returns null when valid, or a human-readable error string.
@@ -43,8 +45,9 @@ export function assertFusionResponseShape(resp) {
   if (missing.length) throw new Error(`Fusion response missing fields: ${missing.join(', ')}`);
   if (!VALID_DECISIONS.includes(resp.decision)) throw new Error(`Invalid decision: ${resp.decision}`);
   if (!RISK_CATEGORIES.includes(resp.risk_category)) throw new Error(`Invalid risk_category: ${resp.risk_category}`);
+  if (!STALE_STATES.includes(resp.stale_state)) throw new Error(`Invalid stale_state: ${resp.stale_state}`);
   if (!Array.isArray(resp.reason_tags)) throw new Error('reason_tags must be an array');
   return true;
 }
 
-export { VALID_DECISIONS, RISK_CATEGORIES };
+export { VALID_DECISIONS, RISK_CATEGORIES, STALE_STATES };

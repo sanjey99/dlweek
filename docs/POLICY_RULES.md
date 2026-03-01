@@ -51,7 +51,9 @@
 | `uncertainty`   | `number`   | 0..1 confidence uncertainty                              |
 | `source`        | `string`   | `policy+ml` \| `policy+ml(stale)` \| `policy-only` \| `ml-only` |
 | `timestamp`     | `string`   | ISO 8601 evaluation timestamp                            |
-| `stale_state`   | `boolean`  | `true` when ML data is absent or older than 60 s         |
+| `stale_state`   | `string`   | `fresh` \| `stale` \| `unknown` — tri-state ML freshness |
+| `threshold_ms`  | `number`   | Configured staleness threshold in ms (default 60 000)    |
+| `stale`         | `boolean`  | Backward-compat flag: `true` when `stale_state !== 'fresh'` |
 | `detail`        | `object`   | Breakdown of policy / ML sub-evaluations                 |
 
 ### Decision Logic
@@ -62,9 +64,12 @@
 5. **Escalation**: ML `anomaly` label + `allow` → escalated to `review`.
 6. **Human override**: `hasHumanApproval` can downgrade non-extreme blocks (`< 0.85`) to review.
 
-### Staleness Detection
-- ML data with no timestamp or timestamp older than 60 s is marked `stale_state: true`.
-- When stale, the `source` field reads `policy+ml(stale)` and policy weight increases.
+### Staleness Detection (tri-state)
+- `stale_state: "fresh"` — ML timestamp within `threshold_ms` (default 60 000 ms, configurable via `FUSION_STALE_THRESHOLD_MS` env var).
+- `stale_state: "stale"` — ML timestamp older than threshold.
+- `stale_state: "unknown"` — ML output absent, timestamp missing, or timestamp unparseable.
+- Boolean `stale` field preserved for backward compat (`true` when `stale_state !== 'fresh'`).
+- When stale/unknown, the `source` field reads `policy+ml(stale)` and policy weight increases to 85%.
 
 ### Reason Tags (superset)
 | Tag | Origin |
@@ -82,6 +87,7 @@
 | `ML_ANOMALY_ESCALATION` | Fusion |
 | `HUMAN_APPROVAL_OVERRIDE` | Fusion |
 | `ML_DATA_STALE` | Fusion |
+| `ML_DATA_UNKNOWN` | Fusion |
 | `ML_OUTPUT_ABSENT` | Fusion |
 | `FUSED_RISK_ACCEPTABLE` | Fusion |
 | `FUSED_REVIEW_REQUIRED` | Fusion |

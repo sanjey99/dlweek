@@ -30,11 +30,28 @@ function pushReason(arr, tag) {
   if (!arr.includes(tag)) arr.push(tag);
 }
 
-/** True when the ML output is older than the staleness threshold (default 60 s). */
-function isStale(mlOutput, thresholdMs = 60_000) {
-  if (!mlOutput?.timestamp) return true; // no timestamp => assume stale
-  const age = Date.now() - new Date(mlOutput.timestamp).getTime();
-  return age > thresholdMs || Number.isNaN(age);
+const DEFAULT_STALE_THRESHOLD_MS = Number(process.env.FUSION_STALE_THRESHOLD_MS ?? 60_000);
+
+function parseIsoMs(value) {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Returns: { state: 'fresh'|'stale'|'unknown', ageMs: number|null }
+ */
+function getFreshnessState(mlOutput, thresholdMs = DEFAULT_STALE_THRESHOLD_MS) {
+  const ts = parseIsoMs(mlOutput?.timestamp);
+  if (ts == null) return { state: 'unknown', ageMs: null };
+
+  const ageMs = Date.now() - ts;
+  if (!Number.isFinite(ageMs)) return { state: 'unknown', ageMs: null };
+
+  return {
+    state: ageMs > thresholdMs ? 'stale' : 'fresh',
+    ageMs,
+  };
 }
 
 // ─── source attribution ────────────────────────────────────────────────────────
@@ -63,7 +80,8 @@ export function evaluate(input) {
 
   // ── 2. ML-side signals ────────────────────────────────────────────────────
   const mlProvided = mlRaw != null && typeof mlRaw === 'object';
-  const mlStale = mlProvided ? isStale(mlRaw) : true;
+  const freshness = mlProvided ? getFreshnessState(mlRaw) : { state: 'unknown', ageMs: null };
+  const mlStale = freshness.state === 'stale' || freshness.state === 'unknown';
 
   const mlRiskScore = mlProvided ? clamp01(Number(mlRaw.risk_score ?? mlRaw.riskScore ?? 0)) : 0;
   const mlUncertainty = mlProvided ? clamp01(Number(mlRaw.uncertainty ?? 0.5)) : 1;
@@ -117,7 +135,8 @@ export function evaluate(input) {
   if (policyResult.reasonTags) policyResult.reasonTags.forEach((t) => pushReason(reasons, t));
 
   // Add fusion-specific reasons
-  if (mlStale && mlProvided) pushReason(reasons, 'ML_DATA_STALE');
+  if (freshness.state === 'stale') pushReason(reasons, 'ML_DATA_STALE');
+  if (freshness.state === 'unknown') pushReason(reasons, 'ML_DATA_UNKNOWN');
   if (!mlProvided) pushReason(reasons, 'ML_OUTPUT_ABSENT');
   if (decision === 'allow') pushReason(reasons, 'FUSED_RISK_ACCEPTABLE');
   if (decision === 'review') pushReason(reasons, 'FUSED_REVIEW_REQUIRED');
@@ -135,7 +154,10 @@ export function evaluate(input) {
     uncertainty: +uncertainty.toFixed(4),
     source,
     timestamp,
-    stale_state: mlStale,
+    stale_state: freshness.state, // tri-state: fresh | stale | unknown
+    threshold_ms: DEFAULT_STALE_THRESHOLD_MS,
+    // backward compat boolean
+    stale: freshness.state !== 'fresh',
     // Extended detail (non-breaking additions)
     detail: {
       policy: {
@@ -153,8 +175,9 @@ export function evaluate(input) {
             uncertainty: mlUncertainty,
             label: mlLabel,
             decision_hint: mlDecisionHint,
-            stale: mlStale,
+            stale_state: freshness.state,
             raw_timestamp: mlRaw.timestamp ?? null,
+            age_ms: freshness.ageMs,
           }
         : null,
       weights: { policy: policyWeight, ml: mlWeight },
