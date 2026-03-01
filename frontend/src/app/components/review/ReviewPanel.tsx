@@ -217,6 +217,11 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
   }
 
   const isPending = action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING';
+  const actionAgent = (action as any).agent || (action as any).agent_name || action.agentName;
+  const actionEnvironment = (action as any).environment || (action as any).env || action.environment;
+  const flaggingReasons = Array.isArray((action as any).flaggingReasons)
+    ? (action as any).flaggingReasons
+    : action.flagReasons;
   const scoreColor =
     action.riskScore >= 80 ? COLORS.red : action.riskScore >= 50 ? COLORS.amber : COLORS.green;
 
@@ -322,10 +327,10 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {action.agentName}
+                {actionAgent}
               </div>
               <div style={{ color: theme.textSecondary, fontSize: 11, marginTop: 1 }}>
-                {action.environment} · {action.timestamp}
+                {actionEnvironment} · {action.timestamp}
               </div>
             </div>
             <div style={{ flexShrink: 0 }}>
@@ -333,14 +338,14 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
                 style={{
                   padding: '2px 7px',
                   borderRadius: 4,
-                  background: action.environment === 'PROD' ? COLORS.redMuted : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                  color: action.environment === 'PROD' ? COLORS.red : theme.textSecondary,
+                  background: actionEnvironment === 'PROD' ? COLORS.redMuted : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+                  color: actionEnvironment === 'PROD' ? COLORS.red : theme.textSecondary,
                   fontSize: 10,
                   fontWeight: 700,
                   letterSpacing: '0.06em',
                 }}
               >
-                {action.environment}
+                {actionEnvironment}
               </div>
             </div>
           </div>
@@ -401,7 +406,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
         </div>
 
         {/* Flag Reasons */}
-        {action.flagReasons.length > 0 && (
+        {flaggingReasons?.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertOctagon size={14} color={theme.textSecondary} />
@@ -410,7 +415,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {action.flagReasons.map((reason, i) => (
+              {flaggingReasons?.map((reason, i) => (
                 <div
                   key={i}
                   style={{
