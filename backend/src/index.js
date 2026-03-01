@@ -7,23 +7,18 @@ import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
-<<<<<<< HEAD
 import { createRealtimeIntegrityTracker } from './engine/realtimeIntegrity.js';
 import {
   buildFallbackMlAssessment,
   normalizeMlAssessmentForEnsemble,
   validateStrictMlContract,
 } from './engine/mlContract.js';
-import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
-import { validateFusionPayload } from './fusion/schema.js';
-import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
-=======
 import { evaluate as fusionEvaluate, POLICY_VERSION } from './fusion/fusionEvaluator.js';
 import { validateFusionPayload } from './fusion/schema.js';
 import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
 import { generateRequestId, logDecision } from './fusion/fusionLogger.js';
 import { recordDecision, increment as metricsIncrement, snapshot as metricsSnapshot } from './fusion/fusionMetrics.js';
->>>>>>> a55be3e (feat(arch-core): P3 observability guardrails — structured logging, metrics, health endpoint)
+import { auditStore } from './fusion/fusionAuditStore.js';
 
 dotenv.config();
 const app = express();
@@ -169,25 +164,73 @@ function handlePolicyGate(req, res) {
   });
 }
 
+// ─── Fusion Evaluator routes (ARCH-CORE + P3 observability + P4 audit) ──────
+
 function handleFusionEvaluate(req, res) {
+  const requestId = generateRequestId();
+  const t0 = Date.now();
+
   const validationError = validateFusionPayload(req.body);
   if (validationError) {
+    metricsIncrement('errors');
     return res.status(400).json({ ok: false, error: validationError });
   }
-  const fusionResult = fusionEvaluate(req.body);
-  return res.json({ ok: true, ...fusionResult });
+
+  const result = fusionEvaluate(req.body);
+  const durationMs = Date.now() - t0;
+
+  // P3: structured logging + metrics
+  recordDecision(result);
+  logDecision({ requestId, route: req.path, fusionResult: result, durationMs, clientIp: req.ip });
+
+  // P4: audit trail
+  auditStore.append({
+    request_id: requestId, decision: result.decision, reason_tags: result.reason_tags,
+    risk_score: result.risk_score, uncertainty: result.uncertainty, stale_state: result.stale_state,
+    source: result.source, policy_version: result.policy_version, model_version: result.model_version,
+    timestamp: result.timestamp, route: req.path,
+  });
+
+  return res.json({ ok: true, ...result, _requestId: requestId });
 }
 
-function handleLegacyV2Fusion(req, res) {
+function handleLegacyViaFusion(req, res) {
+  const requestId = generateRequestId();
+  const t0 = Date.now();
+
   const fusionInput = legacyPolicyGateToFusion(req.body);
   const validationError = validateFusionPayload(fusionInput);
   if (validationError) {
+    metricsIncrement('errors');
     return res.status(400).json({ ok: false, error: validationError });
   }
+
   const fusionResult = fusionEvaluate(fusionInput);
+  const durationMs = Date.now() - t0;
+
+  // P3: structured logging + metrics
+  recordDecision(fusionResult);
+  logDecision({ requestId, route: req.path, fusionResult, durationMs, clientIp: req.ip });
+
+  // P4: audit trail
+  auditStore.append({
+    request_id: requestId, decision: fusionResult.decision, reason_tags: fusionResult.reason_tags,
+    risk_score: fusionResult.risk_score, uncertainty: fusionResult.uncertainty, stale_state: fusionResult.stale_state,
+    source: fusionResult.source, policy_version: fusionResult.policy_version, model_version: fusionResult.model_version,
+    timestamp: fusionResult.timestamp, route: req.path,
+  });
+
+  const legacy = fusionToLegacyPolicyGate(fusionResult);
   return res.json({
     ok: true,
-    ...fusionToLegacyPolicyGate(fusionResult),
+    packetId: 'BE-P1',
+    evaluatedAt: new Date().toISOString(),
+    ...legacy,
+    migration: {
+      strategy: 'fusion-compat',
+      fusionSource: fusionResult.source,
+      notes: 'Endpoint added alongside existing routes; no destructive rewrites.',
+    },
   });
 }
 
@@ -197,11 +240,11 @@ app.post('/api/governance/policy-gate', handlePolicyGate);
 app.post('/api/policy/gate', handlePolicyGate);
 app.post('/api/risk/gate', handlePolicyGate);
 
-// Fusion evaluator endpoints (ARCH-CORE compatibility).
+// Fusion evaluator endpoints.
 app.post('/api/governance/fusion', handleFusionEvaluate);
-app.post('/api/governance/policy-gate/v2', handleLegacyV2Fusion);
-app.post('/api/policy/gate/v2', handleLegacyV2Fusion);
-app.post('/api/risk/gate/v2', handleLegacyV2Fusion);
+app.post('/api/governance/policy-gate/v2', handleLegacyViaFusion);
+app.post('/api/policy/gate/v2', handleLegacyViaFusion);
+app.post('/api/risk/gate/v2', handleLegacyViaFusion);
 
 app.post('/api/governance/actions/propose', (req, res) => {
   try {
@@ -254,73 +297,6 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Accepts old finance-style payloads, converts to fusion input, returns fusion envelope.
-app.post('/api/governance/fusion/finance', (req, res) => {
-  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body || {});
-=======
-// ─── Fusion Evaluator routes (ARCH-CORE) ────────────────────────────────────
-
-function handleFusionEvaluate(req, res) {
-  const requestId = generateRequestId();
-  const t0 = Date.now();
-
-  const validationError = validateFusionPayload(req.body);
-  if (validationError) {
-    metricsIncrement('errors');
-    return res.status(400).json({ ok: false, error: validationError });
-  }
-
-  const result = fusionEvaluate(req.body);
-  const durationMs = Date.now() - t0;
-
-  // P3: structured logging + metrics
-  recordDecision(result);
-  logDecision({ requestId, route: req.path, fusionResult: result, durationMs, clientIp: req.ip });
-
-  return res.json({ ok: true, ...result, _requestId: requestId });
-}
-
-app.post('/api/governance/fusion', handleFusionEvaluate);
-
-// ─── v2 compat routes (fusion-backed, legacy-shaped response) ───────────────
-
-function handleLegacyViaFusion(req, res) {
-  const requestId = generateRequestId();
-  const t0 = Date.now();
-
-  const fusionInput = legacyPolicyGateToFusion(req.body);
-  const validationError = validateFusionPayload(fusionInput);
-  if (validationError) {
-    metricsIncrement('errors');
-    return res.status(400).json({ ok: false, error: validationError });
-  }
-
-  const fusionResult = fusionEvaluate(fusionInput);
-  const durationMs = Date.now() - t0;
-
-  // P3: structured logging + metrics
-  recordDecision(fusionResult);
-  logDecision({ requestId, route: req.path, fusionResult, durationMs, clientIp: req.ip });
-
-  const legacy = fusionToLegacyPolicyGate(fusionResult);
-  return res.json({
-    ok: true,
-    packetId: 'BE-P1',
-    evaluatedAt: new Date().toISOString(),
-    ...legacy,
-    migration: {
-      strategy: 'fusion-compat',
-      fusionSource: fusionResult.source,
-      notes: 'Endpoint added alongside existing routes; no destructive rewrites.',
-    },
-  });
-}
-
-app.post('/api/governance/policy-gate/v2', handleLegacyViaFusion);
-app.post('/api/policy/gate/v2', handleLegacyViaFusion);
-app.post('/api/risk/gate/v2', handleLegacyViaFusion);
-
 // ─── Finance legacy adapter (ARCH-CORE-DP1) ─────────────────────────────────
 // Accepts old finance-style payloads, converts to fusion input, returns fusion
 // envelope.  Logs a deprecation warning for migration visibility.
@@ -328,7 +304,6 @@ app.post('/api/governance/fusion/finance', (req, res) => {
   const requestId = generateRequestId();
   const t0 = Date.now();
   const { fusionInput, deprecated } = legacyFinanceToFusion(req.body);
->>>>>>> a55be3e (feat(arch-core): P3 observability guardrails — structured logging, metrics, health endpoint)
 
   if (!fusionInput) return handleFusionEvaluate(req, res);
 
@@ -345,6 +320,14 @@ app.post('/api/governance/fusion/finance', (req, res) => {
   recordDecision(fusionResult);
   logDecision({ requestId, route: req.path, fusionResult, durationMs, clientIp: req.ip });
 
+  // P4: audit trail
+  auditStore.append({
+    request_id: requestId, decision: fusionResult.decision, reason_tags: fusionResult.reason_tags,
+    risk_score: fusionResult.risk_score, uncertainty: fusionResult.uncertainty, stale_state: fusionResult.stale_state,
+    source: fusionResult.source, policy_version: fusionResult.policy_version, model_version: fusionResult.model_version,
+    timestamp: fusionResult.timestamp, route: req.path,
+  });
+
   return res.json({
     ok: true,
     ...fusionResult,
@@ -352,6 +335,25 @@ app.post('/api/governance/fusion/finance', (req, res) => {
     _deprecated: deprecated,
     _migration_note: 'Migrate to POST /api/governance/fusion with { action, context, ml_output } shape.',
   });
+});
+
+// ─── Fusion audit trail endpoints (ARCH-CORE-P4) ────────────────────────────
+app.get('/api/governance/fusion/audit', (req, res) => {
+  const limit = Math.max(1, Math.min(5000, parseInt(req.query.limit, 10) || 50));
+  return res.json({
+    ok: true,
+    count: auditStore.size(),
+    capacity: auditStore.capacity(),
+    records: auditStore.list(limit),
+  });
+});
+
+app.get('/api/governance/fusion/audit/:request_id', (req, res) => {
+  const record = auditStore.findById(req.params.request_id);
+  if (!record) {
+    return res.status(404).json({ ok: false, error: `Audit record not found: ${req.params.request_id}` });
+  }
+  return res.json({ ok: true, record });
 });
 
 // ─── Fusion health / metrics endpoint (ARCH-CORE-P3) ────────────────────────

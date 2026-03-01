@@ -25,6 +25,8 @@
 | `POST /api/policy/gate/v2` | Fusion → compat adapter | Legacy | **New** |
 | `POST /api/risk/gate/v2` | Fusion → compat adapter | Legacy | **New** |
 | `GET /api/governance/fusion/health` | Metrics snapshot | Health envelope | **P3** |
+| `GET /api/governance/fusion/audit` | Audit store | Audit list envelope | **P4** |
+| `GET /api/governance/fusion/audit/:request_id` | Audit store | Single record | **P4** |
 
 ## Acceptance Criteria
 
@@ -46,6 +48,11 @@
 - [x] **P3: Metrics counters**: in-memory counters for decision distribution, staleness, ML presence, errors
 - [x] **P3: Request ID**: every fusion response includes `_requestId` for correlation
 - [x] **P3: Backward compat**: all existing routes and response shapes unchanged
+- [x] **P4: Audit store**: append-only in-memory store with configurable cap (FUSION_AUDIT_MAX, default 5000)
+- [x] **P4: Audit write**: every fusion evaluation (POST fusion, v2 compat, finance) writes an audit record
+- [x] **P4: Audit list**: `GET /api/governance/fusion/audit?limit=N` returns newest-first, capped records
+- [x] **P4: Audit lookup**: `GET /api/governance/fusion/audit/:request_id` returns single record or 404
+- [x] **P4: Safety cap**: oldest-drop policy when store hits capacity
 
 ## Rollback
 
@@ -88,6 +95,9 @@
 | **P3: Health endpoint** | 2 | ✅ |
 | **P3: Metrics counters** | 7 | ✅ |
 | **P3: Request ID / logging** | 3 | ✅ |
+| **P4: Audit trail list endpoint** | 6 | ✅ |
+| **P4: Audit trail lookup endpoint** | 3 | ✅ |
+| **P4: Audit store unit tests** | 18 | ✅ |
 
 ### Curl Proof — Allow
 ```bash
