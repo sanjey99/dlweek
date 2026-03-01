@@ -1,0 +1,5 @@
+[
+  {"text": "print('hello world')", "label": "low"},
+  {"text": "ALTER TABLE users ADD COLUMN nickname TEXT;", "label": "medium"},
+  {"text": "import os; os.system('rm -rf /')", "label": "high"}
+]

