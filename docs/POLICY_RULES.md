@@ -6,6 +6,18 @@
   - `POST /api/policy/gate`
   - `POST /api/risk/gate`
 
+<<<<<<< HEAD
+## BE-P2 Enforcement Path Endpoints
+- `POST /api/governance/actions/propose`
+  - Evaluates policy gate and stores governed action state.
+- `POST /api/action/approve`
+- `POST /api/action/block`
+- `POST /api/action/escalate`
+- `GET /api/governance/actions/:actionId`
+  - Returns action state + event log for auditability.
+
+## Input Contract
+=======
 ## Fusion Evaluator (ARCH-CORE v2) — Decision Source-of-Truth
 
 ### Endpoint
@@ -98,6 +110,7 @@
 ## Legacy Policy-Gate Contract (unchanged)
 
 ### Input Contract
+>>>>>>> origin/main
 ```json
 {
   "action": { "type": "deploy-prod" },
@@ -120,6 +133,8 @@ The endpoint always returns:
 - `reasonTags`: array of policy/guardrail tags
 - `confidence`: decision/policy/model confidence values (0..1)
 - `risk`: combined rule/model risk scores
+
+For BE-P2 action lifecycle endpoints, this contract is enforced consistently as top-level fields on proposal and resolution responses.
 
 ## Core Rule Signals
 - Base risk by action type (safe reads/comments lower, production/deletion higher)

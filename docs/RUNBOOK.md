@@ -38,6 +38,19 @@ curl -s -X POST http://localhost:4000/api/governance/policy-gate \
       "rollbackPlanPresent":false
     }
   }'
+
+# BE-P2 end-to-end action path (propose -> review -> approve)
+ACTION_ID=$(curl -s -X POST http://localhost:4000/api/governance/actions/propose \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":{"type":"merge-main"},
+    "context":{"riskScore":0.58,"mlConfidence":0.82,"testsPassing":true,"touchesCriticalPaths":true,"rollbackPlanPresent":true}
+  }' | node -e "process.stdin.on('data', d => process.stdout.write(JSON.parse(d).actionId))")
+echo "ACTION_ID=${ACTION_ID}"
+curl -s -X POST http://localhost:4000/api/action/approve \
+  -H 'Content-Type: application/json' \
+  -d "{\"actionId\":\"${ACTION_ID}\",\"actor\":\"qa-lead\",\"notes\":\"Manual verification complete\"}"
+curl -s http://localhost:4000/api/governance/actions/${ACTION_ID}
 ```
 
 ## Fallback (no Docker)
@@ -54,6 +67,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 cd backend
 npm install
 ML_URL=http://localhost:8000 npm run dev
+npm test
 ```
 
 ### Start frontend (Vite)
