@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../../src/index.js';
+import { auditStore } from '../../src/fusion/fusionAuditStore.js';
 
 // ─── Required fusion envelope fields ────────────────────────────────────────
 const FUSION_REQUIRED_FIELDS = [
@@ -868,5 +869,195 @@ describe('P3: Request ID in responses', () => {
     const res2 = await request(app).post('/api/governance/fusion').send(payload).expect(200);
 
     expect(res1.body._requestId).not.toBe(res2.body._requestId);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  P4: Fusion Audit Trail endpoints
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('P4: GET /api/governance/fusion/audit', () => {
+
+  beforeEach(() => {
+    auditStore.clear();
+  });
+
+  it('returns empty audit list when no requests have been made', async () => {
+    const res = await request(app)
+      .get('/api/governance/fusion/audit')
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.count).toBe(0);
+    expect(res.body.capacity).toBeGreaterThan(0);
+    expect(res.body.records).toEqual([]);
+  });
+
+  it('captures audit record from POST /api/governance/fusion', async () => {
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const res = await request(app)
+      .get('/api/governance/fusion/audit')
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.count).toBe(1);
+    expect(res.body.records.length).toBe(1);
+    const rec = res.body.records[0];
+    expect(rec.request_id).toBeDefined();
+    expect(rec.decision).toBeDefined();
+    expect(rec.stored_at).toBeDefined();
+    expect(rec.route).toBe('/api/governance/fusion');
+  });
+
+  it('captures audit record from v2 compat route', async () => {
+    await request(app)
+      .post('/api/governance/policy-gate/v2')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const res = await request(app)
+      .get('/api/governance/fusion/audit')
+      .expect(200);
+
+    expect(res.body.count).toBe(1);
+    expect(res.body.records[0].route).toBe('/api/governance/policy-gate/v2');
+  });
+
+  it('captures audit record from finance adapter', async () => {
+    await request(app)
+      .post('/api/governance/fusion/finance')
+      .send({
+        transaction_type: 'WIRE_TRANSFER',
+        amount: 5000,
+        currency: 'USD',
+        verified: true,
+        reversible: true,
+        approved: false,
+      })
+      .expect(200);
+
+    const res = await request(app)
+      .get('/api/governance/fusion/audit')
+      .expect(200);
+
+    expect(res.body.count).toBe(1);
+    expect(res.body.records[0].route).toBe('/api/governance/fusion/finance');
+  });
+
+  it('respects ?limit query parameter', async () => {
+    // Fire 5 requests
+    for (let i = 0; i < 5; i++) {
+      await request(app)
+        .post('/api/governance/fusion')
+        .send({
+          action: { type: 'READ' },
+          context: { testsPassing: true, rollbackPlanPresent: true },
+        })
+        .expect(200);
+    }
+
+    const res = await request(app)
+      .get('/api/governance/fusion/audit?limit=3')
+      .expect(200);
+
+    expect(res.body.count).toBe(5);
+    expect(res.body.records.length).toBe(3);
+  });
+
+  it('returns records newest-first', async () => {
+    const res1 = await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const res2 = await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'DEPLOY_PROD' },
+        context: {
+          riskScore: 0.5, mlConfidence: 0.7, testsPassing: true,
+          touchesCriticalPaths: true, targetEnvironment: 'prod',
+          destructive: false, rollbackPlanPresent: true, hasHumanApproval: false,
+        },
+      })
+      .expect(200);
+
+    const audit = await request(app)
+      .get('/api/governance/fusion/audit')
+      .expect(200);
+
+    // Most recent first
+    expect(audit.body.records[0].request_id).toBe(res2.body._requestId);
+    expect(audit.body.records[1].request_id).toBe(res1.body._requestId);
+  });
+});
+
+describe('P4: GET /api/governance/fusion/audit/:request_id', () => {
+
+  beforeEach(() => {
+    auditStore.clear();
+  });
+
+  it('returns 404 for unknown request_id', async () => {
+    const res = await request(app)
+      .get('/api/governance/fusion/audit/nonexistent-id')
+      .expect(404);
+
+    expect(res.body.ok).toBe(false);
+    expect(res.body.error).toContain('nonexistent-id');
+  });
+
+  it('retrieves specific audit record by request_id', async () => {
+    const post = await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const requestId = post.body._requestId;
+
+    const res = await request(app)
+      .get(`/api/governance/fusion/audit/${requestId}`)
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.record.request_id).toBe(requestId);
+    expect(res.body.record.decision).toBeDefined();
+    expect(res.body.record.stored_at).toBeDefined();
+  });
+
+  it('audit record fields match the fusion response', async () => {
+    const post = await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const requestId = post.body._requestId;
+    const res = await request(app)
+      .get(`/api/governance/fusion/audit/${requestId}`)
+      .expect(200);
+
+    const rec = res.body.record;
+    expect(rec.decision).toBe(post.body.decision);
+    expect(rec.risk_score).toBe(post.body.risk_score);
+    expect(rec.policy_version).toBe(post.body.policy_version);
   });
 });
