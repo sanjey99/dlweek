@@ -58,62 +58,48 @@
 
 | Test ID | Scenario | ML Expected | Backend Expected | UI Expected | Actual | Status | Evidence | Notes |
 |---|---|---|---|---|---|---|---|---|
-| INT-01 | Happy path (allow) | valid score + fresh ts | persisted allow state | allow shown, next-step enabled | TBD | PENDING | evidence/int-01/ | |
-| INT-02 | Review edge threshold | boundary confidence | review_required=true | review gate shown | TBD | PENDING | evidence/int-02/ | |
-| INT-03 | Block path | high-risk trigger | block + reason persisted | block banner + locked action | TBD | PENDING | evidence/int-03/ | |
-| INT-04 | Stale feed | stale ts (> policy) | stale_state=true + lock | stale badge + confirm disabled | TBD | PENDING | evidence/int-04/ | |
-| INT-05 | Injected timeout | normal ML | timeout handled, no false success | retry/error UX visible | TBD | PENDING | evidence/int-05/ | |
-| INT-06 | Contract mismatch | missing/renamed field | schema catch / safe fallback | graceful error, no crash | TBD | PENDING | evidence/int-06/ | |
-| INT-07 | Out-of-order events | older arrives late | no state regression | latest state retained | TBD | PENDING | evidence/int-07/ | |
-| INT-08 | Recovery after failure | retry with valid input | state reconciled | healthy UI restored | TBD | PENDING | evidence/int-08/ | |
+| INT-01 | Happy path (allow) | valid score + fresh ts | persisted allow state | allow shown, next-step enabled | `decision=allow`, `source=policy+ml`, `stale=false`, `risk_category=low` | PASS | `evidence/int-01/response.json` <!-- add UI screenshot path --> | requestId=`fusion-1772360793103-1` |
+| INT-02 | Review edge threshold | boundary confidence | review_required=true / review decision | review gate shown | `decision=review`, `source=policy+ml`, `stale=false`, `risk_category=high` | PASS | `evidence/int-02/response.json` <!-- add UI screenshot path --> | requestId=`fusion-1772360827705-2` |
+| INT-03 | Block path | high-risk trigger | block + reason persisted | block banner + locked action | Returned `decision=review` for `DELETE_RESOURCE` high-risk payload | FAIL | `evidence/int-03/response.json` <!-- add UI screenshot path --> | requestId=`fusion-1772360849941-3`; verify spec: expected block vs review-first policy |
+| INT-04 | Stale feed | stale ts (> policy) | stale_state=true + lock | stale badge + confirm disabled | TBD | PENDING | `evidence/int-04/` | Run with old timestamp payload |
+| INT-05 | Injected timeout | normal ML | timeout handled, no false success | retry/error UX visible | TBD | PENDING | `evidence/int-05/` | e.g. stop dependency once, trigger action |
+| INT-06 | Contract mismatch | missing/renamed field | schema catch / safe fallback | graceful error, no crash | TBD | PENDING | `evidence/int-06/` | Validate required fields handling |
+| INT-07 | Out-of-order events | older arrives late | no state regression | latest state retained | TBD | PENDING | `evidence/int-07/` | Send newer then older event |
+| INT-08 | Recovery after failure | retry with valid input | state reconciled | healthy UI restored | TBD | PENDING | `evidence/int-08/` | Post-failure retry validation |
 
 ### Release Gate Decision
 - Decision: **PENDING** (GO / NO-GO)
-- Rationale:
-- Date:
-- Owner:
+- Rationale: INT-01 and INT-02 passed; INT-03 currently fails expected block outcome (returned review). Remaining INT-04..08 pending.
+- Date: `2026-03-01`
+- Owner: `@xueqi`
 
 #### Blockers (hard stop)
-- [ ] <item + owner + fix recommendation + severity>
+- [ ] **Policy expectation mismatch on block path (INT-03)** — Owner: Backend/Governance — Recommendation: confirm intended rule for destructive action (`DELETE_RESOURCE`) and align implementation/docs — Severity: High (release-gate impacting if block is required by spec)
 
 #### Risks (known, mitigated)
-- [ ] <item + mitigation>
+- [ ] KPI cards clickability semantics unclear (drill-down expected or display-only); mitigation: confirm UX scope and label non-clickable cards explicitly if intended.
+- [ ] Profile submenu actions (settings/security/audit/API keys/logout) not yet verified as functional; mitigation: mark as out-of-scope for current demo if not required.
 
 #### Fallbacks / Recovery
-- [ ] <operator fallback path>
-- [ ] <rollback/read-only demo option>
+- [ ] Use known-good payload set for demo (allow/review) if block rule unresolved.
+- [ ] If runtime instability occurs, use operator retry flow + recorded evidence for failure/recovery path.
 
-### QA-DP1 Execution Update (Current)
+---
 
-#### Environment Readiness
+## QA-DP1 Execution Update (Current)
+
+### Environment Readiness
 - [x] Docker stack up (`db`, `ml-service` healthy; `backend`, `frontend` up)
-- Evidence: `docker compose ps` output (timestamped)
+- Evidence: `evidence/env/docker-ps.txt` <!-- add exact command output file -->
 
-#### UI Validation
+### UI Validation
+
 | ID | Check | Status | Evidence | Notes |
 |---|---|---|---|---|
-| UI-01 | Notification dismiss (`x`) works | PASS | evidence/ui-01/ | |
-| UI-02 | Light/Dark mode toggle works | PASS | evidence/ui-02/ | |
-| UI-03 | Live feed scroll + page scroll works | PASS | evidence/ui-03/ | |
-| UI-04 | Approve/Block actions in feed work | PASS | evidence/ui-04/ | |
-| UI-05 | Feed item opens/updates Active Review Panel | PASS | evidence/ui-05/ | |
-| UI-06 | Profile menu actions (settings/security/audit/API keys/logout) | PENDING | evidence/ui-06/ | Scope/implementation to confirm |
-| UI-07 | KPI cards clickability semantics | RISK | evidence/ui-07/ | Clarify if drill-down expected |
-
-#### Cross-Lane (ML ↔️ Backend ↔️ UI) — Pending Execution
-| ID | Scenario | Expected | Status | Evidence |
-|---|---|---|---|---|
-| INT-01 | Allow path | ML signal -> backend allow -> UI allow | PENDING | evidence/int-01/ |
-| INT-02 | Review threshold path | boundary signal -> review_required -> UI review gate | PENDING | evidence/int-02/ |
-| INT-03 | Block path | high-risk signal -> backend block -> UI block state | PENDING | evidence/int-03/ |
-| INT-04 | Stale feed | stale_state true + risky action locked in UI | PENDING | evidence/int-04/ |
-| INT-05 | Injected failure | timeout/error shows retry, no false success | PENDING | evidence/int-05/ |
-| INT-06 | Recovery | retry restores consistent final state | PENDING | evidence/int-06/ |
-
-#### Release Gate
-- Decision: **PENDING**
-- Blockers: TBD after INT-01..06
-- Risks:
-- KPI clickability semantics unclear (spec clarification)
-- Fallback:
-- Use known-good dataset + operator retry flow in demo
+| UI-01 | Notification dismiss (`x`) works | PASS | `evidence/ui-01/` | |
+| UI-02 | Light/Dark mode toggle works | PASS | `evidence/ui-02/` | |
+| UI-03 | Live feed scroll + page scroll works | PASS | `evidence/ui-03/` | |
+| UI-04 | Approve/Block actions in feed work | PASS | `evidence/ui-04/` | |
+| UI-05 | Feed item opens/updates Active Review Panel | PASS | `evidence/ui-05/` | |
+| UI-06 | Profile menu actions (settings/security/audit/API keys/logout) | PENDING | `evidence/ui-06/` | Scope/implementation to confirm |
+| UI-07 | KPI cards clickability semantics | RISK | `evidence/ui-07/` | Clarify if drill-down expected |
