@@ -6,6 +6,9 @@ import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
+import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
+import { validateFusionPayload } from './fusion/schema.js';
+import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate } from './fusion/compatAdapter.js';
 
 dotenv.config();
 const app = express();
@@ -124,6 +127,51 @@ app.post('/api/governance/policy-gate', handlePolicyGate);
 // Compatibility aliases during migration from prior route conventions.
 app.post('/api/policy/gate', handlePolicyGate);
 app.post('/api/risk/gate', handlePolicyGate);
+
+// ─── Fusion Evaluator (ARCH-CORE v2) ────────────────────────────────────────
+// Decision source-of-truth: merges policy rules + ML output into a single verdict.
+function handleFusionEvaluate(req, res) {
+  const validationError = validateFusionPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const fusionResult = fusionEvaluate(req.body);
+  return res.json({ ok: true, ...fusionResult });
+}
+
+app.post('/api/governance/fusion', handleFusionEvaluate);
+
+// ─── Compatibility Adapters (Fusion-backed legacy routes) ────────────────────
+// These re-route old policy/risk gate calls through the fusion evaluator
+// and shape the response back to the legacy contract.
+function handleLegacyViaFusion(req, res) {
+  // Validate using the original policy-gate validator for backward compat
+  const validationError = validatePolicyGatePayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const fusionInput = legacyPolicyGateToFusion(req.body);
+  const fusionResult = fusionEvaluate(fusionInput);
+  const legacyShape = fusionToLegacyPolicyGate(fusionResult);
+  return res.json({
+    ok: true,
+    packetId: 'BE-P1',
+    evaluatedAt: fusionResult.timestamp,
+    ...legacyShape,
+    migration: {
+      strategy: 'fusion-compat',
+      notes: 'Legacy route now backed by Fusion Evaluator. Response shape preserved.',
+      fusionSource: fusionResult.source,
+    },
+  });
+}
+
+// Legacy aliases now route through fusion (non-breaking: same response shape)
+app.post('/api/governance/policy-gate/v2', handleLegacyViaFusion);
+app.post('/api/policy/gate/v2', handleLegacyViaFusion);
+app.post('/api/risk/gate/v2', handleLegacyViaFusion);
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws/signals' });
