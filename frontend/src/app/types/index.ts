@@ -7,6 +7,9 @@ export type RiskStatus =
   | 'LOW_RISK'
   | 'APPROVED';
 
+/** UI-level panel states for truthfulness layer */
+export type PanelState = 'loading' | 'live' | 'stale' | 'error';
+
 export interface ActionItem {
   id: string;
   timestamp: string;
@@ -16,6 +19,8 @@ export interface ActionItem {
   riskStatus: RiskStatus;
   riskScore: number;
   flagReasons: string[];
+  /** Attribution: which ML model / pipeline produced this score */
+  source?: string;
 }
 
 export interface Theme {

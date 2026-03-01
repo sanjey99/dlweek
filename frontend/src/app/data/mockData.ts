@@ -9,6 +9,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'HIGH_RISK_PENDING',
     riskScore: 94,
+    source: 'sentinel-ml-v3.2 · policy-engine',
     flagReasons: [
       'Destructive SQL operation detected (DROP TABLE)',
       'Target environment is Production — irreversible action',
@@ -23,6 +24,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'APPROVED',
     riskScore: 6,
+    source: 'sentinel-ml-v3.2 · auto-approve',
     flagReasons: [],
   },
   {
@@ -33,6 +35,7 @@ export const mockActions: ActionItem[] = [
     environment: 'STAGING',
     riskStatus: 'MEDIUM_RISK_PENDING',
     riskScore: 52,
+    source: 'sentinel-ml-v3.2 · policy-engine',
     flagReasons: [
       'Bulk deletion operation affecting multiple system files',
       'Potential log loss if retention policy is misconfigured',
@@ -47,6 +50,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'HIGH_RISK_BLOCKED',
     riskScore: 99,
+    source: 'sentinel-ml-v3.2 · auto-block',
     flagReasons: [
       'Mass privilege escalation across all user accounts',
       'Targets production API endpoint — immediate blast radius',
@@ -61,6 +65,7 @@ export const mockActions: ActionItem[] = [
     environment: 'STAGING',
     riskStatus: 'LOW_RISK',
     riskScore: 3,
+    source: 'sentinel-ml-v3.2 · auto-approve',
     flagReasons: [],
   },
   {
@@ -71,6 +76,7 @@ export const mockActions: ActionItem[] = [
     environment: 'STAGING',
     riskStatus: 'APPROVED',
     riskScore: 14,
+    source: 'sentinel-ml-v3.2 · auto-approve',
     flagReasons: [],
   },
   {
@@ -81,6 +87,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'HIGH_RISK_PENDING',
     riskScore: 81,
+    source: 'sentinel-ml-v3.2 · policy-engine',
     flagReasons: [
       'Model deployment to production without staged rollout',
       'New model version lacks A/B test approval sign-off',
@@ -95,6 +102,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'MEDIUM_RISK_PENDING',
     riskScore: 47,
+    source: 'sentinel-ml-v3.2 · policy-engine',
     flagReasons: [
       'Truncation will immediately invalidate all active user sessions',
       'No maintenance window scheduled for this operation',
@@ -109,6 +117,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'HIGH_RISK_BLOCKED',
     riskScore: 97,
+    source: 'sentinel-ml-v3.2 · compliance-COMP-004',
     flagReasons: [
       'Sending email to non-opted-in users violates CAN-SPAM / GDPR',
       'Target list contains 84,211 unsubscribed recipients',
@@ -123,6 +132,7 @@ export const mockActions: ActionItem[] = [
     environment: 'STAGING',
     riskStatus: 'APPROVED',
     riskScore: 4,
+    source: 'sentinel-ml-v3.2 · auto-approve',
     flagReasons: [],
   },
   {
@@ -133,6 +143,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'APPROVED',
     riskScore: 19,
+    source: 'sentinel-ml-v3.2 · auto-approve',
     flagReasons: [],
   },
   {
@@ -143,6 +154,7 @@ export const mockActions: ActionItem[] = [
     environment: 'PROD',
     riskStatus: 'MEDIUM_RISK_PENDING',
     riskScore: 58,
+    source: 'sentinel-ml-v3.2 · policy-engine',
     flagReasons: [
       'Schema migration on production database without migration plan',
       'Payments table has 48M rows — potential lock contention',
