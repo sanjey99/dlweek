@@ -17,6 +17,7 @@
 | Route | Backed By | Response Shape | Status |
 |-------|-----------|----------------|--------|
 | `POST /api/governance/fusion` | Fusion Evaluator | Fusion envelope | **New** |
+| `POST /api/governance/fusion/finance` | Finance adapter → Fusion | Fusion + deprecation | **DP1** |
 | `POST /api/governance/policy-gate` | Policy Gate (direct) | Legacy | Unchanged |
 | `POST /api/policy/gate` | Policy Gate (direct) | Legacy | Unchanged |
 | `POST /api/risk/gate` | Policy Gate (direct) | Legacy | Unchanged |
@@ -29,11 +30,16 @@
 - [x] **curl allow**: `action.type = "READ"`, low-risk context → `decision: "allow"`
 - [x] **curl review**: `action.type = "DEPLOY_PROD"`, moderate ML risk → `decision: "review"`
 - [x] **curl block**: `action.type = "DELETE_RESOURCE"`, high ML risk, destructive → `decision: "block"`
-- [x] **Schema stable**: all 8 required output fields present (`decision`, `reason_tags`, `risk_category`, `risk_score`, `uncertainty`, `source`, `timestamp`, `stale_state`)
+- [x] **Schema stable**: all 10 required output fields present (`decision`, `reason_tags`, `risk_category`, `risk_score`, `uncertainty`, `source`, `timestamp`, `stale_state`, `policy_version`, `model_version`)
 - [x] **Source truthful**: `source` accurately reflects whether ML was provided / stale
 - [x] **Timestamp truthful**: `timestamp` is server-side evaluation time
 - [x] **stale_state truthful**: reflects actual ML timestamp age (> 60 s = stale)
 - [x] **Compatibility**: legacy routes return identical shape to before
+- [x] **DP1: policy_version**: present in every fusion response as a semver string
+- [x] **DP1: model_version**: extracted from ml_output or `"unavailable"`
+- [x] **DP1: Hard-policy-first**: destructive prod delete + unapproved secret rotation → immediate block before ML
+- [x] **DP1: Uncertainty guard**: high uncertainty + non-trivial risk → escalate allow to review
+- [x] **DP1: Finance adapter**: `/api/governance/fusion/finance` accepts legacy finance payloads with deprecation notice
 
 ## Rollback
 
@@ -56,7 +62,7 @@
 ### Test Suite
 **File**: `backend/test/integration/fusion.routes.test.js`
 **Runner**: vitest + supertest
-**Result**: 42/42 passing (+ 5 unit tests in `fusionEvaluator.test.js`)
+**Result**: 54/54 passing (+ 14 unit tests in `fusionEvaluator.test.js`) = **68 total**
 
 ### Coverage Matrix
 
@@ -69,6 +75,10 @@
 | `POST /api/governance/policy-gate/v2` — legacy shape | 8 | ✅ |
 | `POST /api/policy/gate/v2` — legacy shape | 8 | ✅ |
 | `POST /api/risk/gate/v2` — legacy shape | 8 | ✅ |
+| **DP1: policy_version + model_version** | 3 | ✅ |
+| **DP1: Hard-policy-first block** | 4 | ✅ |
+| **DP1: Uncertainty guard** | 2 | ✅ |
+| **DP1: Finance legacy adapter** | 3 | ✅ |
 
 ### Curl Proof — Allow
 ```bash

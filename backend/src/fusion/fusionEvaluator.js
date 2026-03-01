@@ -1,16 +1,39 @@
 /**
- * Fusion Evaluator – Core engine
+ * Fusion Evaluator – Core engine  (DP1 — deploy-ready)
  *
  * Decision source-of-truth: merges deterministic policy rules with ML output
  * to produce a single governance verdict.
  *
  * Input  : { action, context, ml_output? }
  * Output : { decision, reason_tags, risk_category, risk_score, uncertainty,
- *            source, timestamp, stale_state }
+ *            source, timestamp, stale_state, policy_version, model_version }
  */
 
 import { evaluatePolicyGate } from '../engine/policyGate.js';
 import { VALID_DECISIONS, RISK_CATEGORIES } from './schema.js';
+
+// ─── versioning ────────────────────────────────────────────────────────────────
+
+/** Bump when decision logic or thresholds change. */
+export const POLICY_VERSION = '1.1.0';
+
+// ─── hard-policy blocklist ─────────────────────────────────────────────────────
+/**
+ * Actions that are unconditionally blocked when paired with specific context.
+ * These run BEFORE any ML fusion — ML cannot override hard policy.
+ */
+const HARD_BLOCK_RULES = [
+  {
+    match: (action, ctx) =>
+      action.type === 'DELETE_RESOURCE' && ctx.targetEnvironment === 'prod' && ctx.destructive === true,
+    tag: 'HARD_BLOCK_DESTRUCTIVE_PROD_DELETE',
+  },
+  {
+    match: (action, ctx) =>
+      action.type === 'ROTATE_SECRET' && ctx.targetEnvironment === 'prod' && !ctx.hasHumanApproval,
+    tag: 'HARD_BLOCK_UNAPPROVED_SECRET_ROTATION',
+  },
+];
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
 
@@ -75,6 +98,38 @@ export function evaluate(input) {
   const { action, context, ml_output: mlRaw } = input;
   const reasons = [];
 
+  // Resolve action type for hard-policy matching
+  const actionType = (typeof action?.type === 'string' ? action.type : '').trim().toUpperCase().replaceAll('-', '_');
+
+  // ── 0. Hard-policy constraints (run FIRST — ML cannot override) ───────────
+  for (const rule of HARD_BLOCK_RULES) {
+    if (rule.match({ ...action, type: actionType }, context || {})) {
+      pushReason(reasons, rule.tag);
+      pushReason(reasons, 'HARD_POLICY_BLOCK');
+      const timestamp = new Date().toISOString();
+      const modelVersion = mlRaw?.model_version ?? mlRaw?.modelVersion ?? 'unavailable';
+      return {
+        decision: 'block',
+        reason_tags: reasons,
+        risk_category: 'critical',
+        risk_score: 1,
+        uncertainty: 0,
+        source: 'policy-only',
+        timestamp,
+        stale_state: 'unknown',
+        threshold_ms: DEFAULT_STALE_THRESHOLD_MS,
+        stale: true,
+        policy_version: POLICY_VERSION,
+        model_version: modelVersion,
+        detail: {
+          policy: { decision: 'block', hard_block: true, rule_tag: rule.tag },
+          ml: null,
+          weights: { policy: 1, ml: 0 },
+        },
+      };
+    }
+  }
+
   // ── 1. Policy-gate evaluation ─────────────────────────────────────────────
   const policyResult = evaluatePolicyGate({ action, context });
 
@@ -130,6 +185,12 @@ export function evaluate(input) {
     pushReason(reasons, 'HUMAN_APPROVAL_OVERRIDE');
   }
 
+  // ── 5b. Uncertainty guard — high uncertainty cannot auto-allow non-trivial risk
+  if (decision === 'allow' && uncertainty >= 0.5 && fusedRisk >= 0.3) {
+    decision = 'review';
+    pushReason(reasons, 'UNCERTAINTY_GUARD_ESCALATION');
+  }
+
   // ── 6. Collect reason tags ────────────────────────────────────────────────
   // Inherit from policy gate
   if (policyResult.reasonTags) policyResult.reasonTags.forEach((t) => pushReason(reasons, t));
@@ -145,6 +206,9 @@ export function evaluate(input) {
   // ── 7. Build envelope ─────────────────────────────────────────────────────
   const source = resolveSource(true, mlProvided, mlStale);
   const timestamp = new Date().toISOString();
+  const modelVersion = mlProvided
+    ? (mlRaw.model_version ?? mlRaw.modelVersion ?? 'unavailable')
+    : 'unavailable';
 
   return {
     decision,
@@ -158,6 +222,9 @@ export function evaluate(input) {
     threshold_ms: DEFAULT_STALE_THRESHOLD_MS,
     // backward compat boolean
     stale: freshness.state !== 'fresh',
+    // DP1 additions
+    policy_version: POLICY_VERSION,
+    model_version: modelVersion,
     // Extended detail (non-breaking additions)
     detail: {
       policy: {

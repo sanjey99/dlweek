@@ -6,7 +6,13 @@ import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
+<<<<<<< HEAD
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
+=======
+import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
+import { validateFusionPayload } from './fusion/schema.js';
+import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
+>>>>>>> 6b9e9e8 (feat(arch-core): ARCH-CORE-DP1 fusion decision backbone deploy-ready)
 
 dotenv.config();
 const app = express();
@@ -176,6 +182,29 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
   } catch (e) {
     return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
   }
+});
+
+// ─── Finance legacy adapter (ARCH-CORE-DP1) ─────────────────────────────────
+// Accepts old finance-style payloads, converts to fusion input, returns fusion
+// envelope.  Logs a deprecation warning for migration visibility.
+app.post('/api/governance/fusion/finance', (req, res) => {
+  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body);
+
+  // If the body doesn't look like a finance payload, fall through to standard fusion
+  if (!fusionInput) return handleFusionEvaluate(req, res);
+
+  const validationError = validateFusionPayload(fusionInput);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const fusionResult = fusionEvaluate(fusionInput);
+  return res.json({
+    ok: true,
+    ...fusionResult,
+    _deprecated: deprecated,
+    _migration_note: 'Migrate to POST /api/governance/fusion with { action, context, ml_output } shape.',
+  });
 });
 
 const port = process.env.PORT || 4000;

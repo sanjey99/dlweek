@@ -40,13 +40,15 @@ export function validateFusionPayload(body) {
  * Used in tests / self-repair assertions.
  */
 export function assertFusionResponseShape(resp) {
-  const required = ['decision', 'reason_tags', 'risk_category', 'risk_score', 'uncertainty', 'source', 'timestamp', 'stale_state'];
+  const required = ['decision', 'reason_tags', 'risk_category', 'risk_score', 'uncertainty', 'source', 'timestamp', 'stale_state', 'policy_version', 'model_version'];
   const missing = required.filter((k) => !(k in resp));
   if (missing.length) throw new Error(`Fusion response missing fields: ${missing.join(', ')}`);
   if (!VALID_DECISIONS.includes(resp.decision)) throw new Error(`Invalid decision: ${resp.decision}`);
   if (!RISK_CATEGORIES.includes(resp.risk_category)) throw new Error(`Invalid risk_category: ${resp.risk_category}`);
   if (!STALE_STATES.includes(resp.stale_state)) throw new Error(`Invalid stale_state: ${resp.stale_state}`);
   if (!Array.isArray(resp.reason_tags)) throw new Error('reason_tags must be an array');
+  if (typeof resp.policy_version !== 'string') throw new Error('policy_version must be a string');
+  if (typeof resp.model_version !== 'string') throw new Error('model_version must be a string');
   return true;
 }
 
