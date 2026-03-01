@@ -52,6 +52,13 @@ const STATUS_CONFIG: Record<
     icon: <CheckCircle2 size={11} />,
     dotColor: COLORS.green,
   },
+  ESCALATED: {
+    label: 'ESCALATED',
+    color: COLORS.amber,
+    bg: COLORS.amberMuted,
+    icon: <AlertTriangle size={11} />,
+    dotColor: COLORS.amber,
+  },
 };
 
 function StatusBadge({ status }: { status: RiskStatus }) {

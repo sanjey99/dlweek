@@ -5,7 +5,8 @@ export type RiskStatus =
   | 'HIGH_RISK_BLOCKED'
   | 'MEDIUM_RISK_PENDING'
   | 'LOW_RISK'
-  | 'APPROVED';
+  | 'APPROVED'
+  | 'ESCALATED';
 
 /** UI-level panel states for truthfulness layer */
 export type PanelState = 'loading' | 'live' | 'stale' | 'error';

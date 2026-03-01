@@ -3,15 +3,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
-import { getMarketSnapshot } from './adapters/marketData.js';
-import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
-import { createRealtimeIntegrityTracker } from './engine/realtimeIntegrity.js';
 import {
   buildFallbackMlAssessment,
   normalizeMlAssessmentForEnsemble,
-  validateStrictMlContract,
+  validateMlClassifyResponse,
 } from './engine/mlContract.js';
 import { evaluate as fusionEvaluate, POLICY_VERSION } from './fusion/fusionEvaluator.js';
 import { validateFusionPayload } from './fusion/schema.js';
@@ -23,28 +20,149 @@ import { auditStore } from './fusion/fusionAuditStore.js';
 dotenv.config();
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
-const realtimeTracker = createRealtimeIntegrityTracker({ staleAfterMs: 7000 });
 
-const DEMO_CASES = [
-  { name: 'normal_profile', features: [0.12, 0.08, -0.1, 0.03, 0.15, -0.06, 0.02, 0.01] },
-  { name: 'suspicious_profile', features: [1.2, 0.95, -0.45, 0.3, 0.1, 1.1, 0.2, 0.5] },
-  { name: 'portfolio_stress', features: [0.6, 0.7, -0.3, 0.5, -0.4, 0.9, -0.2, 0.1] },
-];
+// ─── In-memory action store for real-time dashboard ──────────────────────────
+const actionStore = [];
+let actionIdCounter = 0;
 
-function validPayload(body) {
-  if (!body || !Array.isArray(body.features)) return 'features must be an array';
-  if (body.features.length < 1 || body.features.length > 64) return 'features length must be 1..64';
-  if (!body.features.every((x) => Number.isFinite(Number(x)))) return 'features must contain only numbers';
-  return null;
+// ─── WebSocket client tracking ───────────────────────────────────────────────
+const wsClients = new Set();
+
+function broadcastToClients(message) {
+  const payload = JSON.stringify(message);
+  for (const ws of wsClients) {
+    if (ws.readyState === 1) { // WebSocket.OPEN
+      ws.send(payload);
+    }
+  }
 }
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'backend' }));
-app.get('/api/demo-cases', (_req, res) => res.json({ ok: true, cases: DEMO_CASES }));
+// ─── Map ML risk category to frontend risk status ────────────────────────────
+function mapToRiskStatus(riskCategory, recommendation) {
+  if (riskCategory === 'high' || recommendation === 'block') {
+    return recommendation === 'block' ? 'HIGH_RISK_BLOCKED' : 'HIGH_RISK_PENDING';
+  }
+  if (riskCategory === 'medium' || recommendation === 'review') {
+    return 'MEDIUM_RISK_PENDING';
+  }
+  return 'LOW_RISK';
+}
 
+function riskScoreTo100(score01) {
+  return Math.round(score01 * 100);
+}
+
+// ─── Core: classify an action via ML service ─────────────────────────────────
+async function classifyAction(actionData) {
+  const text = (actionData.description || '') + ' ' + (actionData.proposed_action || actionData.proposedAction || '');
+  const context = actionData.context || null;
+
+  try {
+    const mlResp = await fetch(`${ML_URL}/classify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, context }),
+    });
+    const mlData = await mlResp.json();
+
+    if (!mlResp.ok || mlData.fallback_used) {
+      return buildFallbackMlAssessment({ reason: 'ML_CLASSIFY_FAILED' });
+    }
+
+    return mlData;
+  } catch (e) {
+    console.error('[classifyAction] ML service error:', e.message);
+    return buildFallbackMlAssessment({ reason: 'ML_SERVICE_UNREACHABLE' });
+  }
+}
+
+// ─── Core: process a single action through the full pipeline ─────────────────
+async function processAction(actionData) {
+  // 1. Classify via ML
+  const mlResult = await classifyAction(actionData);
+
+  // 2. Run fusion evaluator (policy + ML)
+  const fusionInput = {
+    action: { type: actionData.action_type || actionData.actionType || 'UNKNOWN' },
+    context: {
+      ...(actionData.context || {}),
+      targetEnvironment: actionData.context?.targetEnvironment || actionData.environment?.toLowerCase() || 'staging',
+      riskScore: mlResult.risk_score,
+      mlConfidence: mlResult.confidence,
+    },
+    ml_output: {
+      risk_score: mlResult.risk_score,
+      confidence: mlResult.confidence,
+      uncertainty: mlResult.uncertainty,
+      label: mlResult.label || mlResult.risk_category,
+      recommendation: mlResult.recommendation,
+      model_version: mlResult.model_version,
+      timestamp: mlResult.timestamp || new Date().toISOString(),
+    },
+  };
+
+  const fusionResult = fusionEvaluate(fusionInput);
+
+  // 3. Build the action record for the dashboard
+  actionIdCounter += 1;
+  const now = new Date();
+  const actionRecord = {
+    id: `act-${String(actionIdCounter).padStart(4, '0')}`,
+    timestamp: now.toTimeString().slice(0, 8),
+    timestampISO: now.toISOString(),
+    agentName: actionData.agent_name || actionData.agentName || 'unknown-agent',
+    proposedAction: actionData.proposed_action || actionData.proposedAction || '',
+    environment: (actionData.environment || 'STAGING').toUpperCase(),
+    riskStatus: mapToRiskStatus(mlResult.risk_category, fusionResult.decision),
+    riskScore: riskScoreTo100(fusionResult.risk_score),
+    source: `${mlResult.model_version} · ${fusionResult.source}`,
+    flagReasons: fusionResult.reason_tags.filter(t =>
+      !['FUSED_RISK_ACCEPTABLE', 'RISK_WITHIN_POLICY'].includes(t)
+    ),
+    description: actionData.description || '',
+    mlResult: {
+      risk_category: mlResult.risk_category,
+      risk_score: mlResult.risk_score,
+      confidence: mlResult.confidence,
+      uncertainty: mlResult.uncertainty,
+      recommendation: mlResult.recommendation,
+    },
+    fusionResult: {
+      decision: fusionResult.decision,
+      risk_score: fusionResult.risk_score,
+      risk_category: fusionResult.risk_category,
+      uncertainty: fusionResult.uncertainty,
+    },
+  };
+
+  // 4. Store and audit
+  actionStore.unshift(actionRecord); // newest first
+  if (actionStore.length > 500) actionStore.pop(); // cap
+
+  const requestId = generateRequestId();
+  recordDecision(fusionResult);
+  logDecision({ requestId, route: '/api/actions/submit', fusionResult, durationMs: 0, clientIp: 'internal' });
+  auditStore.append({
+    request_id: requestId, decision: fusionResult.decision, reason_tags: fusionResult.reason_tags,
+    risk_score: fusionResult.risk_score, uncertainty: fusionResult.uncertainty, stale_state: fusionResult.stale_state,
+    source: fusionResult.source, policy_version: fusionResult.policy_version, model_version: fusionResult.model_version,
+    timestamp: fusionResult.timestamp, route: '/api/actions/submit',
+  });
+
+  // 5. Broadcast to WebSocket clients
+  broadcastToClients({ type: 'new_action', action: actionRecord });
+
+  return actionRecord;
+}
+
+// ─── Health ──────────────────────────────────────────────────────────────────
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'backend' }));
+
+// ─── ML service proxy ────────────────────────────────────────────────────────
 app.get('/api/model-info', async (_req, res) => {
   try {
     const r = await fetch(`${ML_URL}/model/info`);
@@ -55,14 +173,17 @@ app.get('/api/model-info', async (_req, res) => {
   }
 });
 
-app.get('/api/markets/snapshot', async (_req, res) => {
-  const markets = await getMarketSnapshot();
-  return res.json({ ok: true, markets });
-});
-
-app.get('/api/simulate', async (_req, res) => {
+app.post('/api/classify', async (req, res) => {
   try {
-    const r = await fetch(`${ML_URL}/simulate`);
+    const { text, features } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ ok: false, error: 'text must be a non-empty string' });
+    }
+    const r = await fetch(`${ML_URL}/classify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, features }),
+    });
     const data = await r.json();
     return res.json({ ok: true, ...data });
   } catch (e) {
@@ -70,274 +191,198 @@ app.get('/api/simulate', async (_req, res) => {
   }
 });
 
-app.post('/api/infer', async (req, res) => {
+// ─── Action submission (single) ──────────────────────────────────────────────
+app.post('/api/actions/submit', async (req, res) => {
   try {
-    const err = validPayload(req.body);
-    if (err) return res.status(400).json({ ok: false, error: err });
-    const payload = { features: req.body.features.map((x) => Number(x)) };
-    const r = await fetch(`${ML_URL}/infer`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-    });
-    const data = await r.json();
-    if (!r.ok) return res.status(r.status).json({ ok: false, ...data });
-
-    const contract = validateStrictMlContract(data);
-    if (!contract.ok) {
-      const fallback = buildFallbackMlAssessment({
-        reason: `ML_RESPONSE_INVALID:${contract.error}`,
-      });
-      return res.status(502).json({
-        ok: false,
-        packetId: 'BE-P3',
-        error: contract.error,
-        fallback,
-      });
+    const actionData = req.body;
+    if (!actionData || typeof actionData !== 'object') {
+      return res.status(400).json({ ok: false, error: 'body must be a JSON object' });
+    }
+    if (!actionData.proposed_action && !actionData.proposedAction) {
+      return res.status(400).json({ ok: false, error: 'proposed_action is required' });
     }
 
-    return res.json({
-      ok: true,
-      packetId: 'BE-P3',
-      ...contract.value,
-      ml_contract: { strict_valid: true },
-    });
+    const record = await processAction(actionData);
+    return res.json({ ok: true, action: record });
   } catch (e) {
+    console.error('[submit]', e);
     return res.status(500).json({ ok: false, error: String(e) });
   }
 });
 
-app.post('/api/ensemble', async (req, res) => {
+// ─── Batch upload with simulated delay ───────────────────────────────────────
+// Accepts { actions: [...], delay_ms?: number }
+// Processes each action with delay, broadcasting each via WebSocket
+const uploadSessions = new Map();
+
+app.post('/api/actions/upload', async (req, res) => {
   try {
-    const err = validPayload(req.body);
-    if (err) return res.status(400).json({ ok: false, error: err });
+    const { actions, delay_ms = 2000 } = req.body;
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return res.status(400).json({ ok: false, error: 'actions must be a non-empty array' });
+    }
 
-    const inferResp = await fetch(`${ML_URL}/infer`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ features: req.body.features })
-    });
-    const anomalyRaw = await inferResp.json();
-    const normalized = normalizeMlAssessmentForEnsemble({
-      responseOk: inferResp.ok,
-      responseStatus: inferResp.status,
-      responseBody: anomalyRaw,
-    });
+    const sessionId = `upload_${Date.now()}`;
+    const delay = Math.max(500, Math.min(10000, Number(delay_ms) || 2000));
 
-    const markets = await getMarketSnapshot();
-    const regime = inferRegime(markets);
-    const ensemble = runEnsemble({ anomaly: normalized.anomaly, regime });
-
-    return res.json({
+    // Return immediately with session info
+    res.json({
       ok: true,
-      packetId: 'BE-P3',
-      markets,
-      ...ensemble,
-      ml_contract: normalized.mlContract,
+      sessionId,
+      total: actions.length,
+      delay_ms: delay,
+      message: `Processing ${actions.length} actions with ${delay}ms delay each`,
     });
+
+    // Process actions in background with delay
+    uploadSessions.set(sessionId, { total: actions.length, processed: 0, status: 'running' });
+
+    for (let i = 0; i < actions.length; i++) {
+      await processAction(actions[i]);
+      uploadSessions.get(sessionId).processed = i + 1;
+
+      // Broadcast progress
+      broadcastToClients({
+        type: 'upload_progress',
+        sessionId,
+        processed: i + 1,
+        total: actions.length,
+      });
+
+      // Delay between actions (except after last)
+      if (i < actions.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    uploadSessions.get(sessionId).status = 'completed';
+    broadcastToClients({ type: 'upload_complete', sessionId, total: actions.length });
+  } catch (e) {
+    console.error('[upload]', e);
+    // Response already sent — just log
+  }
+});
+
+app.get('/api/actions/upload/:sessionId', (req, res) => {
+  const session = uploadSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).json({ ok: false, error: 'session not found' });
+  return res.json({ ok: true, ...session });
+});
+
+// ─── Action list (for frontend polling / initial load) ───────────────────────
+app.get('/api/actions', (req, res) => {
+  const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+  return res.json({
+    ok: true,
+    total: actionStore.length,
+    actions: actionStore.slice(0, limit),
+  });
+});
+
+// ─── Action resolution (approve / block / escalate) ──────────────────────────
+app.post('/api/actions/:id/approve', (req, res) => {
+  const action = actionStore.find(a => a.id === req.params.id);
+  if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
+  action.riskStatus = 'APPROVED';
+  broadcastToClients({ type: 'action_updated', action });
+  return res.json({ ok: true, action });
+});
+
+app.post('/api/actions/:id/block', (req, res) => {
+  const action = actionStore.find(a => a.id === req.params.id);
+  if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
+  action.riskStatus = 'HIGH_RISK_BLOCKED';
+  broadcastToClients({ type: 'action_updated', action });
+  return res.json({ ok: true, action });
+});
+
+app.post('/api/actions/:id/escalate', (req, res) => {
+  const action = actionStore.find(a => a.id === req.params.id);
+  if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
+  action.riskStatus = 'ESCALATED';
+  broadcastToClients({ type: 'action_updated', action });
+  return res.json({ ok: true, action });
+});
+
+// ─── Accuracy test proxy ────────────────────────────────────────────────────
+app.post('/api/accuracy', async (req, res) => {
+  try {
+    const r = await fetch(`${ML_URL}/accuracy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body),
+    });
+    const data = await r.json();
+    return res.json({ ok: true, ...data });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });
   }
 });
 
-app.post('/api/scenario/run', async (req, res) => {
-  const scenario = req.body?.scenario || 'volatility-spike';
-  const markets = await getMarketSnapshot();
-  const shock = scenario === 'rate-hike' ? 1.15 : scenario === 'liquidity-crunch' ? 1.25 : 1.35;
-  const stressed = markets.map((m) => ({ ...m, changePct: +(m.changePct * shock).toFixed(2) }));
-  const regime = inferRegime(stressed);
-  return res.json({ ok: true, scenario, before: markets, after: stressed, regime });
-});
-
+// ─── Policy gate (legacy compatibility) ──────────────────────────────────────
 function handlePolicyGate(req, res) {
   const validationError = validatePolicyGatePayload(req.body);
   if (validationError) {
     return res.status(400).json({ ok: false, error: validationError });
   }
-
   const verdict = evaluatePolicyGate(req.body);
-  return res.json({
-    ok: true,
-    packetId: 'BE-P1',
-    evaluatedAt: new Date().toISOString(),
-    ...verdict,
-    migration: {
-      strategy: 'revamp',
-      notes: 'Endpoint added alongside existing routes; no destructive rewrites.',
-    },
-  });
+  return res.json({ ok: true, packetId: 'BE-P1', evaluatedAt: new Date().toISOString(), ...verdict });
 }
 
-// ─── Fusion Evaluator routes (ARCH-CORE + P3 observability + P4 audit) ──────
+app.post('/api/governance/policy-gate', handlePolicyGate);
+app.post('/api/policy/gate', handlePolicyGate);
 
+// ─── Fusion evaluator endpoints ──────────────────────────────────────────────
 function handleFusionEvaluate(req, res) {
   const requestId = generateRequestId();
   const t0 = Date.now();
-
   const validationError = validateFusionPayload(req.body);
   if (validationError) {
     metricsIncrement('errors');
     return res.status(400).json({ ok: false, error: validationError });
   }
-
   const result = fusionEvaluate(req.body);
   const durationMs = Date.now() - t0;
-
-  // P3: structured logging + metrics
   recordDecision(result);
   logDecision({ requestId, route: req.path, fusionResult: result, durationMs, clientIp: req.ip });
-
-  // P4: audit trail
   auditStore.append({
     request_id: requestId, decision: result.decision, reason_tags: result.reason_tags,
     risk_score: result.risk_score, uncertainty: result.uncertainty, stale_state: result.stale_state,
     source: result.source, policy_version: result.policy_version, model_version: result.model_version,
     timestamp: result.timestamp, route: req.path,
   });
-
   return res.json({ ok: true, ...result, _requestId: requestId });
 }
+
+app.post('/api/governance/fusion', handleFusionEvaluate);
 
 function handleLegacyViaFusion(req, res) {
   const requestId = generateRequestId();
   const t0 = Date.now();
-
   const fusionInput = legacyPolicyGateToFusion(req.body);
   const validationError = validateFusionPayload(fusionInput);
   if (validationError) {
     metricsIncrement('errors');
     return res.status(400).json({ ok: false, error: validationError });
   }
-
   const fusionResult = fusionEvaluate(fusionInput);
   const durationMs = Date.now() - t0;
-
-  // P3: structured logging + metrics
   recordDecision(fusionResult);
   logDecision({ requestId, route: req.path, fusionResult, durationMs, clientIp: req.ip });
-
-  // P4: audit trail
   auditStore.append({
     request_id: requestId, decision: fusionResult.decision, reason_tags: fusionResult.reason_tags,
     risk_score: fusionResult.risk_score, uncertainty: fusionResult.uncertainty, stale_state: fusionResult.stale_state,
     source: fusionResult.source, policy_version: fusionResult.policy_version, model_version: fusionResult.model_version,
     timestamp: fusionResult.timestamp, route: req.path,
   });
-
   const legacy = fusionToLegacyPolicyGate(fusionResult);
-  return res.json({
-    ok: true,
-    packetId: 'BE-P1',
-    evaluatedAt: new Date().toISOString(),
-    ...legacy,
-    migration: {
-      strategy: 'fusion-compat',
-      fusionSource: fusionResult.source,
-      notes: 'Endpoint added alongside existing routes; no destructive rewrites.',
-    },
-  });
+  return res.json({ ok: true, packetId: 'BE-P1', evaluatedAt: new Date().toISOString(), ...legacy });
 }
 
-// Primary governance endpoint.
-app.post('/api/governance/policy-gate', handlePolicyGate);
-// Compatibility aliases during migration from prior route conventions.
-app.post('/api/policy/gate', handlePolicyGate);
-app.post('/api/risk/gate', handlePolicyGate);
-
-// Fusion evaluator endpoints.
-app.post('/api/governance/fusion', handleFusionEvaluate);
 app.post('/api/governance/policy-gate/v2', handleLegacyViaFusion);
 app.post('/api/policy/gate/v2', handleLegacyViaFusion);
-app.post('/api/risk/gate/v2', handleLegacyViaFusion);
 
-app.post('/api/governance/actions/propose', (req, res) => {
-  try {
-    const result = policyEnforcement.propose(req.body);
-    return res.json({ ok: true, ...result });
-  } catch (e) {
-    return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
-  }
-});
-
-function resolveActionFromRequest(req, res, resolution) {
-  try {
-    const result = policyEnforcement.resolve(req.body, resolution);
-    return res.json({ ok: true, ...result });
-  } catch (e) {
-    return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
-  }
-}
-
-app.post('/api/action/approve', (req, res) => {
-  return resolveActionFromRequest(
-    req,
-    res,
-    'approve',
-  );
-});
-
-app.post('/api/action/block', (req, res) => {
-  return resolveActionFromRequest(
-    req,
-    res,
-    'block',
-  );
-});
-
-app.post('/api/action/escalate', (req, res) => {
-  return resolveActionFromRequest(
-    req,
-    res,
-    'escalate',
-  );
-});
-
-app.get('/api/governance/actions/:actionId', (req, res) => {
-  try {
-    const result = policyEnforcement.detail(req.params.actionId);
-    return res.json({ ok: true, ...result });
-  } catch (e) {
-    return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
-  }
-});
-
-// ─── Finance legacy adapter (ARCH-CORE-DP1) ─────────────────────────────────
-// Accepts old finance-style payloads, converts to fusion input, returns fusion
-// envelope.  Logs a deprecation warning for migration visibility.
-app.post('/api/governance/fusion/finance', (req, res) => {
-  const requestId = generateRequestId();
-  const t0 = Date.now();
-  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body);
-
-  if (!fusionInput) return handleFusionEvaluate(req, res);
-
-  const validationError = validateFusionPayload(fusionInput);
-  if (validationError) {
-    metricsIncrement('errors');
-    return res.status(400).json({ ok: false, error: validationError });
-  }
-
-  const fusionResult = fusionEvaluate(fusionInput);
-  const durationMs = Date.now() - t0;
-
-  // P3: structured logging + metrics
-  recordDecision(fusionResult);
-  logDecision({ requestId, route: req.path, fusionResult, durationMs, clientIp: req.ip });
-
-  // P4: audit trail
-  auditStore.append({
-    request_id: requestId, decision: fusionResult.decision, reason_tags: fusionResult.reason_tags,
-    risk_score: fusionResult.risk_score, uncertainty: fusionResult.uncertainty, stale_state: fusionResult.stale_state,
-    source: fusionResult.source, policy_version: fusionResult.policy_version, model_version: fusionResult.model_version,
-    timestamp: fusionResult.timestamp, route: req.path,
-  });
-
-  return res.json({
-    ok: true,
-    ...fusionResult,
-    _requestId: requestId,
-    _deprecated: deprecated,
-    _migration_note: 'Migrate to POST /api/governance/fusion with { action, context, ml_output } shape.',
-  });
-});
-
-// ─── Fusion audit trail endpoints (ARCH-CORE-P4) ────────────────────────────
+// ─── Audit trail ─────────────────────────────────────────────────────────────
 app.get('/api/governance/fusion/audit', (req, res) => {
   const limit = Math.max(1, Math.min(5000, parseInt(req.query.limit, 10) || 50));
   return res.json({
@@ -356,7 +401,7 @@ app.get('/api/governance/fusion/audit/:request_id', (req, res) => {
   return res.json({ ok: true, record });
 });
 
-// ─── Fusion health / metrics endpoint (ARCH-CORE-P3) ────────────────────────
+// ─── Fusion health / metrics ─────────────────────────────────────────────────
 app.get('/api/governance/fusion/health', (_req, res) => {
   return res.json({
     ok: true,
@@ -366,35 +411,32 @@ app.get('/api/governance/fusion/health', (_req, res) => {
   });
 });
 
+// ─── Server startup ──────────────────────────────────────────────────────────
 const port = process.env.PORT || 4000;
 const isTestEnv = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
 
 if (!isTestEnv) {
   const server = createServer(app);
-  const wss = new WebSocketServer({ server, path: '/ws/signals' });
+  const wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws) => {
-    const timer = setInterval(async () => {
-      const integrity = await realtimeTracker.capture(async () => {
-        const markets = await getMarketSnapshot();
-        const regime = inferRegime(markets);
-        return { markets, regime };
-      }, 'adapter.marketData');
-      ws.send(JSON.stringify({
-        type: 'tick',
-        source: integrity.source,
-        timestamp: integrity.timestamp,
-        stale_state: integrity.stale_state,
-        stale_reason: integrity.stale_reason,
-        age_ms: integrity.age_ms,
-        markets: integrity.payload?.markets || [],
-        regime: integrity.payload?.regime || 'unknown',
-      }));
-    }, 2000);
-    ws.on('close', () => clearInterval(timer));
+    console.log('[WS] Client connected');
+    wsClients.add(ws);
+
+    // Send current action list on connect
+    ws.send(JSON.stringify({
+      type: 'init',
+      actions: actionStore.slice(0, 50),
+      total: actionStore.length,
+    }));
+
+    ws.on('close', () => {
+      wsClients.delete(ws);
+      console.log('[WS] Client disconnected');
+    });
   });
 
-  server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+  server.listen(port, () => console.log(`[Sentinel] Backend + WebSocket listening on :${port}`));
 }
 
 export { app };
