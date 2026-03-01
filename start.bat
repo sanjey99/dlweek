@@ -57,15 +57,15 @@ echo.
 
 REM ── 2. Install dependencies ───────────────────────────────
 
-REM Python venv + deps
-if not exist "%ML_DIR%\.venv" (
-    echo [INFO]  Creating Python virtual environment in ml_service...
-    python -m venv "%ML_DIR%\.venv"
+REM Python venv + deps (single venv in project root)
+if not exist "%ROOT%.venv" (
+    echo [INFO]  Creating Python virtual environment...
+    python -m venv "%ROOT%.venv"
 )
-if exist "%ML_DIR%\requirements.txt" (
-    echo [INFO]  Installing ML service Python dependencies...
-    "%ML_DIR%\.venv\Scripts\pip.exe" install -q -r "%ML_DIR%\requirements.txt"
-    echo [  OK]  ML Python dependencies installed.
+if exist "%ROOT%requirements.txt" (
+    echo [INFO]  Installing Python dependencies...
+    "%ROOT%.venv\Scripts\pip.exe" install -q -r "%ROOT%requirements.txt"
+    echo [  OK]  Python dependencies installed.
 )
 
 REM Node backend deps
@@ -89,7 +89,7 @@ echo.
 
 REM ── 3. Start services ─────────────────────────────────────
 echo [INFO]  Starting ML Service on :8000 ...
-start "Sentinel-ML" /min cmd /c "cd /d "%ML_DIR%" && .venv\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8000"
+start "Sentinel-ML" /min cmd /c "cd /d "%ML_DIR%" && "%ROOT%.venv\Scripts\python.exe" -m uvicorn app:app --host 0.0.0.0 --port 8000"
 
 echo [INFO]  Starting Backend on :4000 ...
 start "Sentinel-Backend" /min cmd /c "cd /d "%BE_DIR%" && node src\index.js"
