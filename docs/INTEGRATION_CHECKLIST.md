@@ -48,3 +48,37 @@
 - Frontend callers using `/api/governance/policy-gate` are unaffected.
 - The `/v2` compat routes can be promoted to replace originals once validated.
 - `ml_output` is optional in the fusion payload; omitting it degrades gracefully to `policy-only` mode.
+
+
+## Release Gate v2 — Cross-Lane Validation Matrix (QA-DP1)
+
+### Legend
+- Status: PASS / FAIL / BLOCKED / PENDING
+- Evidence: path/link to logs, screenshots, clips
+
+| Test ID | Scenario | ML Expected | Backend Expected | UI Expected | Actual | Status | Evidence | Notes |
+|---|---|---|---|---|---|---|---|---|
+| INT-01 | Happy path (allow) | valid score + fresh ts | persisted allow state | allow shown, next-step enabled | TBD | PENDING | evidence/int-01/ | |
+| INT-02 | Review edge threshold | boundary confidence | review_required=true | review gate shown | TBD | PENDING | evidence/int-02/ | |
+| INT-03 | Block path | high-risk trigger | block + reason persisted | block banner + locked action | TBD | PENDING | evidence/int-03/ | |
+| INT-04 | Stale feed | stale ts (> policy) | stale_state=true + lock | stale badge + confirm disabled | TBD | PENDING | evidence/int-04/ | |
+| INT-05 | Injected timeout | normal ML | timeout handled, no false success | retry/error UX visible | TBD | PENDING | evidence/int-05/ | |
+| INT-06 | Contract mismatch | missing/renamed field | schema catch / safe fallback | graceful error, no crash | TBD | PENDING | evidence/int-06/ | |
+| INT-07 | Out-of-order events | older arrives late | no state regression | latest state retained | TBD | PENDING | evidence/int-07/ | |
+| INT-08 | Recovery after failure | retry with valid input | state reconciled | healthy UI restored | TBD | PENDING | evidence/int-08/ | |
+
+### Release Gate Decision
+- Decision: **PENDING** (GO / NO-GO)
+- Rationale:
+- Date:
+- Owner:
+
+#### Blockers (hard stop)
+- [ ] <item + owner + fix recommendation + severity>
+
+#### Risks (known, mitigated)
+- [ ] <item + mitigation>
+
+#### Fallbacks / Recovery
+- [ ] <operator fallback path>
+- [ ] <rollback/read-only demo option>
