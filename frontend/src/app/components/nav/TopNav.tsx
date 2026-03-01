@@ -11,6 +11,7 @@ interface TopNavProps {
   unreadCount: number;
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void;
+  onOpenAction?: (actionId: string) => void;
 }
 
 export type NotificationItem = {
@@ -36,7 +37,7 @@ function timeAgoLabel(iso: string): string {
   return `${hours}h ago`;
 }
 
-export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead }: TopNavProps) {
+export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead, onOpenAction }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const notificationRows = useMemo(() => notifications, [notifications]);
@@ -293,6 +294,14 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                       return (
                         <div
                           key={n.id}
+                          onClick={() => {
+                            if (n.actionId && onOpenAction) {
+                              onOpenAction(n.actionId);
+                            }
+                            if (n.unread) {
+                              onMarkRead(n.id);
+                            }
+                          }}
                           style={{
                             display: 'grid',
                             gridTemplateColumns: '20px 1fr 20px',
@@ -301,6 +310,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                             padding: '12px 14px',
                             borderBottom: `1px solid ${theme.border}`,
                             background: n.unread ? 'rgba(255,255,255,0.01)' : 'transparent',
+                            cursor: n.actionId ? 'pointer' : 'default',
                           }}
                         >
                           <div
@@ -344,7 +354,10 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                           </div>
 
                           <button
-                            onClick={() => onMarkRead(n.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkRead(n.id);
+                            }}
                             title="Dismiss"
                             style={{
                               border: 'none',

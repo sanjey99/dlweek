@@ -126,6 +126,39 @@ export default function App() {
     }
   }, []);
 
+  const handleOpenAction = useCallback(async (actionId: string) => {
+    let target = actions.find((a) => a.id === actionId);
+
+    if (!target && backendConnected) {
+      try {
+        const data = await fetchActions(200);
+        const refreshed = (data.actions || []) as unknown as ActionItem[];
+        setActions(refreshed);
+        target = refreshed.find((a) => a.id === actionId);
+      } catch {
+        // Keep local state if refresh fails.
+      }
+    }
+
+    if (!target) {
+      toast.warning('Action not found', {
+        description: `Could not locate action ${actionId} in the current feed.`,
+      });
+      return;
+    }
+
+    const isPending =
+      target.riskStatus === 'HIGH_RISK_PENDING' ||
+      target.riskStatus === 'MEDIUM_RISK_PENDING';
+    if (!isPending) {
+      toast.message('Action no longer pending review', {
+        description: `${target.agentName}: ${target.proposedAction.slice(0, 80)}`,
+      });
+    }
+
+    setSelectedAction(target);
+  }, [actions, backendConnected]);
+
   // ── Initial data load from backend ─────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -220,58 +253,80 @@ export default function App() {
   };
 
   const handleApprove = async (id: string) => {
-    // Optimistic update
-    setActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'APPROVED' as const } : a))
-    );
-    toast.success('Action approved successfully', {
-      description: 'Agent action has been permitted to proceed.',
-      duration: 3500,
-    });
-    selectNextPending(id);
+    if (!backendConnected) {
+      toast.error('Backend offline', {
+        description: 'Approval requires backend connection.',
+      });
+      return;
+    }
 
-    // Send to backend
-    if (backendConnected) {
-      try {
-        await apiApprove(id);
-      } catch (e) {
-        console.error('Approve API error:', e);
-      }
+    try {
+      const resp = await apiApprove(id);
+      setActions((prev) =>
+        prev.map((a) => (a.id === id ? (resp.action as unknown as ActionItem) : a))
+      );
+      toast.success('Action approved successfully', {
+        description: 'Agent action has been permitted to proceed.',
+        duration: 3500,
+      });
+      selectNextPending(id);
+    } catch (e) {
+      console.error('Approve API error:', e);
+      toast.error('Approve failed', {
+        description: 'Backend did not accept the action update.',
+      });
     }
   };
 
   const handleEscalate = async (id: string) => {
-    toast.warning('Action escalated to senior review', {
-      description: 'Flagged for senior security team review.',
-      duration: 3500,
-    });
-    selectNextPending(id);
+    if (!backendConnected) {
+      toast.error('Backend offline', {
+        description: 'Escalation requires backend connection.',
+      });
+      return;
+    }
 
-    if (backendConnected) {
-      try {
-        await apiEscalate(id);
-      } catch (e) {
-        console.error('Escalate API error:', e);
-      }
+    try {
+      const resp = await apiEscalate(id);
+      setActions((prev) =>
+        prev.map((a) => (a.id === id ? (resp.action as unknown as ActionItem) : a))
+      );
+      toast.warning('Action escalated to senior review', {
+        description: 'Flagged for senior security team review.',
+        duration: 3500,
+      });
+      selectNextPending(id);
+    } catch (e) {
+      console.error('Escalate API error:', e);
+      toast.error('Escalate failed', {
+        description: 'Backend did not accept the action update.',
+      });
     }
   };
 
   const handleBlock = async (id: string) => {
-    setActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'HIGH_RISK_BLOCKED' as const } : a))
-    );
-    toast.error('Action blocked', {
-      description: 'Agent action has been permanently blocked.',
-      duration: 3500,
-    });
-    selectNextPending(id);
+    if (!backendConnected) {
+      toast.error('Backend offline', {
+        description: 'Block requires backend connection.',
+      });
+      return;
+    }
 
-    if (backendConnected) {
-      try {
-        await apiBlock(id);
-      } catch (e) {
-        console.error('Block API error:', e);
-      }
+    try {
+      const resp = await apiBlock(id);
+      setActions((prev) =>
+        prev.map((a) => (a.id === id ? (resp.action as unknown as ActionItem) : a))
+      );
+      toast.error('Action blocked', {
+        description: 'Agent action has been permanently blocked.',
+        duration: 3500,
+      });
+      selectNextPending(id);
+    } catch (e) {
+      console.error('Block API error:', e);
+      toast.error('Block failed', {
+        description: 'Backend did not accept the action update.',
+      });
     }
   };
 
@@ -309,6 +364,7 @@ export default function App() {
         unreadCount={notificationUnreadCount}
         onMarkAllRead={handleMarkAllNotificationsRead}
         onMarkRead={handleMarkNotificationRead}
+        onOpenAction={handleOpenAction}
       />
 
       {/* Page content */}
