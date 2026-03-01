@@ -263,9 +263,10 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '80px 140px 120px 1fr 80px 160px 20px',
-            gap: '0 8px',
+            gridTemplateColumns: '72px 130px 110px 1fr 100px 140px 20px',
+            gap: '0 20px',
             padding: '8px 20px',
+            alignItems: 'center',
             borderBottom: `1px solid ${theme.border}`,
             background: theme.tableHeaderBg,
           }}
@@ -410,8 +411,8 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
               aria-label={isPending ? `Review ${(action as any).agent || (action as any).agent_name || action.agentName} action` : disabledReason ?? undefined}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 140px 120px 1fr 80px 160px 20px',
-                gap: '0 8px',
+                gridTemplateColumns: '72px 130px 110px 1fr 100px 140px 20px',
+                gap: '0 20px',
                 padding: '11px 20px',
                 borderBottom: `1px solid ${theme.border}`,
                 cursor: isPending ? 'pointer' : 'default',
@@ -482,32 +483,18 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                 {action.proposedAction}
               </div>
 
-              {/* User */}
-              <div
-                style={{
-                  color: theme.textSecondary,
-                  fontSize: 12,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={action.user || '—'}
-              >
-                {action.user || '—'}
-              </div>
-
               {/* Environment */}
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <EnvBadge env={action.environment} isDark={isDark} />
               </div>
 
               {/* Status */}
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <StatusBadge status={action.riskStatus} />
               </div>
 
               {/* Chevron (only for pending — removed for resolved to eliminate dead control) */}
-              <div style={{ color: theme.textTertiary }}>
+              <div style={{ color: theme.textTertiary, display: 'flex', alignItems: 'center' }}>
                 {isPending ? <ChevronRight size={14} /> : null}
               </div>
             </div>

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import OpenAI from 'openai';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
 import {
@@ -24,6 +25,24 @@ app.use(express.json({ limit: '10mb' }));
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
+
+// ─── OpenAI client for agent chat ────────────────────────────────────────────
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const AGENT_SYSTEM_PROMPT = `You are an AI agent operating within the Sentinel governance platform.
+Users will send you messages that are either:
+1. An ACTION PROPOSAL — the user wants to perform a risky operation (deploy, delete, transfer funds, modify config, etc.).
+2. A GENERAL QUESTION — the user is asking about the system, status, or something conversational.
+
+You MUST respond with valid JSON only (no markdown, no code fences). Use one of these two formats:
+
+For action proposals:
+{"intent": "action", "agent_name": "OpenAI-Agent", "proposed_action": "<short description of what the agent wants to do>", "action_type": "<one of: DEPLOYMENT, DATA_MODIFICATION, FINANCIAL_TRANSACTION, CONFIG_CHANGE, ACCESS_CHANGE, OTHER>", "environment": "<one of: PRODUCTION, STAGING, DEV>", "description": "<detailed description of the action and its impact>", "context": {"targetEnvironment": "<production|staging|dev>", "riskScore": <0.0-1.0 estimate>}}
+
+For general questions/conversation:
+{"intent": "chat", "message": "<your helpful response>"}
+
+Always classify deployment, deletion, transfers, and config changes as action proposals. Be concise.`;
 
 // ─── In-memory action store for real-time dashboard ──────────────────────────
 const actionStore = [];
@@ -421,6 +440,83 @@ app.get('/api/governance/fusion/health', (_req, res) => {
     model_version_support: true,
     metrics: metricsSnapshot(),
   });
+});
+
+// ─── Agent chat (LLM-powered) ────────────────────────────────────────────────
+app.post('/api/agent/chat', async (req, res) => {
+  try {
+    const { userInput, agent } = req.body;
+    if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
+      return res.status(400).json({ ok: false, error: 'userInput is required' });
+    }
+
+    // 1. Call OpenAI to interpret the user message
+    let llmParsed;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0.3,
+        max_tokens: 512,
+        messages: [
+          { role: 'system', content: AGENT_SYSTEM_PROMPT },
+          { role: 'user', content: userInput },
+        ],
+      });
+
+      const raw = completion.choices?.[0]?.message?.content || '';
+      // Strip any accidental markdown fences
+      const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      llmParsed = JSON.parse(cleaned);
+    } catch (llmErr) {
+      console.error('[agent/chat] LLM error:', llmErr.message);
+      return res.json({
+        ok: true,
+        type: 'text',
+        message: 'Sorry, I was unable to process your request. The AI service may be temporarily unavailable.',
+      });
+    }
+
+    // 2. Route based on intent
+    if (llmParsed.intent === 'chat') {
+      return res.json({
+        ok: true,
+        type: 'text',
+        message: llmParsed.message || 'No response generated.',
+      });
+    }
+
+    if (llmParsed.intent === 'action') {
+      // Pipe through the governance pipeline
+      const actionData = {
+        agent_name: llmParsed.agent_name || agent || 'OpenAI-Agent',
+        proposed_action: llmParsed.proposed_action || userInput,
+        action_type: llmParsed.action_type || 'OTHER',
+        environment: llmParsed.environment || 'STAGING',
+        description: llmParsed.description || userInput,
+        context: llmParsed.context || {},
+        user: 'agent-terminal',
+      };
+
+      const record = await processAction(actionData);
+
+      return res.json({
+        ok: true,
+        type: 'tool_call',
+        actionId: record.id,
+        message: `Action proposed: "${record.proposedAction}". Risk: ${record.riskScore}% (${record.riskStatus}). Awaiting Sentinel governance decision.`,
+      });
+    }
+
+    // Fallback: treat unknown intents as text
+    return res.json({
+      ok: true,
+      type: 'text',
+      message: llmParsed.message || JSON.stringify(llmParsed),
+    });
+  } catch (e) {
+    console.error('[agent/chat] Error:', e);
+    return res.status(500).json({ ok: false, error: String(e.message || e) });
+  }
 });
 
 // ─── Server startup ──────────────────────────────────────────────────────────
