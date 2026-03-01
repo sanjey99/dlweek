@@ -8,7 +8,11 @@ import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
 import { createRealtimeIntegrityTracker } from './engine/realtimeIntegrity.js';
-import { buildFallbackMlAssessment, validateStrictMlContract } from './engine/mlContract.js';
+import {
+  buildFallbackMlAssessment,
+  normalizeMlAssessmentForEnsemble,
+  validateStrictMlContract,
+} from './engine/mlContract.js';
 import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
 import { validateFusionPayload } from './fusion/schema.js';
 import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
@@ -107,41 +111,22 @@ app.post('/api/ensemble', async (req, res) => {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ features: req.body.features })
     });
     const anomalyRaw = await inferResp.json();
-    let contract;
-    let anomaly;
-    let upstreamStatus = null;
-    let upstreamError = null;
-
-    if (!inferResp.ok) {
-      const reason = `ML_UPSTREAM_NON_200:${inferResp.status}`;
-      contract = { ok: false, error: reason };
-      anomaly = buildFallbackMlAssessment({ reason });
-      upstreamStatus = inferResp.status;
-      upstreamError = typeof anomalyRaw?.error === 'string' ? anomalyRaw.error : null;
-    } else {
-      contract = validateStrictMlContract(anomalyRaw);
-      anomaly = contract.ok
-        ? contract.value
-        : buildFallbackMlAssessment({ reason: `ML_RESPONSE_INVALID:${contract.error}` });
-    }
+    const normalized = normalizeMlAssessmentForEnsemble({
+      responseOk: inferResp.ok,
+      responseStatus: inferResp.status,
+      responseBody: anomalyRaw,
+    });
 
     const markets = await getMarketSnapshot();
     const regime = inferRegime(markets);
-    const ensemble = runEnsemble({ anomaly, regime });
+    const ensemble = runEnsemble({ anomaly: normalized.anomaly, regime });
 
     return res.json({
       ok: true,
       packetId: 'BE-P3',
       markets,
       ...ensemble,
-      ml_contract: {
-        strict_valid: contract.ok,
-        used_fallback: !contract.ok,
-        validation_error: contract.ok ? null : contract.error,
-        fallback_reason: contract.ok ? null : anomaly.fallback_reason,
-        upstream_status: upstreamStatus,
-        upstream_error: upstreamError,
-      },
+      ml_contract: normalized.mlContract,
     });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });

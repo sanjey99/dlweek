@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildFallbackMlAssessment,
+  normalizeMlAssessmentForEnsemble,
   normalizeMlAssessmentForGovernance,
   validateStrictMlContract,
 } from '../src/engine/mlContract.js';
@@ -44,4 +45,20 @@ test('fallback assessment always provides bounded values', () => {
   assert.equal(fallback.risk_score, 1);
   assert.equal(fallback.confidence, 0);
   assert.equal(typeof fallback.timestamp, 'string');
+});
+
+test('ensemble normalization uses explicit upstream non-200 fallback reason', () => {
+  const normalized = normalizeMlAssessmentForEnsemble({
+    responseOk: false,
+    responseStatus: 503,
+    responseBody: { error: 'model unavailable' },
+  });
+
+  assert.equal(normalized.mlContract.strict_valid, false);
+  assert.equal(normalized.mlContract.used_fallback, true);
+  assert.equal(normalized.mlContract.validation_error, 'ML_UPSTREAM_NON_200:503');
+  assert.equal(normalized.mlContract.fallback_reason, 'ML_UPSTREAM_NON_200:503');
+  assert.equal(normalized.mlContract.upstream_status, 503);
+  assert.equal(normalized.mlContract.upstream_error, 'model unavailable');
+  assert.equal(normalized.anomaly.fallback_reason, 'ML_UPSTREAM_NON_200:503');
 });
