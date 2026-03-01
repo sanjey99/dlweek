@@ -54,27 +54,34 @@
 > `ml_output` is optional.  When absent, the evaluator runs in **policy-only** mode.
 
 ### Output Contract (Fusion Envelope)
-| Field           | Type       | Description                                              |
-|-----------------|------------|----------------------------------------------------------|
-| `decision`      | `string`   | `allow` \| `review` \| `block`                          |
-| `reason_tags`   | `string[]` | Array of policy/ML/fusion tags explaining the decision   |
-| `risk_category` | `string`   | `low` \| `medium` \| `high` \| `critical`               |
-| `risk_score`    | `number`   | 0..1 fused risk score                                    |
-| `uncertainty`   | `number`   | 0..1 confidence uncertainty                              |
-| `source`        | `string`   | `policy+ml` \| `policy+ml(stale)` \| `policy-only` \| `ml-only` |
-| `timestamp`     | `string`   | ISO 8601 evaluation timestamp                            |
-| `stale_state`   | `string`   | `fresh` \| `stale` \| `unknown` — tri-state ML freshness |
-| `threshold_ms`  | `number`   | Configured staleness threshold in ms (default 60 000)    |
-| `stale`         | `boolean`  | Backward-compat flag: `true` when `stale_state !== 'fresh'` |
-| `detail`        | `object`   | Breakdown of policy / ML sub-evaluations                 |
+| Field            | Type       | Description                                              |
+|------------------|------------|----------------------------------------------------------|
+| `decision`       | `string`   | `allow` \| `review` \| `block`                          |
+| `reason_tags`    | `string[]` | Array of policy/ML/fusion tags explaining the decision   |
+| `risk_category`  | `string`   | `low` \| `medium` \| `high` \| `critical`               |
+| `risk_score`     | `number`   | 0..1 fused risk score                                    |
+| `uncertainty`    | `number`   | 0..1 confidence uncertainty                              |
+| `source`         | `string`   | `policy+ml` \| `policy+ml(stale)` \| `policy-only` \| `ml-only` |
+| `timestamp`      | `string`   | ISO 8601 evaluation timestamp                            |
+| `stale_state`    | `string`   | `fresh` \| `stale` \| `unknown` — tri-state ML freshness |
+| `threshold_ms`   | `number`   | Configured staleness threshold in ms (default 60 000)    |
+| `stale`          | `boolean`  | Backward-compat flag: `true` when `stale_state !== 'fresh'` |
+| `policy_version` | `string`   | Semantic version of the policy logic (e.g. `"1.1.0"`)    |
+| `model_version`  | `string`   | ML model version from `ml_output`, or `"unavailable"`    |
+| `detail`         | `object`   | Breakdown of policy / ML sub-evaluations                 |
 
 ### Decision Logic
+0. **Hard-policy constraints** (run FIRST — ML cannot override):
+   - `DELETE_RESOURCE` + `prod` + `destructive` → immediate block.
+   - `ROTATE_SECRET` + `prod` + no human approval → immediate block.
+   - Returns `risk_score: 1`, `risk_category: "critical"`, `source: "policy-only"`.
 1. **Policy gate** runs deterministic risk scoring (action-type baselines + context modifiers).
 2. **ML output** supplies `risk_score`, `uncertainty`, `label`, optional `decision` hint.
 3. **Fusion weights**: Policy 60% / ML 40%.  When ML data is stale, policy rises to 85%.
 4. **Thresholds**: `>= 0.8` → block · `>= 0.45` → review · below → allow.
 5. **Escalation**: ML `anomaly` label + `allow` → escalated to `review`.
 6. **Human override**: `hasHumanApproval` can downgrade non-extreme blocks (`< 0.85`) to review.
+7. **Uncertainty guard**: `allow` + `uncertainty >= 0.5` + `risk_score >= 0.3` → escalated to `review`. High uncertainty cannot auto-allow non-trivial risk.
 
 ### Staleness Detection (tri-state)
 - `stale_state: "fresh"` — ML timestamp within `threshold_ms` (default 60 000 ms, configurable via `FUSION_STALE_THRESHOLD_MS` env var).
@@ -104,6 +111,10 @@
 | `FUSED_RISK_ACCEPTABLE` | Fusion |
 | `FUSED_REVIEW_REQUIRED` | Fusion |
 | `FUSED_BLOCK_THRESHOLD` | Fusion |
+| `HARD_POLICY_BLOCK` | Hard policy |
+| `HARD_BLOCK_DESTRUCTIVE_PROD_DELETE` | Hard policy |
+| `HARD_BLOCK_UNAPPROVED_SECRET_ROTATION` | Hard policy |
+| `UNCERTAINTY_GUARD_ESCALATION` | Fusion |
 
 ---
 
@@ -142,10 +153,19 @@ For BE-P2 action lifecycle endpoints, this contract is enforced consistently as 
 - Blended score from deterministic policy risk and model-provided risk
 - Human approval can downgrade non-extreme blocks to review
 
+## Finance Legacy Adapter (DP1)
+- **Endpoint**: `POST /api/governance/fusion/finance`
+- Accepts old finance-style payloads: `{ transaction_type, amount, currency, account_id, risk_flags, ... }`
+- Automatically maps to fusion input: `{ action: { type: transaction_type }, context: { amount, currency, ... } }`
+- Logs a `[DEPRECATION]` warning to stderr for migration visibility.
+- Response includes `_deprecated: true` and `_migration_note` fields.
+- Falls through to standard fusion if no finance keys detected.
+
 ## Migration Strategy
 - Revamp in place: existing backend routes remain unchanged
 - New fusion endpoint added as an additive API at `/api/governance/fusion`
 - Legacy `/v2` aliases route through fusion engine but return the old response shape
+- Legacy finance adapter at `/api/governance/fusion/finance` for finance consumers
 - Original `/api/governance/policy-gate` remains untouched for rollback safety
 - Compatibility aliases keep old naming conventions functional during frontend/ML migration
 

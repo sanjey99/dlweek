@@ -6,7 +6,13 @@ import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
+<<<<<<< HEAD
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
+=======
+import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
+import { validateFusionPayload } from './fusion/schema.js';
+import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
+>>>>>>> 6b9e9e8 (feat(arch-core): ARCH-CORE-DP1 fusion decision backbone deploy-ready)
 
 dotenv.config();
 const app = express();
@@ -178,17 +184,46 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
   }
 });
 
-const server = createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws/signals' });
+// ─── Finance legacy adapter (ARCH-CORE-DP1) ─────────────────────────────────
+// Accepts old finance-style payloads, converts to fusion input, returns fusion
+// envelope.  Logs a deprecation warning for migration visibility.
+app.post('/api/governance/fusion/finance', (req, res) => {
+  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body);
 
-wss.on('connection', (ws) => {
-  const timer = setInterval(async () => {
-    const markets = await getMarketSnapshot();
-    const regime = inferRegime(markets);
-    ws.send(JSON.stringify({ type: 'tick', markets, regime, ts: new Date().toISOString() }));
-  }, 2000);
-  ws.on('close', () => clearInterval(timer));
+  // If the body doesn't look like a finance payload, fall through to standard fusion
+  if (!fusionInput) return handleFusionEvaluate(req, res);
+
+  const validationError = validateFusionPayload(fusionInput);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const fusionResult = fusionEvaluate(fusionInput);
+  return res.json({
+    ok: true,
+    ...fusionResult,
+    _deprecated: deprecated,
+    _migration_note: 'Migrate to POST /api/governance/fusion with { action, context, ml_output } shape.',
+  });
 });
 
 const port = process.env.PORT || 4000;
-server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+const isTestEnv = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
+
+if (!isTestEnv) {
+  const server = createServer(app);
+  const wss = new WebSocketServer({ server, path: '/ws/signals' });
+
+  wss.on('connection', (ws) => {
+    const timer = setInterval(async () => {
+      const markets = await getMarketSnapshot();
+      const regime = inferRegime(markets);
+      ws.send(JSON.stringify({ type: 'tick', markets, regime, ts: new Date().toISOString() }));
+    }, 2000);
+    ws.on('close', () => clearInterval(timer));
+  });
+
+  server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+}
+
+export { app };
