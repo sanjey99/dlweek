@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPolicyEnforcementService } from '../src/engine/policyEnforcementService.js';
 
-test('propose path enforces BE-P1 decision contract', () => {
+test('propose path enforces decision contract and marks ML fallback when missing', () => {
   const service = createPolicyEnforcementService();
 
   const result = service.propose({
@@ -19,6 +19,10 @@ test('propose path enforces BE-P1 decision contract', () => {
   assert.ok(['allow', 'review', 'block'].includes(result.decision));
   assert.ok(Array.isArray(result.reasonTags));
   assert.equal(typeof result.confidence.decision, 'number');
+  assert.equal(result.ml_contract.strict_valid, false);
+  assert.equal(result.ml_contract.used_fallback, true);
+  assert.equal(result.realtime.stale_state, true);
+  assert.equal(result.realtime.source, 'fallback');
 });
 
 test('review proposal can be approved with allow contract output', () => {
@@ -51,7 +55,7 @@ test('review proposal can be approved with allow contract output', () => {
   assert.equal(approved.status, 'approved_by_human');
 });
 
-test('block path keeps blocked contract and exposes audit events', () => {
+test('escalate transition is valid and preserves review contract', () => {
   const service = createPolicyEnforcementService();
 
   const proposed = service.propose({
@@ -66,20 +70,21 @@ test('block path keeps blocked contract and exposes audit events', () => {
   });
   assert.equal(proposed.status, 'pending_review');
 
-  const blocked = service.resolve(
+  const escalated = service.resolve(
     {
       actionId: proposed.actionId,
       actor: 'security-reviewer',
     },
-    'block',
+    'escalate',
   );
-  assert.equal(blocked.decision, 'block');
-  assert.ok(blocked.reasonTags.includes('HUMAN_BLOCKED'));
+  assert.equal(escalated.decision, 'review');
+  assert.ok(escalated.reasonTags.includes('ESCALATED_FOR_REVIEW'));
+  assert.equal(escalated.status, 'escalated');
 
   const detail = service.detail(proposed.actionId);
   assert.ok(Array.isArray(detail.events));
   assert.equal(detail.events[0]?.type, 'policy_evaluated');
-  assert.ok(detail.events.some((evt) => evt.type === 'action_block'));
+  assert.ok(detail.events.some((evt) => evt.type === 'action_escalate'));
   assert.ok(detail.events.findIndex((evt) => evt.type === 'policy_evaluated') <
     detail.events.findIndex((evt) => evt.type.startsWith('action_')));
 });
