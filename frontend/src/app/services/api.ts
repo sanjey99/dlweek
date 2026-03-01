@@ -107,3 +107,33 @@ export async function testAccuracy(actions: Record<string, unknown>[]): Promise<
 export async function fetchHealth(): Promise<{ ok: boolean }> {
   return request('/health');
 }
+
+// Notifications
+export interface NotificationRecord {
+  id: string;
+  type: string;
+  title: string;
+  detail: string;
+  actionId: string | null;
+  severity: 'critical' | 'warning' | 'info';
+  unread: boolean;
+  createdAt: string;
+}
+
+export async function fetchNotifications(limit = 50): Promise<{ notifications: NotificationRecord[]; unreadCount: number }> {
+  return request(`/api/notifications?limit=${limit}`);
+}
+
+export async function markNotificationRead(id: string): Promise<{ notifications: NotificationRecord[]; unreadCount: number }> {
+  return request('/api/notifications/read', {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<{ notifications: NotificationRecord[]; unreadCount: number; changed: number }> {
+  return request('/api/notifications/read-all', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
