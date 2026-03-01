@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChevronDown, Play, Loader } from 'lucide-react';
 import { C, getScoreColor, getScoreTier } from './colors';
+import { useIsMobile } from '../ui/use-mobile';
 
 const INDUSTRIES = ['Technology', 'Healthcare', 'Finance', 'Real Estate', 'Retail', 'Energy', 'Manufacturing', 'Agriculture'];
 
@@ -127,7 +128,7 @@ function GaugeChart({ score }: { score: number }) {
   ];
 
   return (
-    <div style={{ position: 'relative', width: 220, height: 200, margin: '0 auto' }}>
+    <div style={{ position: 'relative', width: 220, height: 200, margin: '0 auto', maxWidth: '100%', overflow: 'hidden' }}>
       <PieChart width={220} height={200}>
         <Pie
           data={data}
@@ -198,6 +199,7 @@ export function RiskScore() {
   const [tenor, setTenor] = useState('36');
   const [status, setStatus] = useState<'idle' | 'running' | 'done'>('done');
   const [output, setOutput] = useState(DEFAULT_OUTPUT);
+  const isMobile = useIsMobile();
 
   const runModel = () => {
     setStatus('running');
@@ -228,17 +230,19 @@ export function RiskScore() {
   const scoreColor = getScoreColor(output.score);
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' as const : 'row' as const, height: '100%', overflow: isMobile ? 'auto' : 'hidden' }}>
 
       {/* LEFT: Input Panel 60% */}
       <div style={{
-        width: '55%',
-        borderRight: `1px solid ${C.border}`,
-        padding: 24,
+        width: isMobile ? '100%' : '55%',
+        borderRight: isMobile ? 'none' : `1px solid ${C.border}`,
+        borderBottom: isMobile ? `1px solid ${C.border}` : 'none',
+        padding: isMobile ? 16 : 24,
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
+        minWidth: 0,
       }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
@@ -335,11 +339,12 @@ export function RiskScore() {
       {/* RIGHT: Output Panel 40% */}
       <div style={{
         flex: 1,
-        padding: 24,
+        padding: isMobile ? 16 : 24,
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         gap: 0,
+        minWidth: 0,
       }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

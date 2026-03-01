@@ -5,16 +5,19 @@ import { RiskScore } from './components/fin/RiskScore';
 import { FraudDetect } from './components/fin/FraudDetect';
 import { Portfolio } from './components/fin/Portfolio';
 import { C } from './components/fin/colors';
+import { useIsMobile } from './components/ui/use-mobile';
 
 type Tab = 'RISK_SCORE' | 'FRAUD_DETECT' | 'PORTFOLIO';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('RISK_SCORE');
+  const isMobile = useIsMobile();
 
   return (
     <div style={{
       height: '100vh',
       width: '100vw',
+      maxWidth: '100vw',
       background: C.bg,
       display: 'flex',
       flexDirection: 'column',
@@ -32,8 +35,8 @@ export default function App() {
         overflow: 'hidden',
         minHeight: 0,
       }}>
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Sidebar — hidden on mobile */}
+        {!isMobile && <Sidebar />}
 
         {/* Main Content */}
         <main style={{
@@ -43,6 +46,8 @@ export default function App() {
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
+          maxWidth: '100%',
+          minWidth: 0,
         }}>
           {/* Subtle grid overlay */}
           <div style={{
@@ -66,6 +71,7 @@ export default function App() {
             zIndex: 1,
             display: 'flex',
             flexDirection: 'column',
+            minWidth: 0,
           }}>
             {activeTab === 'RISK_SCORE' && <RiskScore />}
             {activeTab === 'FRAUD_DETECT' && <FraudDetect />}
@@ -76,7 +82,7 @@ export default function App() {
 
       <style>{`
         * { box-sizing: border-box; }
-        body { margin: 0; background: ${C.bg}; }
+        html, body { margin: 0; padding: 0; background: ${C.bg}; overflow-x: hidden; max-width: 100vw; }
         ::selection { background: rgba(255,107,0,0.3); color: #E8E8E8; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: ${C.bg}; }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import { X, CheckCircle, AlertTriangle, Ban, ChevronRight, Shield } from 'lucide-react';
 import { C } from './colors';
+import { useIsMobile } from '../ui/use-mobile';
 
 interface Transaction {
   id: string;
@@ -98,6 +99,7 @@ export function FraudDetect() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'CLEAR' | 'REVIEW' | 'FLAGGED'>('ALL');
   const [actionDone, setActionDone] = useState<Record<string, string>>({});
+  const isMobile = useIsMobile();
 
   const filtered = filter === 'ALL' ? TRANSACTIONS : TRANSACTIONS.filter(t => t.status === filter);
 
@@ -112,11 +114,12 @@ export function FraudDetect() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Table Header bar */}
         <div style={{
-          padding: '12px 20px',
+          padding: isMobile ? '8px 12px' : '12px 20px',
           borderBottom: `1px solid ${C.border}`,
           display: 'flex',
           alignItems: 'center',
-          gap: 16,
+          gap: isMobile ? 8 : 16,
+          flexWrap: isMobile ? 'wrap' as const : 'nowrap' as const,
           background: C.bgPanel,
           flexShrink: 0,
         }}>
@@ -160,11 +163,11 @@ export function FraudDetect() {
         </div>
 
         {/* Table */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr style={{ background: C.bgPanel, borderBottom: `1px solid ${C.border}` }}>
-                {['TXN ID', 'TIMESTAMP', 'AMOUNT', 'MERCHANT', 'CHANNEL', 'FRAUD SCORE', 'STATUS'].map(col => (
+                {['TXN ID', 'TIMESTAMP', 'AMOUNT', 'MERCHANT', 'CHANNEL', 'FRAUD SCORE', 'STATUS'].filter(col => !(isMobile && (col === 'MERCHANT' || col === 'CHANNEL'))).map(col => (
                   <th key={col} style={{
                     padding: '10px 16px',
                     textAlign: 'left',
@@ -194,6 +197,7 @@ export function FraudDetect() {
                       borderBottom: `1px solid ${C.border}`,
                       cursor: 'pointer',
                       transition: 'background 0.1s ease',
+                      minHeight: isMobile ? 44 : undefined,
                     }}
                     onMouseEnter={e => {
                       if (!isSelected) (e.currentTarget as HTMLElement).style.borderLeft = `3px solid ${C.orange}40`;
@@ -215,20 +219,24 @@ export function FraudDetect() {
                         ${txn.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <span style={{ fontFamily: C.sans, fontSize: 11, color: C.text }}>{txn.merchant}</span>
-                    </td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <span style={{
-                        fontFamily: C.mono, fontSize: 9,
-                        color: CHANNEL_COLORS[txn.channel] || C.text,
-                        background: `${CHANNEL_COLORS[txn.channel]}18`,
-                        padding: '2px 6px',
-                        borderRadius: 2,
-                        border: `1px solid ${CHANNEL_COLORS[txn.channel]}40`,
-                        letterSpacing: '0.1em',
-                      }}>{txn.channel}</span>
-                    </td>
+                    {!isMobile && (
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{ fontFamily: C.sans, fontSize: 11, color: C.text }}>{txn.merchant}</span>
+                      </td>
+                    )}
+                    {!isMobile && (
+                      <td style={{ padding: '10px 16px' }}>
+                        <span style={{
+                          fontFamily: C.mono, fontSize: 9,
+                          color: CHANNEL_COLORS[txn.channel] || C.text,
+                          background: `${CHANNEL_COLORS[txn.channel]}18`,
+                          padding: '2px 6px',
+                          borderRadius: 2,
+                          border: `1px solid ${CHANNEL_COLORS[txn.channel]}40`,
+                          letterSpacing: '0.1em',
+                        }}>{txn.channel}</span>
+                      </td>
+                    )}
                     <td style={{ padding: '10px 16px', minWidth: 120 }}>
                       <FraudScoreBar score={txn.fraudScore} />
                     </td>
@@ -265,7 +273,16 @@ export function FraudDetect() {
 
       {/* Detail Drawer */}
       <div style={{
-        width: drawerOpen && selected ? 360 : 0,
+        ...(isMobile ? {
+          position: 'fixed' as const,
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: drawerOpen && selected ? '100%' : 0,
+          zIndex: 200,
+        } : {
+          width: drawerOpen && selected ? 360 : 0,
+        }),
         transition: 'width 0.25s ease',
         overflow: 'hidden',
         flexShrink: 0,
@@ -273,7 +290,7 @@ export function FraudDetect() {
         background: C.bgPanel,
       }}>
         {selected && (
-          <div style={{ width: 360, height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ width: isMobile ? '100%' : 360, height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             {/* Drawer Header */}
             <div style={{
               padding: '14px 16px',
@@ -449,6 +466,7 @@ export function FraudDetect() {
                       letterSpacing: '0.1em',
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      minHeight: 44,
                     }}
                   >
                     <CheckCircle size={12} /> APPROVE
@@ -466,6 +484,7 @@ export function FraudDetect() {
                       letterSpacing: '0.1em',
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      minHeight: 44,
                     }}
                   >
                     <AlertTriangle size={12} /> ESCALATE
@@ -483,6 +502,7 @@ export function FraudDetect() {
                       letterSpacing: '0.1em',
                       cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                      minHeight: 44,
                     }}
                   >
                     <Ban size={12} /> BLOCK

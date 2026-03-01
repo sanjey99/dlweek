@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Plus, Minus, Play, Loader, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
 import { C } from './colors';
+import { useIsMobile } from '../ui/use-mobile';
 
 interface Asset {
   ticker: string;
@@ -116,6 +117,7 @@ export function Portfolio() {
   const [metrics, setMetrics] = useState({
     sharpe: 1.24, var95: 3.8, maxDrawdown: 12.4, expectedReturn: 8.7
   });
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -188,18 +190,20 @@ export function Portfolio() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' as const : 'row' as const, height: '100%', overflow: isMobile ? 'auto' : 'hidden' }}>
 
       {/* LEFT: Portfolio Input 280px */}
       <div style={{
-        width: 280,
+        width: isMobile ? '100%' : 280,
         flexShrink: 0,
-        borderRight: `1px solid ${C.border}`,
+        minWidth: 0,
+        borderRight: isMobile ? 'none' : `1px solid ${C.border}`,
+        borderBottom: isMobile ? `1px solid ${C.border}` : 'none',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: isMobile ? 'visible' : 'hidden',
       }}>
-        <div style={{ padding: '16px 16px 0', flexShrink: 0 }}>
+        <div style={{ padding: isMobile ? '12px 12px 0' : '16px 16px 0', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <div style={{ width: 3, height: 14, background: C.orange }} />
             <span style={{ fontFamily: C.mono, fontSize: 10, color: C.orange, letterSpacing: '0.15em' }}>PORTFOLIO INPUT</span>
@@ -224,7 +228,7 @@ export function Portfolio() {
         </div>
 
         {/* Asset List */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 12px' : '0 16px' }}>
           {/* Column headers */}
           <div style={{ display: 'flex', gap: 8, paddingBottom: 6, borderBottom: `1px solid ${C.border}`, marginBottom: 4 }}>
             <span style={{ fontFamily: C.mono, fontSize: 8, color: C.textDim, flex: 1 }}>TICKER</span>
@@ -367,8 +371,11 @@ export function Portfolio() {
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        borderRight: `1px solid ${C.border}`,
-        overflow: 'hidden',
+        borderRight: isMobile ? 'none' : `1px solid ${C.border}`,
+        borderBottom: isMobile ? `1px solid ${C.border}` : 'none',
+        overflow: isMobile ? 'visible' : 'hidden',
+        minWidth: 0,
+        minHeight: isMobile ? 300 : undefined,
       }}>
         {/* Treemap */}
         <div style={{
@@ -478,11 +485,12 @@ export function Portfolio() {
 
       {/* RIGHT: Metrics & Alerts 260px */}
       <div style={{
-        width: 260,
+        width: isMobile ? '100%' : 260,
         flexShrink: 0,
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden',
+        overflow: isMobile ? 'visible' : 'hidden',
       }}>
         {/* Health Score */}
         <div style={{ padding: 16, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>

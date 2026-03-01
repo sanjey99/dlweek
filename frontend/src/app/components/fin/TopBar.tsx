@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, User, ChevronDown, Wifi } from 'lucide-react';
 import { C } from './colors';
+import { useIsMobile } from '../ui/use-mobile';
 
 type Tab = 'RISK_SCORE' | 'FRAUD_DETECT' | 'PORTFOLIO';
 
@@ -18,6 +19,7 @@ const TABS: { id: Tab; label: string }[] = [
 export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
   const [time, setTime] = useState(new Date());
   const [alertPulse, setAlertPulse] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -43,36 +45,38 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
       borderBottom: `1px solid ${C.border}`,
       display: 'flex',
       alignItems: 'center',
-      padding: '0 16px',
+      padding: isMobile ? '0 8px' : '0 16px',
       gap: 0,
       flexShrink: 0,
+      maxWidth: '100vw',
+      overflow: 'hidden',
       position: 'relative',
       zIndex: 100,
     }}>
       {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 24, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: isMobile ? 8 : 24, flexShrink: 0 }}>
         <span style={{
           fontFamily: C.mono,
-          fontSize: 18,
+          fontSize: isMobile ? 14 : 18,
           fontWeight: 700,
           color: C.orange,
           letterSpacing: '0.05em',
         }}>FIN·IQ</span>
-        <div style={{
+        {!isMobile && <div style={{
           background: 'rgba(255,107,0,0.15)',
           border: `1px solid rgba(255,107,0,0.3)`,
           borderRadius: 2,
           padding: '2px 6px',
         }}>
           <span style={{ fontFamily: C.mono, fontSize: 9, color: C.orange, letterSpacing: '0.1em' }}>TERMINAL v2.4</span>
-        </div>
+        </div>}
       </div>
 
       {/* Separator */}
-      <div style={{ width: 1, height: 24, background: C.border, marginRight: 24 }} />
+      {!isMobile && <div style={{ width: 1, height: 24, background: C.border, marginRight: 24 }} />}
 
       {/* Clock + Market Status */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 28, flexShrink: 0 }}>
+      {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 28, flexShrink: 0 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <span style={{ fontFamily: C.mono, fontSize: 13, color: C.text, letterSpacing: '0.08em', lineHeight: 1.2 }}>{timeStr}</span>
           <span style={{ fontFamily: C.mono, fontSize: 9, color: C.textDim, letterSpacing: '0.06em', lineHeight: 1.2 }}>{dateStr}</span>
@@ -89,10 +93,10 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
             {isMarketOpen ? 'LIVE' : 'CLOSED'}
           </span>
         </div>
-      </div>
+      </div>}
 
       {/* Separator */}
-      <div style={{ width: 1, height: 24, background: C.border, marginRight: 4 }} />
+      {!isMobile && <div style={{ width: 1, height: 24, background: C.border, marginRight: 4 }} />}
 
       {/* Tab Navigation */}
       <nav style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 0 }}>
@@ -104,14 +108,15 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
               onClick={() => setActiveTab(tab.id)}
               style={{
                 height: 48,
-                padding: '0 20px',
+                padding: isMobile ? '0 10px' : '0 20px',
+                minHeight: 44,
                 background: isActive ? 'rgba(255,107,0,0.08)' : 'transparent',
                 border: 'none',
                 borderBottom: isActive ? `2px solid ${C.orange}` : '2px solid transparent',
                 color: isActive ? C.orange : C.textDim,
                 fontFamily: C.mono,
-                fontSize: 11,
-                letterSpacing: '0.12em',
+                fontSize: isMobile ? 10 : 11,
+                letterSpacing: isMobile ? '0.06em' : '0.12em',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 flexShrink: 0,
@@ -136,7 +141,7 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
       </nav>
 
       {/* Market Tickers */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginRight: 20 }}>
+      {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginRight: 20 }}>
         {[
           { sym: 'S&P', val: '5,248.32', chg: '+0.84%', up: true },
           { sym: 'NDX', val: '18,342.1', chg: '+1.22%', up: true },
@@ -150,13 +155,13 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
             <span style={{ fontFamily: C.mono, fontSize: 9, color: t.up ? C.green : C.red }}>{t.chg}</span>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Separator */}
-      <div style={{ width: 1, height: 24, background: C.border, marginRight: 16 }} />
+      {!isMobile && <div style={{ width: 1, height: 24, background: C.border, marginRight: 16 }} />}
 
       {/* Right Side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, flexShrink: 0 }}>
         <div style={{ position: 'relative', cursor: 'pointer' }}>
           <Bell size={16} color={C.textDim} />
           <div style={{
@@ -176,7 +181,7 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 8px', borderRadius: 2, border: `1px solid ${C.border}` }}>
+        {!isMobile && <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 8px', borderRadius: 2, border: `1px solid ${C.border}` }}>
           <div style={{
             width: 24, height: 24,
             borderRadius: 2,
@@ -190,7 +195,7 @@ export function TopBar({ activeTab, setActiveTab }: TopBarProps) {
             <span style={{ fontFamily: C.mono, fontSize: 9, color: C.textDim, lineHeight: 1.2 }}>ANALYST L2</span>
           </div>
           <ChevronDown size={12} color={C.textDim} />
-        </div>
+        </div>}
       </div>
 
       <style>{`
