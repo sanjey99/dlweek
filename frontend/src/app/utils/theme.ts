@@ -22,4 +22,6 @@ export const COLORS = {
   redText: '#FF6166',
   amberText: '#FFB224',
   greenText: '#3CB371',
+  blue: '#3B82F6',
+  blueMuted: 'rgba(59, 130, 246, 0.12)',
 } as const;

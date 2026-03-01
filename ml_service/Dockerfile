@@ -4,7 +4,10 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy app and pre-trained model (train locally before docker build)
 COPY app.py ./
+COPY train.py ./
+COPY risk_model.pt ./
 
 EXPOSE 8000
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

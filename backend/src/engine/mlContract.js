@@ -33,16 +33,33 @@ function normalizeTimestamp(raw) {
   return null;
 }
 
+/**
+ * Validate the strict ML contract for /infer and /classify responses.
+ * Now accepts the fields that the ML service actually returns:
+ *   risk_category, risk_score, confidence, uncertainty, label, timestamp, etc.
+ */
 export function validateStrictMlContract(raw) {
   if (!raw || typeof raw !== 'object') return { ok: false, error: 'ml_assessment must be an object' };
+
   const riskScore = normalizeRisk(raw);
   if (riskScore === null) return { ok: false, error: 'ml_assessment.risk_score must be a finite number' };
+
   const confidence = normalizeConfidence(raw);
   if (confidence === null) return { ok: false, error: 'ml_assessment.confidence must be a finite number' };
-  const label = typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : null;
+
+  // Label: accept risk_category OR label
+  const label = typeof raw.label === 'string' && raw.label.trim().length > 0
+    ? raw.label.trim()
+    : typeof raw.risk_category === 'string' && raw.risk_category.trim().length > 0
+      ? raw.risk_category.trim()
+      : null;
   if (!label) return { ok: false, error: 'ml_assessment.label must be a non-empty string' };
-  const timestamp = normalizeTimestamp(raw);
-  if (!timestamp) return { ok: false, error: 'ml_assessment.timestamp must be ISO-8601' };
+
+  // Timestamp: accept from ML response or generate now
+  let timestamp = normalizeTimestamp(raw);
+  if (!timestamp) {
+    timestamp = new Date().toISOString();
+  }
 
   return {
     ok: true,
@@ -60,6 +77,25 @@ export function validateStrictMlContract(raw) {
   };
 }
 
+/**
+ * Validate a /classify response specifically.
+ * More lenient than strict contract — used for the action pipeline.
+ */
+export function validateMlClassifyResponse(raw) {
+  if (!raw || typeof raw !== 'object') return { ok: false, error: 'response must be an object' };
+  if (raw.fallback_used === true) return { ok: true, value: raw, fallback: true };
+
+  const riskScore = toFiniteNumber(raw.risk_score);
+  if (riskScore === null) return { ok: false, error: 'risk_score must be a number' };
+
+  const category = raw.risk_category;
+  if (!['low', 'medium', 'high'].includes(category)) {
+    return { ok: false, error: 'risk_category must be low/medium/high' };
+  }
+
+  return { ok: true, value: raw, fallback: false };
+}
+
 export function buildFallbackMlAssessment({ reason, timestamp, seedRisk, seedConfidence } = {}) {
   const riskCandidate = toFiniteNumber(seedRisk);
   const confidenceCandidate = toFiniteNumber(seedConfidence);
@@ -69,14 +105,19 @@ export function buildFallbackMlAssessment({ reason, timestamp, seedRisk, seedCon
 
   return {
     risk_score: riskScore,
+    risk_category: 'medium',
     confidence,
+    uncertainty: 1.0,
     label,
     timestamp: isIsoTimestamp(timestamp) ? new Date(timestamp).toISOString() : new Date().toISOString(),
     decision_reason: 'Fallback ML assessment due to missing or invalid contract payload.',
-    recommendation: 'require review',
+    recommendation: 'review',
+    reason_tags: [reason || 'ML_CONTRACT_UNAVAILABLE'],
+    model_version: 'fallback-v1',
     source: 'fallback',
     stale_state: true,
     fallback_reason: reason || 'ML_CONTRACT_UNAVAILABLE',
+    fallback_used: true,
   };
 }
 

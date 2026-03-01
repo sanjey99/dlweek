@@ -1,25 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
+import { UploadPanel } from './components/upload/UploadPanel';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
+import { useWebSocket, WSMessage } from './hooks/useWebSocket';
+import {
+  fetchActions,
+  approveAction as apiApprove,
+  blockAction as apiBlock,
+  escalateAction as apiEscalate,
+} from './services/api';
 
 export default function App() {
   const [isDark, setIsDark] = useState(true);
-  const [actions, setActions] = useState<ActionItem[]>(mockActions);
-  const [selectedAction, setSelectedAction] = useState<ActionItem | null>(
-    mockActions.find((a) => a.riskStatus === 'HIGH_RISK_PENDING') ?? null
-  );
+  const [actions, setActions] = useState<ActionItem[]>([]);
+  const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
+  const [backendConnected, setBackendConnected] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
 
-  /** Live "last sync" timer for footer truthfulness */
+  /** Live "last sync" timer */
   const [lastSync, setLastSync] = useState(() => new Date());
   const [syncLabel, setSyncLabel] = useState('just now');
   const lastSyncRef = useRef(lastSync);
@@ -35,56 +44,167 @@ export default function App() {
     return () => clearInterval(tick);
   }, []);
 
-  // Reset sync clock when actions change
+  // Reset sync clock on data changes
   useEffect(() => {
     setLastSync(new Date());
     setSyncLabel('just now');
   }, [actions]);
 
-  const handleApprove = (id: string) => {
+  // ── Initial data load from backend ─────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await fetchActions(100);
+        if (!cancelled && data.actions?.length > 0) {
+          setActions(data.actions as unknown as ActionItem[]);
+          setBackendConnected(true);
+          // Auto-select first pending
+          const pending = (data.actions as unknown as ActionItem[]).find(
+            (a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING'
+          );
+          if (pending) setSelectedAction(pending);
+        } else if (!cancelled && data.actions?.length === 0) {
+          // Backend is up but no actions yet — use empty state
+          setBackendConnected(true);
+          setActions([]);
+        }
+      } catch {
+        // Backend unreachable — fall back to mock data
+        if (!cancelled) {
+          setBackendConnected(false);
+          setActions(mockActions);
+          setSelectedAction(
+            mockActions.find((a) => a.riskStatus === 'HIGH_RISK_PENDING') ?? null
+          );
+        }
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── WebSocket for real-time updates ────────────────────────────────────────
+  const handleWSMessage = useCallback((msg: WSMessage) => {
+    if (msg.type === 'init' && Array.isArray(msg.actions) && msg.actions.length > 0) {
+      setActions(msg.actions as unknown as ActionItem[]);
+    }
+
+    if (msg.type === 'new_action') {
+      const newAction = msg.action as unknown as ActionItem;
+      setActions((prev) => {
+        // Avoid duplicates
+        if (prev.some((a) => a.id === newAction.id)) return prev;
+        return [newAction, ...prev];
+      });
+      // Auto-select if it's pending and nothing is selected
+      if (
+        newAction.riskStatus === 'HIGH_RISK_PENDING' ||
+        newAction.riskStatus === 'MEDIUM_RISK_PENDING'
+      ) {
+        setSelectedAction((current) => current ?? newAction);
+      }
+      // Toast for high risk
+      if (newAction.riskStatus === 'HIGH_RISK_PENDING') {
+        toast.error('High-risk action detected', {
+          description: `${newAction.agentName}: ${newAction.proposedAction.slice(0, 60)}...`,
+          duration: 4000,
+        });
+      }
+    }
+
+    if (msg.type === 'action_updated') {
+      const updated = msg.action as unknown as ActionItem;
+      setActions((prev) =>
+        prev.map((a) => (a.id === updated.id ? updated : a))
+      );
+    }
+
+    if (msg.type === 'upload_progress') {
+      setUploadProgress({ processed: msg.processed, total: msg.total });
+    }
+
+    if (msg.type === 'upload_complete') {
+      setUploadProgress(null);
+      toast.success(`Upload complete: ${msg.total} actions processed`);
+    }
+  }, []);
+
+  const { connected } = useWebSocket({
+    onMessage: handleWSMessage,
+    onConnectionChange: setWsConnected,
+  });
+
+  // ── Action handlers ────────────────────────────────────────────────────────
+  const selectNextPending = (excludeId: string) => {
+    const next = actions.find(
+      (a) => a.id !== excludeId && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
+    );
+    setSelectedAction(next ?? null);
+  };
+
+  const handleApprove = async (id: string) => {
+    // Optimistic update
     setActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'APPROVED' } : a))
+      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'APPROVED' as const } : a))
     );
     toast.success('Action approved successfully', {
-      description: `Agent action has been permitted to proceed.`,
+      description: 'Agent action has been permitted to proceed.',
       duration: 3500,
     });
-    // Select next pending
-    const next = actions.find(
-      (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
-    );
-    setSelectedAction(next ?? null);
+    selectNextPending(id);
+
+    // Send to backend
+    if (backendConnected) {
+      try {
+        await apiApprove(id);
+      } catch (e) {
+        console.error('Approve API error:', e);
+      }
+    }
   };
 
-  const handleEscalate = (id: string) => {
+  const handleEscalate = async (id: string) => {
     toast.warning('Action escalated to senior review', {
-      description: `Flagged for senior security team review.`,
+      description: 'Flagged for senior security team review.',
       duration: 3500,
     });
-    const next = actions.find(
-      (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
-    );
-    setSelectedAction(next ?? null);
+    selectNextPending(id);
+
+    if (backendConnected) {
+      try {
+        await apiEscalate(id);
+      } catch (e) {
+        console.error('Escalate API error:', e);
+      }
+    }
   };
 
-  const handleBlock = (id: string) => {
+  const handleBlock = async (id: string) => {
     setActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'HIGH_RISK_BLOCKED' } : a))
+      prev.map((a) => (a.id === id ? { ...a, riskStatus: 'HIGH_RISK_BLOCKED' as const } : a))
     );
     toast.error('Action blocked', {
-      description: `Agent action has been permanently blocked.`,
+      description: 'Agent action has been permanently blocked.',
       duration: 3500,
     });
-    const next = actions.find(
-      (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
-    );
-    setSelectedAction(next ?? null);
+    selectNextPending(id);
+
+    if (backendConnected) {
+      try {
+        await apiBlock(id);
+      } catch (e) {
+        console.error('Block API error:', e);
+      }
+    }
   };
 
-  // Keep selectedAction in sync with updated actions list
+  // Keep selectedAction synced with latest data
   const syncedSelected = selectedAction
     ? actions.find((a) => a.id === selectedAction.id) ?? null
     : null;
+
+  const systemStatus = wsConnected ? 'connected' : backendConnected ? 'polling' : 'offline';
 
   return (
     <div
@@ -99,10 +219,7 @@ export default function App() {
         theme={isDark ? 'dark' : 'light'}
         position="top-right"
         toastOptions={{
-          style: {
-            fontFamily: 'Inter, sans-serif',
-            fontSize: 13,
-          },
+          style: { fontFamily: 'Inter, sans-serif', fontSize: 13 },
         }}
       />
 
@@ -145,9 +262,17 @@ export default function App() {
           )}
         </div>
 
+        {/* Upload Panel */}
+        <UploadPanel
+          theme={theme}
+          isDark={isDark}
+          isMobile={isMobile}
+          uploadProgress={uploadProgress}
+        />
+
         {/* Metrics row */}
         <div style={{ marginTop: 12 }}>
-          <MetricsRow theme={theme} isDark={isDark} isMobile={isMobile} />
+          <MetricsRow theme={theme} isDark={isDark} isMobile={isMobile} actions={actions} />
         </div>
 
         {/* Main split layout */}
@@ -217,10 +342,21 @@ export default function App() {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: '#30A46C',
+                  background: systemStatus === 'connected' ? '#30A46C' : systemStatus === 'polling' ? '#F5A623' : '#E5484D',
                 }}
               />
-              <span style={{ color: '#30A46C', fontSize: 12 }}>All systems normal</span>
+              <span
+                style={{
+                  color: systemStatus === 'connected' ? '#30A46C' : systemStatus === 'polling' ? '#F5A623' : '#E5484D',
+                  fontSize: 12,
+                }}
+              >
+                {systemStatus === 'connected'
+                  ? 'Live · WebSocket connected'
+                  : systemStatus === 'polling'
+                    ? 'Polling mode'
+                    : 'Offline · Using mock data'}
+              </span>
             </div>
           </div>
         </div>

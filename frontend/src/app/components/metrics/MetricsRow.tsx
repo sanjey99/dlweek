@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { AreaChart, Area, Tooltip } from 'recharts';
 import { TrendingUp, Clock, AlertTriangle, CheckCircle, Database } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Theme } from '../../types';
+import { Theme, ActionItem } from '../../types';
 import { sparklineData } from '../../data/mockData';
 import { COLORS } from '../../utils/theme';
 
@@ -9,6 +10,7 @@ interface MetricsRowProps {
   theme: Theme;
   isDark: boolean;
   isMobile: boolean;
+  actions: ActionItem[];
 }
 
 interface MetricCardProps {
@@ -131,7 +133,38 @@ function MetricCard({
   );
 }
 
-export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
+export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps) {
+  const stats = useMemo(() => {
+    const total = actions.length;
+
+    const pending = actions.filter(
+      (a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING'
+    ).length;
+
+    const highRisk = actions.filter(
+      (a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'HIGH_RISK_BLOCKED'
+    ).length;
+
+    const autoBlocked = actions.filter(
+      (a) => a.riskStatus === 'HIGH_RISK_BLOCKED'
+    ).length;
+
+    const approved = actions.filter(
+      (a) => a.riskStatus === 'APPROVED' || a.riskStatus === 'LOW_RISK'
+    ).length;
+
+    const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0;
+
+    const urgentPending = actions.filter(
+      (a) => a.riskStatus === 'HIGH_RISK_PENDING'
+    ).length;
+
+    const now = new Date();
+    const updatedAt = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC`;
+
+    return { total, pending, highRisk, autoBlocked, approved, approvalRate, urgentPending, updatedAt };
+  }, [actions]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div
@@ -143,9 +176,9 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
         }}
       >
       <MetricCard
-        title="Total AI Actions Today"
-        value="1,245"
-        subtitle="↑ +12% from yesterday"
+        title="Total AI Actions"
+        value={stats.total.toLocaleString()}
+        subtitle={stats.total === 0 ? 'No actions yet' : `${stats.total} processed`}
         icon={<TrendingUp size={14} />}
         hasSparkline
         theme={theme}
@@ -154,8 +187,8 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="Pending Reviews"
-        value="4"
-        subtitle="2 require urgent attention"
+        value={String(stats.pending)}
+        subtitle={stats.urgentPending > 0 ? `${stats.urgentPending} require urgent attention` : 'All clear'}
         icon={<Clock size={14} />}
         accentColor={COLORS.amber}
         accentBg={COLORS.amberMuted}
@@ -165,8 +198,8 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="High-Risk Interventions"
-        value="12"
-        subtitle="3 blocked automatically"
+        value={String(stats.highRisk)}
+        subtitle={stats.autoBlocked > 0 ? `${stats.autoBlocked} blocked automatically` : 'None blocked'}
         icon={<AlertTriangle size={14} />}
         accentColor={COLORS.red}
         accentBg={COLORS.redMuted}
@@ -176,8 +209,8 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="Global Approval Rate"
-        value="94%"
-        subtitle="Last 24 hours"
+        value={stats.total > 0 ? `${stats.approvalRate}%` : '—'}
+        subtitle={stats.total > 0 ? `${stats.approved} of ${stats.total} actions` : 'No data'}
         icon={<CheckCircle size={14} />}
         accentColor={COLORS.green}
         accentBg={COLORS.greenMuted}
@@ -206,7 +239,7 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Clock size={9} color={theme.textTertiary} />
           <span style={{ color: theme.textTertiary, fontSize: 10 }}>
-            Updated 14:32 UTC
+            Updated {stats.updatedAt}
           </span>
         </div>
       </div>
