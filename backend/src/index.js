@@ -139,6 +139,17 @@ async function processAction(actionData) {
     },
   };
 
+  // Notify only when human review is required.
+  if (actionRecord.riskStatus === 'HIGH_RISK_PENDING' || actionRecord.riskStatus === 'MEDIUM_RISK_PENDING') {
+    createNotification({
+      type: 'new_pending',
+      title: 'New action requires review',
+      detail: `${actionRecord.agentName}: ${actionRecord.proposedAction}`,
+      actionId: actionRecord.id,
+      severity: actionRecord.riskStatus === 'HIGH_RISK_PENDING' ? 'critical' : 'warning',
+    });
+  }
+
   // 4. Store and audit
   actionStore.unshift(actionRecord); // newest first
   if (actionStore.length > 500) actionStore.pop(); // cap
@@ -438,5 +449,83 @@ if (!isTestEnv) {
 
   server.listen(port, () => console.log(`[Sentinel] Backend + WebSocket listening on :${port}`));
 }
+
+// Notification store (Phase 2, Step 1)
+const notifications = [];
+const NOTIFICATION_CAPACITY = 500;
+
+function createNotification({
+  type,
+  title,
+  detail,
+  actionId = null,
+  severity = 'info',
+}) {
+  const id = `ntf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const item = {
+    id,
+    type,
+    title,
+    detail,
+    actionId,
+    severity,
+    unread: true,
+    createdAt: new Date().toISOString(),
+  };
+  notifications.unshift(item);
+  if (notifications.length > NOTIFICATION_CAPACITY) {
+    notifications.length = NOTIFICATION_CAPACITY;
+  }
+  return item;
+}
+
+function listNotifications(limit = 50) {
+  const safeLimit = Math.max(1, Math.min(500, Number(limit) || 50));
+  const rows = notifications.slice(0, safeLimit);
+  const unreadCount = notifications.reduce((acc, n) => acc + (n.unread ? 1 : 0), 0);
+  return { notifications: rows, unreadCount };
+}
+
+function markNotificationRead(id) {
+  if (!id) return false;
+  const row = notifications.find((n) => n.id === id);
+  if (!row) return false;
+  row.unread = false;
+  return true;
+}
+
+function markAllNotificationsRead() {
+  let changed = 0;
+  for (const row of notifications) {
+    if (row.unread) {
+      row.unread = false;
+      changed += 1;
+    }
+  }
+  return changed;
+}
+
+app.get('/api/notifications', (req, res) => {
+  const limit = parseInt(req.query.limit, 10) || 50;
+  const result = listNotifications(limit);
+  return res.json({ ok: true, ...result });
+});
+
+app.post('/api/notifications/read', (req, res) => {
+  const id = req.body?.id;
+  if (typeof id !== 'string' || id.trim().length === 0) {
+    return res.status(400).json({ ok: false, error: 'id is required' });
+  }
+  const changed = markNotificationRead(id.trim());
+  if (!changed) {
+    return res.status(404).json({ ok: false, error: 'notification not found: ' + id });
+  }
+  return res.json({ ok: true, ...listNotifications(50) });
+});
+
+app.post('/api/notifications/read-all', (_req, res) => {
+  const changed = markAllNotificationsRead();
+  return res.json({ ok: true, changed, ...listNotifications(50) });
+});
 
 export { app };

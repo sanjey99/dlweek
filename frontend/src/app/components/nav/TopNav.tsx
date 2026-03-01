@@ -7,69 +7,39 @@ interface TopNavProps {
   theme: Theme;
   onToggleTheme: () => void;
   isMobile: boolean;
+  notifications: NotificationItem[];
+  unreadCount: number;
+  onMarkAllRead: () => void;
+  onMarkRead: (id: string) => void;
 }
 
-type NotificationItem = {
+export type NotificationItem = {
   id: string;
+  type: string;
   title: string;
   detail: string;
-  timeAgo: string;
+  actionId: string | null;
+  createdAt: string;
   level: 'critical' | 'warning' | 'info';
   unread: boolean;
 };
 
-const initialNotifications: NotificationItem[] = [
-  {
-    id: 'n1',
-    title: 'Critical action requires review',
-    detail: 'agent-db-ops proposed DROP TABLE users_backup in PROD — Risk score 94/100.',
-    timeAgo: '2m ago',
-    level: 'critical',
-    unread: true,
-  },
-  {
-    id: 'n2',
-    title: 'Action automatically blocked',
-    detail: 'agent-api-gateway blocked mass privilege escalation via PATCH /api/v1/users/all.',
-    timeAgo: '9m ago',
-    level: 'critical',
-    unread: true,
-  },
-  {
-    id: 'n3',
-    title: 'Medium-risk action pending',
-    detail: 'agent-file-ops is awaiting approval to delete /var/logs/ in STAGING.',
-    timeAgo: '18m ago',
-    level: 'warning',
-    unread: true,
-  },
-  {
-    id: 'n4',
-    title: 'Compliance rule triggered',
-    detail: 'agent-email-sender blocked by COMP-004: opt-out recipients targeted.',
-    timeAgo: '31m ago',
-    level: 'critical',
-    unread: true,
-  },
-];
+function timeAgoLabel(iso: string): string {
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return 'just now';
+  const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seconds < 5) return 'just now';
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
 
-export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) {
+export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => n.unread).length,
-    [notifications]
-  );
-
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
-  };
-
-  const dismissNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  const notificationRows = useMemo(() => notifications, [notifications]);
 
   const getLevelStyles = (level: NotificationItem['level']) => {
     if (level === 'critical') {
@@ -294,7 +264,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
                   </div>
 
                   <button
-                    onClick={markAllRead}
+                    onClick={onMarkAllRead}
                     style={{
                       border: 'none',
                       background: 'transparent',
@@ -313,12 +283,12 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
                 </div>
 
                 <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                  {notifications.length === 0 ? (
+                  {notificationRows.length === 0 ? (
                     <div style={{ padding: 18, color: theme.textTertiary, fontSize: 13 }}>
                       No notifications.
                     </div>
                   ) : (
-                    notifications.map((n) => {
+                    notificationRows.map((n) => {
                       const level = getLevelStyles(n.level);
                       return (
                         <div
@@ -369,12 +339,12 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
                               {n.detail}
                             </p>
                             <span style={{ color: theme.textTertiary, fontSize: 11, marginTop: 4, display: 'inline-block' }}>
-                              {n.timeAgo}
+                              {timeAgoLabel(n.createdAt)}
                             </span>
                           </div>
 
                           <button
-                            onClick={() => dismissNotification(n.id)}
+                            onClick={() => onMarkRead(n.id)}
                             title="Dismiss"
                             style={{
                               border: 'none',
@@ -625,3 +595,4 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
     </nav>
   );
 }
+

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
+import type { NotificationItem as TopNavNotificationItem } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
@@ -15,6 +16,9 @@ import {
   approveAction as apiApprove,
   blockAction as apiBlock,
   escalateAction as apiEscalate,
+  fetchNotifications as apiFetchNotifications,
+  markNotificationRead as apiMarkNotificationRead,
+  markAllNotificationsRead as apiMarkAllNotificationsRead,
 } from './services/api';
 
 export default function App() {
@@ -24,6 +28,8 @@ export default function App() {
   const [backendConnected, setBackendConnected] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
+  const [notifications, setNotifications] = useState<TopNavNotificationItem[]>([]);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
@@ -49,6 +55,76 @@ export default function App() {
     setLastSync(new Date());
     setSyncLabel('just now');
   }, [actions]);
+
+  // Notifications polling from backend (Phase 2)
+  const refreshNotifications = useCallback(async () => {
+    if (!backendConnected) return;
+    try {
+      const data = await apiFetchNotifications(50);
+      const mapped: TopNavNotificationItem[] = (data.notifications || []).map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        detail: n.detail,
+        actionId: n.actionId ?? null,
+        createdAt: n.createdAt,
+        level: n.severity || 'info',
+        unread: !!n.unread,
+      }));
+      setNotifications(mapped);
+      setNotificationUnreadCount(Number(data.unreadCount || 0));
+    } catch {
+      // Keep current UI state if notification API is unavailable.
+    }
+  }, [backendConnected]);
+
+  useEffect(() => {
+    refreshNotifications();
+    const timer = setInterval(() => {
+      refreshNotifications();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [refreshNotifications]);
+
+  const handleMarkNotificationRead = useCallback(async (id: string) => {
+    try {
+      const data = await apiMarkNotificationRead(id);
+      const mapped: TopNavNotificationItem[] = (data.notifications || []).map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        detail: n.detail,
+        actionId: n.actionId ?? null,
+        createdAt: n.createdAt,
+        level: n.severity || 'info',
+        unread: !!n.unread,
+      }));
+      setNotifications(mapped);
+      setNotificationUnreadCount(Number(data.unreadCount || 0));
+    } catch {
+      // No-op for now.
+    }
+  }, []);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    try {
+      const data = await apiMarkAllNotificationsRead();
+      const mapped: TopNavNotificationItem[] = (data.notifications || []).map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        detail: n.detail,
+        actionId: n.actionId ?? null,
+        createdAt: n.createdAt,
+        level: n.severity || 'info',
+        unread: !!n.unread,
+      }));
+      setNotifications(mapped);
+      setNotificationUnreadCount(Number(data.unreadCount || 0));
+    } catch {
+      // No-op for now.
+    }
+  }, []);
 
   // ── Initial data load from backend ─────────────────────────────────────────
   useEffect(() => {
@@ -224,7 +300,16 @@ export default function App() {
       />
 
       {/* Navigation */}
-      <TopNav isDark={isDark} theme={theme} onToggleTheme={() => setIsDark((d) => !d)} isMobile={isMobile} />
+      <TopNav
+        isDark={isDark}
+        theme={theme}
+        onToggleTheme={() => setIsDark((d) => !d)}
+        isMobile={isMobile}
+        notifications={notifications}
+        unreadCount={notificationUnreadCount}
+        onMarkAllRead={handleMarkAllNotificationsRead}
+        onMarkRead={handleMarkNotificationRead}
+      />
 
       {/* Page content */}
       <div
