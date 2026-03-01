@@ -51,15 +51,15 @@ ok "Ports cleared."
 
 # ── 2. Install dependencies (if needed) ─────────────────────
 
-# Python venv + deps
-if [ ! -d "$ML_DIR/.venv" ]; then
-  info "Creating Python virtual environment in ml_service..."
-  python3 -m venv "$ML_DIR/.venv"
+# Python venv + deps (single venv in project root)
+if [ ! -d "$ROOT/.venv" ]; then
+  info "Creating Python virtual environment..."
+  python3 -m venv "$ROOT/.venv"
 fi
-if [ -f "$ML_DIR/requirements.txt" ]; then
-  info "Installing ML service Python dependencies..."
-  "$ML_DIR/.venv/bin/pip" install -q -r "$ML_DIR/requirements.txt"
-  ok "ML Python dependencies installed."
+if [ -f "$ROOT/requirements.txt" ]; then
+  info "Installing Python dependencies..."
+  "$ROOT/.venv/bin/pip" install -q -r "$ROOT/requirements.txt"
+  ok "Python dependencies installed."
 fi
 
 # Node backend deps
@@ -78,7 +78,7 @@ fi
 
 # ── 3. Start ML Service (port 8000) ─────────────────────────
 info "Starting ML Service on :8000 ..."
-(cd "$ML_DIR" && .venv/bin/python -m uvicorn app:app --host 0.0.0.0 --port 8000) &
+(cd "$ML_DIR" && "$ROOT/.venv/bin/python" -m uvicorn app:app --host 0.0.0.0 --port 8000) &
 PIDS+=($!)
 
 # ── 4. Start Backend (port 4000) ────────────────────────────
