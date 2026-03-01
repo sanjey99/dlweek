@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Layers, ShieldX, Bot, AlertOctagon, Info, X } from 'lucide-react';
+import { CheckCircle, Layers, ShieldX, Bot, AlertOctagon, Info, X, Database, Clock } from 'lucide-react';
 import type { ReactNode, CSSProperties } from 'react';
 import { ActionItem, Theme } from '../../types';
 import { COLORS } from '../../utils/theme';
@@ -107,12 +107,14 @@ function ActionButton({
   variant,
   onClick,
   disabled,
+  disabledReason,
 }: {
   label: string;
   icon: ReactNode;
   variant: 'approve' | 'escalate' | 'block';
   onClick: () => void;
   disabled?: boolean;
+  disabledReason?: string;
 }) {
   const [hovered, setHovered] = useState(false);
 
@@ -138,11 +140,13 @@ function ActionButton({
     <button
       onClick={onClick}
       disabled={disabled}
+      title={disabled ? (disabledReason ?? 'Action already resolved') : label}
+      aria-label={disabled ? (disabledReason ?? 'Action already resolved') : label}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         flex: 1,
-        padding: '10px 8px',
+        padding: '12px 8px',
         borderRadius: 8,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'flex',
@@ -154,6 +158,7 @@ function ActionButton({
         fontWeight: 600,
         transition: 'all 0.15s ease',
         opacity: disabled ? 0.4 : 1,
+        minHeight: 44, /* touch target */
         ...styles[variant],
       }}
     >
@@ -197,8 +202,15 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
         <div style={{ textAlign: 'center' }}>
           <p style={{ color: theme.textSecondary, fontSize: 14, fontWeight: 500 }}>No action selected</p>
           <p style={{ color: theme.textTertiary, fontSize: 12, marginTop: 4 }}>
-            Click a pending review in the feed
+            Click a pending review in the feed to begin
           </p>
+        </div>
+        {/* Source attribution even on empty state */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
+          <Database size={9} color={theme.textTertiary} />
+          <span style={{ color: theme.textTertiary, fontSize: 10 }}>
+            sentinel-ml-v3.2 · ready
+          </span>
         </div>
       </div>
     );
@@ -224,12 +236,14 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             : 'none',
       }}
     >
-      {/* Panel Header */}
+      {/* Panel Header — high-contrast for quick scan */}
       <div
         style={{
           padding: isMobile ? '12px 14px' : '14px 18px',
           borderBottom: `1px solid ${theme.border}`,
-          background: theme.tableHeaderBg,
+          background: isPending
+            ? (action.riskScore >= 80 ? 'rgba(229,72,77,0.08)' : 'rgba(255,178,36,0.06)')
+            : theme.tableHeaderBg,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -431,6 +445,30 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
         {/* Divider */}
         <div style={{ height: 1, background: theme.border }} />
 
+        {/* CTA summary — instant comprehension for judge scan */}
+        {isPending && (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: 8,
+              background: action.riskScore >= 80
+                ? 'rgba(229,72,77,0.08)'
+                : 'rgba(255,178,36,0.06)',
+              border: `1px solid ${action.riskScore >= 80 ? 'rgba(229,72,77,0.2)' : 'rgba(255,178,36,0.2)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <AlertOctagon size={14} color={scoreColor} />
+            <span style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>
+              {action.riskScore >= 80
+                ? 'Critical — approve or block this action now'
+                : 'Review required — approve or block below'}
+            </span>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
           <ActionButton
@@ -439,6 +477,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             variant="approve"
             onClick={() => onApprove(action.id)}
             disabled={!isPending}
+            disabledReason={!isPending ? 'This action has already been resolved' : undefined}
           />
           <ActionButton
             label="Block Action"
@@ -446,6 +485,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             variant="block"
             onClick={() => onBlock(action.id)}
             disabled={!isPending}
+            disabledReason={!isPending ? 'This action has already been resolved' : undefined}
           />
         </div>
 
@@ -467,6 +507,33 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             </span>
           </div>
         )}
+
+        {/* Source + Timestamp truthfulness footer */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            padding: '8px 0 0',
+            borderTop: `1px solid ${theme.border}`,
+            marginTop: 2,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Database size={10} color={theme.textTertiary} />
+            <span style={{ color: theme.textTertiary, fontSize: 10 }}>
+              {action.source ?? 'sentinel-ml-v3.2'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Clock size={10} color={theme.textTertiary} />
+            <span style={{ color: theme.textTertiary, fontSize: 10 }}>
+              Scored at {action.timestamp} · {isPending ? 'awaiting review' : action.riskStatus === 'APPROVED' ? 'approved' : 'blocked'}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

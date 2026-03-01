@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { ChevronRight, AlertOctagon, AlertTriangle, CheckCircle2, Clock, ShieldOff } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronRight, AlertOctagon, AlertTriangle, CheckCircle2, Clock, ShieldOff, Database, Wifi, WifiOff } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ActionItem, RiskStatus, Environment, Theme } from '../../types';
+import { ActionItem, RiskStatus, Environment, Theme, PanelState } from '../../types';
 import { COLORS } from '../../utils/theme';
 
 interface ActionFeedProps {
@@ -108,9 +108,48 @@ function EnvBadge({ env, isDark }: { env: Environment; isDark: boolean }) {
 
 export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction, isMobile }: ActionFeedProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [panelState, setPanelState] = useState<PanelState>('live');
+  const [lastRefresh, setLastRefresh] = useState(() => new Date());
+
+  // Simulate stale detection: if no new data in 30s, show stale
+  useEffect(() => {
+    setLastRefresh(new Date());
+    setPanelState('live');
+  }, [actions]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastRefresh.getTime();
+      if (elapsed > 30000 && panelState === 'live') {
+        setPanelState('stale');
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastRefresh, panelState]);
 
   const isClickable = (status: RiskStatus) =>
     status === 'HIGH_RISK_PENDING' || status === 'MEDIUM_RISK_PENDING';
+
+  /** Reason text shown for non-clickable rows */
+  const getDisabledReason = (status: RiskStatus): string | null => {
+    if (status === 'APPROVED') return 'Already approved — no action needed';
+    if (status === 'HIGH_RISK_BLOCKED') return 'Blocked — auto-policy enforced';
+    if (status === 'LOW_RISK') return 'Low risk — auto-approved by policy';
+    return null;
+  };
+
+  const formatRefreshTime = () => {
+    const secs = Math.floor((Date.now() - lastRefresh.getTime()) / 1000);
+    if (secs < 5) return 'just now';
+    if (secs < 60) return `${secs}s ago`;
+    return `${Math.floor(secs / 60)}m ago`;
+  };
+
+  const panelIndicator = panelState === 'stale'
+    ? { color: COLORS.amber, label: 'Stale', icon: <WifiOff size={10} /> }
+    : panelState === 'error'
+    ? { color: COLORS.red, label: 'Error', icon: <WifiOff size={10} /> }
+    : { color: COLORS.green, label: 'Live', icon: <Wifi size={10} /> };
 
   return (
     <div
@@ -133,6 +172,8 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
           alignItems: 'center',
           justifyContent: 'space-between',
           background: theme.tableHeaderBg,
+          flexWrap: 'wrap',
+          gap: 8,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -141,36 +182,72 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
               width: 6,
               height: 6,
               borderRadius: '50%',
-              background: COLORS.green,
-              animation: 'ping-dot 2s ease-in-out infinite',
-              boxShadow: `0 0 6px ${COLORS.green}`,
+              background: panelIndicator.color,
+              animation: panelState === 'live' ? 'ping-dot 2s ease-in-out infinite' : 'none',
+              boxShadow: panelState === 'live' ? `0 0 6px ${COLORS.green}` : 'none',
             }}
           />
           <span style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 600 }}>
             Live AI Action Feed
           </span>
+          {/* Panel state badge */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              padding: '2px 6px',
+              borderRadius: 4,
+              background: panelState === 'stale' ? COLORS.amberMuted : panelState === 'error' ? COLORS.redMuted : COLORS.greenMuted,
+              color: panelIndicator.color,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase' as const,
+            }}
+          >
+            {panelIndicator.icon}
+            {panelIndicator.label}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12 }}>
-          <span style={{ color: theme.textSecondary, fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 12, flexWrap: 'wrap' }}>
+          <span style={{ color: theme.textSecondary, fontSize: 11 }}>
             {actions.length} events
           </span>
-          {!isMobile && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px',
-                borderRadius: 4,
-                background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
-                color: theme.textSecondary,
-                fontSize: 12,
-              }}
-            >
-              <Clock size={12} />
-              <span>Real-time</span>
-            </div>
-          )}
+          {/* Source attribution */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '3px 8px',
+              borderRadius: 4,
+              background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+              color: theme.textTertiary,
+              fontSize: 10,
+            }}
+            title="Data source for this feed"
+          >
+            <Database size={10} />
+            <span>sentinel-ml-v3.2</span>
+          </div>
+          {/* Timestamp */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '3px 8px',
+              borderRadius: 4,
+              background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+              color: panelState === 'stale' ? COLORS.amber : theme.textTertiary,
+              fontSize: 10,
+            }}
+            title={`Last data received: ${lastRefresh.toLocaleTimeString()}`}
+          >
+            <Clock size={10} />
+            <span>{formatRefreshTime()}</span>
+          </div>
         </div>
       </div>
 
@@ -220,14 +297,17 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
 
           if (isMobile) {
             /* ── Mobile card layout ── */
+            const disabledReason = getDisabledReason(action.riskStatus);
             return (
               <div
                 key={action.id}
                 onClick={() => isPending && onSelectAction(action)}
                 onMouseEnter={() => setHoveredId(action.id)}
                 onMouseLeave={() => setHoveredId(null)}
+                title={disabledReason ?? undefined}
+                aria-label={isPending ? `Review ${action.agentName} action` : disabledReason ?? undefined}
                 style={{
-                  padding: '12px 14px',
+                  padding: '14px',
                   borderBottom: `1px solid ${theme.border}`,
                   cursor: isPending ? 'pointer' : 'default',
                   background: rowBg,
@@ -240,6 +320,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 7,
+                  minHeight: 44, /* minimum touch target */
                 }}
               >
                 {/* Top row: agent + badges */}
@@ -293,17 +374,26 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                     {action.timestamp}
                   </span>
                 </div>
+                {/* Disabled reason for non-pending items */}
+                {disabledReason && (
+                  <span style={{ color: theme.textTertiary, fontSize: 10, fontStyle: 'italic' }}>
+                    {disabledReason}
+                  </span>
+                )}
               </div>
             );
           }
 
           /* ── Desktop table row ── */
+          const disabledReason = getDisabledReason(action.riskStatus);
           return (
             <div
               key={action.id}
               onClick={() => isPending && onSelectAction(action)}
               onMouseEnter={() => setHoveredId(action.id)}
               onMouseLeave={() => setHoveredId(null)}
+              title={disabledReason ?? undefined}
+              aria-label={isPending ? `Review ${action.agentName} action` : disabledReason ?? undefined}
               style={{
                 display: 'grid',
                 gridTemplateColumns: '80px 140px 1fr 80px 160px 20px',
@@ -373,9 +463,9 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                 <StatusBadge status={action.riskStatus} />
               </div>
 
-              {/* Chevron (only for pending) */}
-              <div style={{ color: theme.textTertiary, opacity: isPending ? 1 : 0 }}>
-                <ChevronRight size={14} />
+              {/* Chevron (only for pending — removed for resolved to eliminate dead control) */}
+              <div style={{ color: theme.textTertiary }}>
+                {isPending ? <ChevronRight size={14} /> : null}
               </div>
             </div>
           );
