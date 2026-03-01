@@ -6,6 +6,11 @@ import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
+import {
+  createActionLifecycleStore,
+  validateActionProposalPayload,
+  validateActionResolutionPayload,
+} from './engine/actionLifecycle.js';
 
 dotenv.config();
 const app = express();
@@ -13,6 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
+const actionLifecycle = createActionLifecycleStore();
 
 const DEMO_CASES = [
   { name: 'normal_profile', features: [0.12, 0.08, -0.1, 0.03, 0.15, -0.06, 0.02, 0.01] },
@@ -119,11 +125,124 @@ function handlePolicyGate(req, res) {
   });
 }
 
+function asDecisionContract(policy) {
+  return {
+    decision: policy.decision,
+    reasonTags: policy.reasonTags,
+    confidence: policy.confidence,
+  };
+}
+
+function evaluateActionPolicy(body) {
+  return evaluatePolicyGate({ action: body.action, context: body.context });
+}
+
 // Primary governance endpoint.
 app.post('/api/governance/policy-gate', handlePolicyGate);
 // Compatibility aliases during migration from prior route conventions.
 app.post('/api/policy/gate', handlePolicyGate);
 app.post('/api/risk/gate', handlePolicyGate);
+
+app.post('/api/governance/actions/propose', (req, res) => {
+  const validationError = validateActionProposalPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const policy = evaluateActionPolicy(req.body);
+  const record = actionLifecycle.saveProposal({
+    action: req.body.action,
+    context: req.body.context,
+    policy,
+  });
+
+  return res.json({
+    ok: true,
+    packetId: 'BE-P2',
+    actionId: record.actionId,
+    status: record.status,
+    ...asDecisionContract(policy),
+    policy,
+  });
+});
+
+function resolveActionFromRequest(req, res, resolution, decisionOverride) {
+  const validationError = validateActionResolutionPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const record = actionLifecycle.getAction(req.body.actionId);
+  if (!record) {
+    return res.status(404).json({ ok: false, error: 'action not found' });
+  }
+
+  const actor = typeof req.body.actor === 'string' && req.body.actor.trim().length > 0
+    ? req.body.actor.trim()
+    : 'human-reviewer';
+  const notes = typeof req.body.notes === 'string' ? req.body.notes : null;
+
+  const updated = actionLifecycle.resolveAction(record.actionId, {
+    actor,
+    resolution: { ...resolution, notes },
+  });
+
+  const policyContract = {
+    decision: decisionOverride,
+    reasonTags: [...record.policy.reasonTags, resolution.reasonTag],
+    confidence: record.policy.confidence,
+  };
+
+  return res.json({
+    ok: true,
+    packetId: 'BE-P2',
+    actionId: updated.actionId,
+    status: updated.status,
+    ...policyContract,
+    policy: {
+      ...record.policy,
+      ...policyContract,
+    },
+    resolution: updated.resolution,
+  });
+}
+
+app.post('/api/action/approve', (req, res) => {
+  return resolveActionFromRequest(
+    req,
+    res,
+    { type: 'approve', status: 'approved_by_human', reasonTag: 'HUMAN_APPROVED' },
+    'allow',
+  );
+});
+
+app.post('/api/action/block', (req, res) => {
+  return resolveActionFromRequest(
+    req,
+    res,
+    { type: 'block', status: 'blocked_by_human', reasonTag: 'HUMAN_BLOCKED' },
+    'block',
+  );
+});
+
+app.post('/api/action/escalate', (req, res) => {
+  return resolveActionFromRequest(
+    req,
+    res,
+    { type: 'escalate', status: 'escalated', reasonTag: 'ESCALATED_FOR_REVIEW' },
+    'review',
+  );
+});
+
+app.get('/api/governance/actions/:actionId', (req, res) => {
+  const record = actionLifecycle.getAction(req.params.actionId);
+  if (!record) return res.status(404).json({ ok: false, error: 'action not found' });
+  return res.json({
+    ok: true,
+    action: record,
+    events: actionLifecycle.listEvents(record.actionId),
+  });
+});
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws/signals' });
