@@ -65,3 +65,25 @@
 **Fix**: updated compat response to emit `strategy: 'fusion-compat'` with fusion source details.
 **Regression check**: integration suite passed after update.
 **Lesson**: restored code after conflicts must be validated against current test expectations.
+=======
+### [2026-03-01] — BE-P3 escalate test asserted wrong event type
+**Reproduced**: `npm test` failed in `policyEnforcement.e2e.test.js` on escalate path expecting `action_block`.
+**Root cause**: stale assertion copied from block path.
+**Fix**: changed assertion to require `action_escalate`.
+**Regression check**: backend test suite passes after fix.
+**Lesson**: transition-specific tests should assert exact event semantics, not shared generic expectations.
+
+### 2026-03-01 — Merge conflict in index.js between policyEnforcementService and fusion imports
+**Reproduced**: During P3 file reads, discovered unresolved Git conflict markers (`<<<<<<< HEAD` / `=======` / `>>>>>>>`) in `index.js` import section. The HEAD branch had added `policyEnforcementService.js` while commit 6b9e9e8 had fusion imports.
+**Root cause**: Feature branches diverged — BE-P2 (policy enforcement) and ARCH-CORE-DP1 (fusion) both modified the import section of `index.js`. The merge left conflict markers unresolved.
+**Fix**: Resolved by keeping BOTH import sets — policyEnforcementService AND all fusion modules. Also re-added the missing `handleFusionEvaluate`, `handleLegacyViaFusion`, `/api/governance/fusion` POST route, and v2 compat routes which were lost during the merge.
+**Regression check**: All 94 tests pass (14 unit evaluator + 14 unit observability + 66 integration).
+**Lesson**: After merging feature branches, always run the full test suite and grep for conflict markers (`<<<<<<<`) before committing. Automate this check in CI.
+
+### 2026-03-01 — v2 compat route migration.strategy mismatch
+**Reproduced**: After restoring v2 compat routes, 3 integration tests failed — expected `migration.strategy: 'fusion-compat'` but got `'revamp'`.
+**Root cause**: The restored `handleLegacyViaFusion` used the same migration block as the original `handlePolicyGate` (strategy: 'revamp') instead of the fusion-specific variant (strategy: 'fusion-compat' with fusionSource field).
+**Fix**: Updated `handleLegacyViaFusion` to return `{ strategy: 'fusion-compat', fusionSource: fusionResult.source }`.
+**Regression check**: All 94 tests pass.
+**Lesson**: When restoring lost code after a merge conflict, always verify against the test expectations — don't assume the restored code matches the last known-good version.
+
