@@ -20,7 +20,7 @@ Then open:
 ```bash
 curl -s http://localhost:4000/api/demo-cases
 curl -s http://localhost:4000/api/model-info
-curl -s http://localhost:4000/api/simulate
+curl -s http://localhost:4000/api/markets/snapshot
 curl -s -X POST http://localhost:4000/api/infer \
   -H 'Content-Type: application/json' \
   -d '{"features":[0.1,0.4,0.2,0.3,0.8,0.2,0.5,0.9]}'
@@ -76,6 +76,22 @@ curl -s -X POST http://localhost:4000/api/ensemble \
 # verify response includes:
 # ml_contract.validation_error="ML_UPSTREAM_NON_200:503"
 # ml_contract.fallback_reason="ML_UPSTREAM_NON_200:503"
+
+# ARCH-CORE: fusion evaluator (risk gate)
+curl -s -X POST http://localhost:4000/api/governance/fusion \
+  -H 'Content-Type: application/json' \
+  -d '{"action":{"type":"DEPLOY_PROD"},"context":{"riskScore":0.5,"mlConfidence":0.7,"testsPassing":true,"touchesCriticalPaths":true,"targetEnvironment":"prod","destructive":false,"rollbackPlanPresent":true,"hasHumanApproval":false}}'
+# verify: decision, reason_tags, risk_score, risk_category, policy_version, _requestId
+
+# ARCH-CORE-P3: fusion health + metrics
+curl -s http://localhost:4000/api/governance/fusion/health
+# verify: ok, policy_version, model_version_support, metrics object
+
+# ARCH-CORE-P4: fusion audit trail
+curl -s http://localhost:4000/api/governance/fusion/audit?limit=10
+# verify: ok, count, capacity, records[]
+# lookup by request_id (substitute a real _requestId from a previous call):
+# curl -s http://localhost:4000/api/governance/fusion/audit/<request_id>
 ```
 
 ## Fallback (no Docker)
