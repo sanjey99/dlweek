@@ -25,6 +25,15 @@ const RESOLUTION_CONFIG = {
   escalate: { type: 'escalate', status: 'escalated', reasonTag: 'ESCALATED_FOR_REVIEW', decision: 'review' },
 };
 
+const ALLOWED_TRANSITIONS = {
+  pending_review: new Set(['approve', 'block', 'escalate']),
+  blocked: new Set([]),
+  approved_auto: new Set([]),
+  approved_by_human: new Set([]),
+  blocked_by_human: new Set([]),
+  escalated: new Set(['approve', 'block']),
+};
+
 export function createPolicyEnforcementService(store = createActionLifecycleStore()) {
   function propose(payload) {
     const validationError = validateActionProposalPayload(payload);
@@ -55,6 +64,10 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
 
     const record = store.getAction(payload.actionId);
     if (!record) throw toError(404, 'action not found');
+    const allowedTransitions = ALLOWED_TRANSITIONS[record.status] || new Set();
+    if (!allowedTransitions.has(resolutionKind)) {
+      throw toError(409, `invalid transition: status=${record.status} cannot apply ${resolutionKind}`);
+    }
 
     const actor = typeof payload.actor === 'string' && payload.actor.trim().length > 0
       ? payload.actor.trim()
