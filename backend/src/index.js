@@ -510,31 +510,108 @@ const isTestEnv = process.env.VITEST === 'true' || process.env.NODE_ENV === 'tes
 
 if (!isTestEnv) {
   const server = createServer(app);
-  const wss = new WebSocketServer({ server, path: '/ws/signals' });
-  _wss = wss;
 
-  wss.on('connection', (ws) => {
-    const timer = setInterval(async () => {
-      const integrity = await realtimeTracker.capture(async () => {
-        const markets = await getMarketSnapshot();
-        const regime = inferRegime(markets);
-        return { markets, regime };
-      }, 'adapter.marketData');
-      ws.send(JSON.stringify({
-        type: 'tick',
-        source: integrity.source,
-        timestamp: integrity.timestamp,
-        stale_state: integrity.stale_state,
-        stale_reason: integrity.stale_reason,
-        age_ms: integrity.age_ms,
-        markets: integrity.payload?.markets || [],
-        regime: integrity.payload?.regime || 'unknown',
-      }));
-    }, 2000);
-    ws.on('close', () => clearInterval(timer));
+  // ─── Attach WSS + graceful shutdown once listening succeeds ────────────
+  function attachWsAndShutdown() {
+    const wss = new WebSocketServer({ server, path: '/ws/signals' });
+    _wss = wss;
+
+    wss.on('error', (err) => {
+      console.error('[ws] WebSocketServer error:', err.message);
+    });
+
+    wss.on('connection', (ws) => {
+      const timer = setInterval(async () => {
+        const integrity = await realtimeTracker.capture(async () => {
+          const markets = await getMarketSnapshot();
+          const regime = inferRegime(markets);
+          return { markets, regime };
+        }, 'adapter.marketData');
+        try {
+          ws.send(JSON.stringify({
+            type: 'tick',
+            source: integrity.source,
+            timestamp: integrity.timestamp,
+            stale_state: integrity.stale_state,
+            stale_reason: integrity.stale_reason,
+            age_ms: integrity.age_ms,
+            markets: integrity.payload?.markets || [],
+            regime: integrity.payload?.regime || 'unknown',
+          }));
+        } catch (_) { /* client disconnected mid-send */ }
+      }, 2000);
+      ws.on('close', () => clearInterval(timer));
+    });
+
+    // ─── Graceful shutdown ─────────────────────────────────────────────────
+    let shuttingDown = false;
+    function shutdown(signal) {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      console.log(`\n[shutdown] ${signal} received — closing server…`);
+
+      for (const client of wss.clients) {
+        try { client.close(1001, 'server shutting down'); } catch (_) { /* ignore */ }
+      }
+      wss.close(() => console.log('[shutdown] WebSocket server closed'));
+
+      server.close(() => {
+        console.log('[shutdown] HTTP server closed');
+        process.exit(0);
+      });
+
+      // Force-exit after 4 s if something hangs
+      setTimeout(() => {
+        console.error('[shutdown] Forcing exit after timeout');
+        process.exit(1);
+      }, 4000).unref();
+    }
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+  }
+
+  // ─── Start with EADDRINUSE auto-recovery ─────────────────────────────────
+  let retried = false;
+  server.on('error', async (err) => {
+    if (err.code === 'EADDRINUSE' && !retried) {
+      retried = true;
+      console.warn(`[startup] Port ${port} in use — attempting to reclaim…`);
+      try {
+        const { execSync } = await import('child_process');
+        if (process.platform === 'win32') {
+          const out = execSync(
+            `netstat -ano | findstr :${port} | findstr LISTENING`,
+            { encoding: 'utf8' },
+          );
+          const pid = out.trim().split(/\s+/).pop();
+          if (pid && pid !== '0') {
+            execSync(`taskkill /PID ${pid} /F`, { stdio: 'ignore' });
+            console.log(`[startup] Killed stale PID ${pid} on port ${port}`);
+          }
+        } else {
+          execSync(`fuser -k ${port}/tcp`, { stdio: 'ignore' });
+          console.log(`[startup] Killed stale process on port ${port}`);
+        }
+        await new Promise((r) => setTimeout(r, 1200));
+        server.listen(port, () => {
+          console.log(`backend+ws listening on :${port} (reclaimed)`);
+          attachWsAndShutdown();
+        });
+      } catch (killErr) {
+        console.error(`[startup] Could not reclaim port ${port}:`, killErr.message);
+        process.exit(1);
+      }
+    } else {
+      console.error('[startup] Fatal server error:', err.message);
+      process.exit(1);
+    }
   });
 
-  server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+  server.listen(port, () => {
+    console.log(`backend+ws listening on :${port}`);
+    attachWsAndShutdown();
+  });
 }
 
 export { app };
