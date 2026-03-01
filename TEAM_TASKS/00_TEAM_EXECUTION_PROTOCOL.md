@@ -6,7 +6,7 @@ Use this with all lanes to keep delivery synchronized.
 This project is a **revamp** of the existing `dlweek` codebase (originally finance-oriented), not a greenfield rebuild.
 - Reuse architecture/components where possible.
 - Migrate domain language and workflows toward the new challenge track.
-- Avoid destructive rewrites unless explicitly approved by orchestrator.
+- Avoid destructive rewrites unless explicitly approved by orchestrator
 
 ## Branching
 - Main integration branch: `main`
