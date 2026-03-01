@@ -51,6 +51,31 @@ curl -s -X POST http://localhost:4000/api/action/approve \
   -H 'Content-Type: application/json' \
   -d "{\"actionId\":\"${ACTION_ID}\",\"actor\":\"qa-lead\",\"notes\":\"Manual verification complete\"}"
 curl -s http://localhost:4000/api/governance/actions/${ACTION_ID}
+
+# BE-P3 strict ML contract + lifecycle transitions
+ACTION_REVIEW=$(curl -s -X POST http://localhost:4000/api/governance/actions/propose \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":{"type":"merge-main"},
+    "context":{"testsPassing":true,"touchesCriticalPaths":true,"rollbackPlanPresent":true},
+    "ml_assessment":{"risk_score":0.58,"confidence":0.82,"label":"warning","timestamp":"2026-03-01T12:00:00.000Z"}
+  }' | node -e "process.stdin.on('data', d => process.stdout.write(JSON.parse(d).actionId))")
+curl -s -X POST http://localhost:4000/api/action/escalate -H 'Content-Type: application/json' -d "{\"actionId\":\"${ACTION_REVIEW}\",\"actor\":\"governance-lead\"}"
+curl -s -X POST http://localhost:4000/api/action/approve -H 'Content-Type: application/json' -d "{\"actionId\":\"${ACTION_REVIEW}\",\"actor\":\"governance-lead\"}"
+curl -s http://localhost:4000/api/governance/actions/${ACTION_REVIEW}
+
+# stale-state truthfulness proof
+# stop ML service or force adapter failure, then observe stale_state=true in ws tick payloads
+# ws://localhost:4000/ws/signals -> {"source":"adapter.marketData","timestamp":"...","stale_state":true,"stale_reason":"FETCH_ERROR:..."}
+
+# upstream non-200 handling proof
+# point ML_URL to a stub that returns 503 on /infer, then:
+curl -s -X POST http://localhost:4000/api/ensemble \
+  -H 'Content-Type: application/json' \
+  -d '{"features":[0.1,0.4,0.2,0.3,0.8,0.2,0.5,0.9]}'
+# verify response includes:
+# ml_contract.validation_error="ML_UPSTREAM_NON_200:503"
+# ml_contract.fallback_reason="ML_UPSTREAM_NON_200:503"
 ```
 
 ## Fallback (no Docker)

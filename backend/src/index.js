@@ -6,13 +6,12 @@ import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
-<<<<<<< HEAD
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
-=======
+import { createRealtimeIntegrityTracker } from './engine/realtimeIntegrity.js';
+import { buildFallbackMlAssessment, validateStrictMlContract } from './engine/mlContract.js';
 import { evaluate as fusionEvaluate } from './fusion/fusionEvaluator.js';
 import { validateFusionPayload } from './fusion/schema.js';
 import { legacyPolicyGateToFusion, fusionToLegacyPolicyGate, legacyFinanceToFusion } from './fusion/compatAdapter.js';
->>>>>>> 6b9e9e8 (feat(arch-core): ARCH-CORE-DP1 fusion decision backbone deploy-ready)
 
 dotenv.config();
 const app = express();
@@ -21,6 +20,7 @@ app.use(express.json());
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
+const realtimeTracker = createRealtimeIntegrityTracker({ staleAfterMs: 7000 });
 
 const DEMO_CASES = [
   { name: 'normal_profile', features: [0.12, 0.08, -0.1, 0.03, 0.15, -0.06, 0.02, 0.01] },
@@ -73,7 +73,26 @@ app.post('/api/infer', async (req, res) => {
     });
     const data = await r.json();
     if (!r.ok) return res.status(r.status).json({ ok: false, ...data });
-    return res.json({ ok: true, ...data });
+
+    const contract = validateStrictMlContract(data);
+    if (!contract.ok) {
+      const fallback = buildFallbackMlAssessment({
+        reason: `ML_RESPONSE_INVALID:${contract.error}`,
+      });
+      return res.status(502).json({
+        ok: false,
+        packetId: 'BE-P3',
+        error: contract.error,
+        fallback,
+      });
+    }
+
+    return res.json({
+      ok: true,
+      packetId: 'BE-P3',
+      ...contract.value,
+      ml_contract: { strict_valid: true },
+    });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });
   }
@@ -87,13 +106,43 @@ app.post('/api/ensemble', async (req, res) => {
     const inferResp = await fetch(`${ML_URL}/infer`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ features: req.body.features })
     });
-    const anomaly = await inferResp.json();
+    const anomalyRaw = await inferResp.json();
+    let contract;
+    let anomaly;
+    let upstreamStatus = null;
+    let upstreamError = null;
+
+    if (!inferResp.ok) {
+      const reason = `ML_UPSTREAM_NON_200:${inferResp.status}`;
+      contract = { ok: false, error: reason };
+      anomaly = buildFallbackMlAssessment({ reason });
+      upstreamStatus = inferResp.status;
+      upstreamError = typeof anomalyRaw?.error === 'string' ? anomalyRaw.error : null;
+    } else {
+      contract = validateStrictMlContract(anomalyRaw);
+      anomaly = contract.ok
+        ? contract.value
+        : buildFallbackMlAssessment({ reason: `ML_RESPONSE_INVALID:${contract.error}` });
+    }
 
     const markets = await getMarketSnapshot();
     const regime = inferRegime(markets);
     const ensemble = runEnsemble({ anomaly, regime });
 
-    return res.json({ ok: true, markets, ...ensemble });
+    return res.json({
+      ok: true,
+      packetId: 'BE-P3',
+      markets,
+      ...ensemble,
+      ml_contract: {
+        strict_valid: contract.ok,
+        used_fallback: !contract.ok,
+        validation_error: contract.ok ? null : contract.error,
+        fallback_reason: contract.ok ? null : anomaly.fallback_reason,
+        upstream_status: upstreamStatus,
+        upstream_error: upstreamError,
+      },
+    });
   } catch (e) {
     return res.status(500).json({ ok: false, error: String(e) });
   }
@@ -127,11 +176,39 @@ function handlePolicyGate(req, res) {
   });
 }
 
+function handleFusionEvaluate(req, res) {
+  const validationError = validateFusionPayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+  const fusionResult = fusionEvaluate(req.body);
+  return res.json({ ok: true, ...fusionResult });
+}
+
+function handleLegacyV2Fusion(req, res) {
+  const fusionInput = legacyPolicyGateToFusion(req.body);
+  const validationError = validateFusionPayload(fusionInput);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+  const fusionResult = fusionEvaluate(fusionInput);
+  return res.json({
+    ok: true,
+    ...fusionToLegacyPolicyGate(fusionResult),
+  });
+}
+
 // Primary governance endpoint.
 app.post('/api/governance/policy-gate', handlePolicyGate);
 // Compatibility aliases during migration from prior route conventions.
 app.post('/api/policy/gate', handlePolicyGate);
 app.post('/api/risk/gate', handlePolicyGate);
+
+// Fusion evaluator endpoints (ARCH-CORE compatibility).
+app.post('/api/governance/fusion', handleFusionEvaluate);
+app.post('/api/governance/policy-gate/v2', handleLegacyV2Fusion);
+app.post('/api/policy/gate/v2', handleLegacyV2Fusion);
+app.post('/api/risk/gate/v2', handleLegacyV2Fusion);
 
 app.post('/api/governance/actions/propose', (req, res) => {
   try {
@@ -184,13 +261,10 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
   }
 });
 
-// ─── Finance legacy adapter (ARCH-CORE-DP1) ─────────────────────────────────
-// Accepts old finance-style payloads, converts to fusion input, returns fusion
-// envelope.  Logs a deprecation warning for migration visibility.
+// Accepts old finance-style payloads, converts to fusion input, returns fusion envelope.
 app.post('/api/governance/fusion/finance', (req, res) => {
-  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body);
+  const { fusionInput, deprecated } = legacyFinanceToFusion(req.body || {});
 
-  // If the body doesn't look like a finance payload, fall through to standard fusion
   if (!fusionInput) return handleFusionEvaluate(req, res);
 
   const validationError = validateFusionPayload(fusionInput);
@@ -216,9 +290,21 @@ if (!isTestEnv) {
 
   wss.on('connection', (ws) => {
     const timer = setInterval(async () => {
-      const markets = await getMarketSnapshot();
-      const regime = inferRegime(markets);
-      ws.send(JSON.stringify({ type: 'tick', markets, regime, ts: new Date().toISOString() }));
+      const integrity = await realtimeTracker.capture(async () => {
+        const markets = await getMarketSnapshot();
+        const regime = inferRegime(markets);
+        return { markets, regime };
+      }, 'adapter.marketData');
+      ws.send(JSON.stringify({
+        type: 'tick',
+        source: integrity.source,
+        timestamp: integrity.timestamp,
+        stale_state: integrity.stale_state,
+        stale_reason: integrity.stale_reason,
+        age_ms: integrity.age_ms,
+        markets: integrity.payload?.markets || [],
+        regime: integrity.payload?.regime || 'unknown',
+      }));
     }, 2000);
     ws.on('close', () => clearInterval(timer));
   });
