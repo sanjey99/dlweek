@@ -54,6 +54,7 @@ Preserve working routes behind compatibility adapters until frontend/ML consumer
 - [ ] Real-time feed is truthful (no static fake-live)
 - [ ] Full audit timeline queryable
 - [ ] Smoke tests pass end-to-end
+- [ ] No unapproved contract breaks across lanes
 
 ## Hand-off Format
 - Packet ID (BE-Px)

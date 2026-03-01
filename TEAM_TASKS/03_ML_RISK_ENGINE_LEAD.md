@@ -50,6 +50,7 @@ Keep existing service skeleton; evolve contracts progressively to avoid breaking
 - [ ] Threshold behavior reproducible and documented
 - [ ] Eval report generated
 - [ ] Clear fallback when model unavailable
+- [ ] API contract changes explicitly documented in PR
 
 ## Hand-off Format
 - Packet ID (ML-Px)

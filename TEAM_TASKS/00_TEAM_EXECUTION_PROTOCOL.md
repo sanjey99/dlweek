@@ -23,6 +23,13 @@ No packet is considered done without:
 2. acceptance checklist
 3. short proof (screenshot/log/curl)
 
+## Anti-Rogue Rules (Mandatory)
+- Work only on assigned packet and owned files.
+- Do not start speculative features.
+- Do not alter another lane’s contract without orchestrator approval.
+- If blocked, stop and escalate quickly; do not improvise unsafe shortcuts.
+- If a task conflicts with RULES.md or deadline, follow RULES.md and escalate.
+
 ## Merge Rules
 - Merge order each cycle:
   1) ML + Backend contracts
@@ -32,10 +39,11 @@ No packet is considered done without:
 
 ## Standup Template (use every sync)
 - Yesterday done:
-- Today packet:
+- Current packet:
 - Blockers:
 - Help needed:
-- ETA:
+- ETA to PR:
+- Risk to tonight deadline:
 
 ## Definition of Ready for New Packet
 - Scope clear

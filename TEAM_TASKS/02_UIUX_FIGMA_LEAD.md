@@ -54,6 +54,7 @@ Revamp existing finance UI surfaces into challenge-aligned governance UI.
 - [ ] Mobile pass on 390x844, 375x812, 430x932
 - [ ] All live widgets show source + timestamp + stale status
 - [ ] Info tooltips populated
+- [ ] No scope creep beyond assigned packet
 
 ## Hand-off Format
 - Packet ID (UX-Px)

@@ -7,6 +7,11 @@ This file is the source of truth for how we execute this hackathon project.
 - `projects/hackathon_fin_ai/` is frozen reference and must not be modified for this hackathon work.
 - Any new implementation, docs, tests, and commits go to `dlweek` only.
 
+## 0.1) Delivery Deadline (Hard Rule)
+- Final solution must be delivery-ready **tonight**.
+- No long-runway plans unless they directly improve tonight’s submission quality.
+- Prefer shippable depth over unfinished breadth.
+
 ## 1) Track Alignment (Must-Have)
 Build for: **safe, human-governed AI coding agents across the SDLC**.
 
@@ -62,6 +67,8 @@ Critical workflows must remain usable on mobile.
 - No force-push to protected/main branch.
 - Keep commits packeted and descriptive.
 - Add acceptance checks per packet.
+- No rogue behavior: no unassigned tasks, no major scope pivots, no architecture rewrites without orchestrator approval.
+- No silent contract changes (API/event schema changes require explicit sync note in PR).
 
 ## 7) Quality Gate Before “Ready to Deploy”
 All must pass:

@@ -11,8 +11,8 @@ Do not restart from scratch; migrate iteratively with compatibility checkpoints.
 
 ## Success Criteria
 - Team execution stays aligned to challenge: **safe, human-governed AI coding agent across SDLC**.
-- All 3 technical lanes integrate into one coherent product.
-- Final demo passes end-to-end with clear governance story and evidence.
+- All technical lanes integrate into one coherent product.
+- Final demo passes end-to-end tonight with clear governance story and evidence.
 
 ## Human Responsibilities (Sanjey)
 1. Finalize scope priorities each cycle (daily standup).
