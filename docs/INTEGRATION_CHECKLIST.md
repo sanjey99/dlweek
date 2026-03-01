@@ -82,3 +82,38 @@
 #### Fallbacks / Recovery
 - [ ] <operator fallback path>
 - [ ] <rollback/read-only demo option>
+
+### QA-DP1 Execution Update (Current)
+
+#### Environment Readiness
+- [x] Docker stack up (`db`, `ml-service` healthy; `backend`, `frontend` up)
+- Evidence: `docker compose ps` output (timestamped)
+
+#### UI Validation
+| ID | Check | Status | Evidence | Notes |
+|---|---|---|---|---|
+| UI-01 | Notification dismiss (`x`) works | PASS | evidence/ui-01/ | |
+| UI-02 | Light/Dark mode toggle works | PASS | evidence/ui-02/ | |
+| UI-03 | Live feed scroll + page scroll works | PASS | evidence/ui-03/ | |
+| UI-04 | Approve/Block actions in feed work | PASS | evidence/ui-04/ | |
+| UI-05 | Feed item opens/updates Active Review Panel | PASS | evidence/ui-05/ | |
+| UI-06 | Profile menu actions (settings/security/audit/API keys/logout) | PENDING | evidence/ui-06/ | Scope/implementation to confirm |
+| UI-07 | KPI cards clickability semantics | RISK | evidence/ui-07/ | Clarify if drill-down expected |
+
+#### Cross-Lane (ML ↔️ Backend ↔️ UI) — Pending Execution
+| ID | Scenario | Expected | Status | Evidence |
+|---|---|---|---|---|
+| INT-01 | Allow path | ML signal -> backend allow -> UI allow | PENDING | evidence/int-01/ |
+| INT-02 | Review threshold path | boundary signal -> review_required -> UI review gate | PENDING | evidence/int-02/ |
+| INT-03 | Block path | high-risk signal -> backend block -> UI block state | PENDING | evidence/int-03/ |
+| INT-04 | Stale feed | stale_state true + risky action locked in UI | PENDING | evidence/int-04/ |
+| INT-05 | Injected failure | timeout/error shows retry, no false success | PENDING | evidence/int-05/ |
+| INT-06 | Recovery | retry restores consistent final state | PENDING | evidence/int-06/ |
+
+#### Release Gate
+- Decision: **PENDING**
+- Blockers: TBD after INT-01..06
+- Risks:
+- KPI clickability semantics unclear (spec clarification)
+- Fallback:
+- Use known-good dataset + operator retry flow in demo
