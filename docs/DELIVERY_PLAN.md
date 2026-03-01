@@ -36,7 +36,20 @@
 | 7 | Update all documentation (4 files) | Done |
 | 8 | Curl proofs for new logic paths | Done |
 
-## Phase 3 — Production
+## Phase 3 — Observability Guardrails (P3 — this packet)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Create `fusionLogger.js` — structured NDJSON decision logging | Done |
+| 2 | Create `fusionMetrics.js` — in-memory counters | Done |
+| 3 | Wire logging + metrics into all fusion route handlers | Done |
+| 4 | Add `GET /api/governance/fusion/health` endpoint | Done |
+| 5 | Add `_requestId` to fusion responses for correlation | Done |
+| 6 | Resolve index.js merge conflict (policyEnforcementService + fusion) | Done |
+| 7 | Add 12 P3 integration tests + 14 P3 unit tests | Done |
+| 8 | Update docs (checklist, delivery plan, mistakes log) | Done |
+
+## Phase 4 — Production
 
 | # | Task | Status |
 |---|------|--------|

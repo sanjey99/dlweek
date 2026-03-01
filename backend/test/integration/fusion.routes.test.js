@@ -652,3 +652,221 @@ describe('DP1: POST /api/governance/fusion/finance', () => {
     expect(res.body).not.toHaveProperty('_deprecated');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  P3: Health endpoint
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('P3: GET /api/governance/fusion/health', () => {
+
+  it('returns ok with policy_version and metrics snapshot', async () => {
+    const res = await request(app)
+      .get('/api/governance/fusion/health')
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(typeof res.body.policy_version).toBe('string');
+    expect(res.body.model_version_support).toBe(true);
+    expect(res.body.metrics).toBeDefined();
+    expect(typeof res.body.metrics.total_requests).toBe('number');
+    expect(typeof res.body.metrics.decision_allow).toBe('number');
+    expect(typeof res.body.metrics.decision_review).toBe('number');
+    expect(typeof res.body.metrics.decision_block).toBe('number');
+    expect(typeof res.body.metrics.stale_fresh).toBe('number');
+    expect(typeof res.body.metrics.stale_stale).toBe('number');
+    expect(typeof res.body.metrics.stale_unknown).toBe('number');
+    expect(typeof res.body.metrics.ml_present).toBe('number');
+    expect(typeof res.body.metrics.ml_absent).toBe('number');
+    expect(typeof res.body.metrics.hard_block).toBe('number');
+    expect(typeof res.body.metrics.uncertainty_escalation).toBe('number');
+    expect(typeof res.body.metrics.errors).toBe('number');
+    expect(typeof res.body.metrics.started_at).toBe('string');
+  });
+
+  it('policy_version matches the evaluator constant', async () => {
+    const res = await request(app)
+      .get('/api/governance/fusion/health')
+      .expect(200);
+
+    // Must match the exported POLICY_VERSION from fusionEvaluator
+    expect(res.body.policy_version).toBe('1.1.0');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  P3: Metrics counters increment on requests
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('P3: Metrics counters', () => {
+
+  it('total_requests increments after a fusion call', async () => {
+    // Snapshot before
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevTotal = before.body.metrics.total_requests;
+
+    // Make a fusion request
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    // Snapshot after
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.total_requests).toBe(prevTotal + 1);
+  });
+
+  it('decision_allow increments for allow decision', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevAllow = before.body.metrics.decision_allow;
+
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.decision_allow).toBe(prevAllow + 1);
+  });
+
+  it('decision_block increments for hard-block decision', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevBlock = before.body.metrics.decision_block;
+    const prevHardBlock = before.body.metrics.hard_block;
+
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'DELETE_RESOURCE' },
+        context: { targetEnvironment: 'prod', destructive: true, testsPassing: false },
+      })
+      .expect(200);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.decision_block).toBe(prevBlock + 1);
+    expect(after.body.metrics.hard_block).toBe(prevHardBlock + 1);
+  });
+
+  it('ml_absent increments when no ml_output provided', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevAbsent = before.body.metrics.ml_absent;
+
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.ml_absent).toBe(prevAbsent + 1);
+  });
+
+  it('ml_present increments when ml_output is provided', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevPresent = before.body.metrics.ml_present;
+
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+        ml_output: {
+          risk_score: 0.05,
+          uncertainty: 0.05,
+          decision: 'allow',
+          timestamp: new Date().toISOString(),
+        },
+      })
+      .expect(200);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.ml_present).toBe(prevPresent + 1);
+  });
+
+  it('errors counter increments on validation failure', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevErrors = before.body.metrics.errors;
+
+    await request(app)
+      .post('/api/governance/fusion')
+      .send({ bad: 'payload' })
+      .expect(400);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.errors).toBe(prevErrors + 1);
+  });
+
+  it('v2 compat routes also increment metrics', async () => {
+    const before = await request(app).get('/api/governance/fusion/health').expect(200);
+    const prevTotal = before.body.metrics.total_requests;
+
+    await request(app)
+      .post('/api/governance/policy-gate/v2')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    const after = await request(app).get('/api/governance/fusion/health').expect(200);
+    expect(after.body.metrics.total_requests).toBe(prevTotal + 1);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  P3: Structured logging — _requestId presence
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('P3: Request ID in responses', () => {
+
+  it('fusion endpoint returns _requestId', async () => {
+    const res = await request(app)
+      .post('/api/governance/fusion')
+      .send({
+        action: { type: 'READ' },
+        context: { testsPassing: true, rollbackPlanPresent: true },
+      })
+      .expect(200);
+
+    expect(res.body._requestId).toBeDefined();
+    expect(typeof res.body._requestId).toBe('string');
+    expect(res.body._requestId).toMatch(/^fusion-\d+-\d+$/);
+  });
+
+  it('finance adapter returns _requestId', async () => {
+    const res = await request(app)
+      .post('/api/governance/fusion/finance')
+      .send({
+        transaction_type: 'WIRE_TRANSFER',
+        amount: 5000,
+        currency: 'USD',
+        verified: true,
+        reversible: true,
+        approved: false,
+      })
+      .expect(200);
+
+    expect(res.body._requestId).toBeDefined();
+    expect(typeof res.body._requestId).toBe('string');
+    expect(res.body._requestId).toMatch(/^fusion-\d+-\d+$/);
+  });
+
+  it('consecutive requests get unique _requestIds', async () => {
+    const payload = {
+      action: { type: 'READ' },
+      context: { testsPassing: true, rollbackPlanPresent: true },
+    };
+
+    const res1 = await request(app).post('/api/governance/fusion').send(payload).expect(200);
+    const res2 = await request(app).post('/api/governance/fusion').send(payload).expect(200);
+
+    expect(res1.body._requestId).not.toBe(res2.body._requestId);
+  });
+});
