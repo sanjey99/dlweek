@@ -135,17 +135,21 @@ function MetricCard({
 
 export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps) {
   const stats = useMemo(() => {
-    const total = actions.length;
+    const resolved = actions.filter(
+      (a) => a.riskStatus !== 'HIGH_RISK_PENDING' && a.riskStatus !== 'MEDIUM_RISK_PENDING'
+    ).length;
 
     const pending = actions.filter(
       (a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING'
     ).length;
 
     const highRisk = actions.filter(
-      (a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'HIGH_RISK_BLOCKED'
+      (a) =>
+        a.riskScore >= 80 &&
+        (a.riskStatus === 'APPROVED' || a.riskStatus === 'HIGH_RISK_BLOCKED')
     ).length;
 
-    const autoBlocked = actions.filter(
+    const blocked = actions.filter(
       (a) => a.riskStatus === 'HIGH_RISK_BLOCKED'
     ).length;
 
@@ -153,7 +157,8 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
       (a) => a.riskStatus === 'APPROVED' || a.riskStatus === 'LOW_RISK'
     ).length;
 
-    const approvalRate = total > 0 ? Math.round((approved / total) * 100) : 0;
+    const decided = approved + blocked;
+    const approvalRate = decided > 0 ? Math.round((approved / decided) * 100) : 0;
 
     const urgentPending = actions.filter(
       (a) => a.riskStatus === 'HIGH_RISK_PENDING'
@@ -162,7 +167,7 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
     const now = new Date();
     const updatedAt = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')} UTC`;
 
-    return { total, pending, highRisk, autoBlocked, approved, approvalRate, urgentPending, updatedAt };
+    return { resolved, pending, highRisk, blocked, approved, approvalRate, decided, urgentPending, updatedAt };
   }, [actions]);
 
   return (
@@ -177,8 +182,8 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
       >
       <MetricCard
         title="Total AI Actions"
-        value={stats.total.toLocaleString()}
-        subtitle={stats.total === 0 ? 'No actions yet' : `${stats.total} processed`}
+        value={stats.resolved.toLocaleString()}
+        subtitle={stats.resolved === 0 ? 'No actions reviewed yet' : `${stats.resolved} reviewed`}
         icon={<TrendingUp size={14} />}
         hasSparkline
         theme={theme}
@@ -199,7 +204,7 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
       <MetricCard
         title="High-Risk Interventions"
         value={String(stats.highRisk)}
-        subtitle={stats.autoBlocked > 0 ? `${stats.autoBlocked} blocked automatically` : 'None blocked'}
+        subtitle={stats.blocked > 0 ? `${stats.blocked} blocked` : 'No high-risk blocks'}
         icon={<AlertTriangle size={14} />}
         accentColor={COLORS.red}
         accentBg={COLORS.redMuted}
@@ -209,8 +214,8 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
       />
       <MetricCard
         title="Global Approval Rate"
-        value={stats.total > 0 ? `${stats.approvalRate}%` : '—'}
-        subtitle={stats.total > 0 ? `${stats.approved} of ${stats.total} actions` : 'No data'}
+        value={stats.decided > 0 ? `${stats.approvalRate}%` : '—'}
+        subtitle={stats.decided > 0 ? `${stats.approved} of ${stats.decided} decided` : 'No decisions yet'}
         icon={<CheckCircle size={14} />}
         accentColor={COLORS.green}
         accentBg={COLORS.greenMuted}
