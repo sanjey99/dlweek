@@ -28,6 +28,7 @@ export interface ActionRecord {
   source: string;
   flagReasons: string[];
   description: string;
+  user?: string;
   mlResult?: {
     risk_category: string;
     risk_score: number;

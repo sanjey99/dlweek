@@ -22,6 +22,8 @@ export interface ActionItem {
   flagReasons: string[];
   /** Attribution: which ML model / pipeline produced this score */
   source?: string;
+  /** The user/person who requested the agent action */
+  user?: string;
 }
 
 export interface Theme {

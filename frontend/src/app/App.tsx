@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
 import type { NotificationItem as TopNavNotificationItem } from './components/nav/TopNav';
+import type { PageId } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
 import { UploadPanel } from './components/upload/UploadPanel';
+import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
 import { getTheme } from './utils/theme';
@@ -23,6 +25,7 @@ import {
 
 export default function App() {
   const [isDark, setIsDark] = useState(true);
+  const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [backendConnected, setBackendConnected] = useState(false);
@@ -365,6 +368,8 @@ export default function App() {
         onMarkAllRead={handleMarkAllNotificationsRead}
         onMarkRead={handleMarkNotificationRead}
         onOpenAction={handleOpenAction}
+        activePage={activePage}
+        onPageChange={setActivePage}
       />
 
       {/* Page content */}
@@ -375,6 +380,10 @@ export default function App() {
           padding: isMobile ? '0 12px 32px' : '0 24px 40px',
         }}
       >
+        {activePage === 'audit-trail' ? (
+          <AuditTrail theme={theme} isDark={isDark} isMobile={isMobile} actions={actions} />
+        ) : (
+          <>
         {/* Page title / breadcrumb */}
         <div style={{ padding: isMobile ? '14px 0 4px' : '20px 0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -501,6 +510,8 @@ export default function App() {
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
