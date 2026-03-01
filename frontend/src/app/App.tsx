@@ -13,6 +13,7 @@ import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
+import { teamsData } from './data/organisationData';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
 import { useWebSocket, WSMessage } from './hooks/useWebSocket';
@@ -482,9 +483,22 @@ export default function App() {
               isDark={isDark}
               isMobile={isMobile}
               actions={actions.filter((a) => {
-                const agentName = (a.agentName || '').toLowerCase();
-                const teamKey = selectedTeamId.toLowerCase();
-                return agentName.includes(teamKey) || true;
+                const actionUser = (a.user || '').toLowerCase().trim();
+                if (!actionUser) return true; // no user field → show everywhere
+
+                // Check if this user belongs to the selected team
+                const selectedTeam = teamsData.find((t) => t.id === selectedTeamId);
+                const isInSelectedTeam = selectedTeam?.members.some(
+                  (m) => m.name.toLowerCase() === actionUser
+                );
+                if (isInSelectedTeam) return true;
+
+                // Check if this user belongs to ANY team
+                const isInAnyTeam = teamsData.some((t) =>
+                  t.members.some((m) => m.name.toLowerCase() === actionUser)
+                );
+                // If not in any team (system/third-party), show under all teams
+                return !isInAnyTeam;
               })}
             />
           </>
