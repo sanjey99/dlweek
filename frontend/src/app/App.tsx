@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
-import { TopNav } from './components/nav/TopNav';
+import { Eye, Building2 } from 'lucide-react';
+import { TopNav, PageId } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
 import { UploadPanel } from './components/upload/UploadPanel';
+import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
 import { getTheme } from './utils/theme';
@@ -19,6 +21,7 @@ import {
 
 export default function App() {
   const [isDark, setIsDark] = useState(true);
+  const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [backendConnected, setBackendConnected] = useState(false);
@@ -224,7 +227,61 @@ export default function App() {
       />
 
       {/* Navigation */}
-      <TopNav isDark={isDark} theme={theme} onToggleTheme={() => setIsDark((d) => !d)} isMobile={isMobile} />
+      <TopNav
+        isDark={isDark}
+        theme={theme}
+        onToggleTheme={() => setIsDark((d) => !d)}
+        isMobile={isMobile}
+        currentPage={currentPage}
+        onNavigate={setCurrentPage}
+      />
+
+      {/* Mobile page tabs */}
+      {isMobile && (
+        <div
+          style={{
+            display: 'flex',
+            background: theme.surface,
+            borderBottom: `1px solid ${theme.border}`,
+            position: 'sticky',
+            top: 48,
+            zIndex: 49,
+          }}
+        >
+          {([
+            { id: 'dashboard' as PageId, label: 'Security Monitor', icon: <Eye size={14} /> },
+            { id: 'organisation' as PageId, label: 'Organisation', icon: <Building2 size={14} /> },
+          ]).map((tab) => {
+            const isActive = currentPage === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setCurrentPage(tab.id)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '10px 0',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid #30A46C' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: isActive ? 600 : 500,
+                  fontFamily: 'Inter, sans-serif',
+                  color: isActive ? theme.textPrimary : theme.textTertiary,
+                  background: 'transparent',
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Page content */}
       <div
@@ -234,6 +291,10 @@ export default function App() {
           padding: isMobile ? '0 12px 32px' : '0 24px 40px',
         }}
       >
+        {currentPage === 'organisation' ? (
+          <OrganisationPage theme={theme} isDark={isDark} isMobile={isMobile} />
+        ) : (
+          <>
         {/* Page title / breadcrumb */}
         <div style={{ padding: isMobile ? '14px 0 4px' : '20px 0 4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -360,6 +421,8 @@ export default function App() {
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

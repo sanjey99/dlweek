@@ -1,12 +1,16 @@
 import { useMemo, useState } from 'react';
-import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight } from 'lucide-react';
+import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Eye, Building2 } from 'lucide-react';
 import { Theme } from '../../types';
+
+export type PageId = 'dashboard' | 'organisation';
 
 interface TopNavProps {
   isDark: boolean;
   theme: Theme;
   onToggleTheme: () => void;
   isMobile: boolean;
+  currentPage?: PageId;
+  onNavigate?: (page: PageId) => void;
 }
 
 type NotificationItem = {
@@ -53,7 +57,7 @@ const initialNotifications: NotificationItem[] = [
   },
 ];
 
-export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) {
+export function TopNav({ isDark, theme, onToggleTheme, isMobile, currentPage = 'dashboard', onNavigate }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
@@ -167,6 +171,51 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
               </span>
             )}
           </div>
+
+          {/* ─── Navigation tabs ─── */}
+          {!isMobile && <div style={{ width: 1, height: 20, background: theme.border }} />}
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {[
+                { id: 'dashboard' as PageId, label: 'Security Monitor', icon: <Eye size={14} /> },
+                { id: 'organisation' as PageId, label: 'Organisation', icon: <Building2 size={14} /> },
+              ].map((tab) => {
+                const isActive = currentPage === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onNavigate?.(tab.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: 13,
+                      fontWeight: isActive ? 600 : 500,
+                      fontFamily: 'Inter, sans-serif',
+                      color: isActive ? theme.textPrimary : theme.textSecondary,
+                      background: isActive
+                        ? (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+                        : 'transparent',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) e.currentTarget.style.background = theme.surfaceElevated;
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Right: Controls */}
