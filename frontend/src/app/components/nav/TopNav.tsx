@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check } from 'lucide-react';
+import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight } from 'lucide-react';
 import { Theme } from '../../types';
 
 interface TopNavProps {
@@ -55,6 +55,7 @@ const initialNotifications: NotificationItem[] = [
 
 export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
 
   const unreadCount = useMemo(
@@ -196,7 +197,10 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
           <div style={{ position: 'relative' }}>
             <button
               title="Notifications"
-              onClick={() => setIsNotificationsOpen((v) => !v)}
+              onClick={() => {
+                setIsNotificationsOpen((v) => !v);
+                setIsAccountOpen(false);
+              }}
               style={{
                 background: isNotificationsOpen ? theme.surfaceElevated : 'transparent',
                 border: 'none',
@@ -411,21 +415,201 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
           {/* Divider — hidden on mobile */}
           {!isMobile && <div style={{ width: 1, height: 20, background: theme.border, margin: '0 8px' }} />}
 
-          {/* User Avatar */}
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #30A46C, #1a7a52)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              marginLeft: isMobile ? 4 : 0,
-            }}
-          >
-            <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>AK</span>
+          {/* User Avatar + account popup */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => {
+                setIsAccountOpen((v) => !v);
+                setIsNotificationsOpen(false);
+              }}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #30A46C, #1a7a52)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                marginLeft: isMobile ? 4 : 0,
+                border: 'none',
+              }}
+            >
+              <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>AK</span>
+            </button>
+
+            {isAccountOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  right: 0,
+                  width: isMobile ? 'min(94vw, 340px)' : 320,
+                  background: theme.surface,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 14,
+                  boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
+                  overflow: 'hidden',
+                  zIndex: 90,
+                }}
+              >
+                <div style={{ padding: 14, borderBottom: `1px solid ${theme.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #30A46C, #1a7a52)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 700,
+                      }}
+                    >
+                      AK
+                    </div>
+                    <div>
+                      <div style={{ color: theme.textPrimary, fontWeight: 700, fontSize: 16 }}>Alex Kim</div>
+                      <div style={{ color: theme.textSecondary, fontSize: 13 }}>alex.kim@corp.io</div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'rgba(48,164,108,0.14)',
+                      color: '#30A46C',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: 0.4,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                    }}
+                  >
+                    SENIOR REVIEWER
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 12,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700 }}>12 actions</div>
+                      <div style={{ color: theme.textTertiary, fontSize: 11 }}>reviewed</div>
+                    </div>
+                    <div>
+                      <div style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 700 }}>Session: 2h</div>
+                      <div style={{ color: theme.textTertiary, fontSize: 11 }}>14m active</div>
+                    </div>
+                  </div>
+                </div>
+
+                {[
+                  { icon: <User size={15} />, label: 'Profile', sub: 'Manage your account details' },
+                  { icon: <Settings size={15} />, label: 'Settings', sub: 'Dashboard & notification prefs' },
+                  { icon: <Shield size={15} />, label: 'Security Audit Log', sub: 'Your review history' },
+                  { icon: <KeyRound size={15} />, label: 'API Keys', sub: 'Manage integration tokens' },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      borderBottom: `1px solid ${theme.border}`,
+                      background: 'transparent',
+                      color: theme.textPrimary,
+                      padding: '12px 14px',
+                      display: 'grid',
+                      gridTemplateColumns: '20px 1fr 16px',
+                      alignItems: 'center',
+                      gap: 10,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ color: theme.textSecondary }}>{item.icon}</span>
+                    <span>
+                      <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{item.label}</span>
+                      <span style={{ display: 'block', fontSize: 12, color: theme.textTertiary }}>{item.sub}</span>
+                    </span>
+                    <ChevronRight size={13} color={theme.textTertiary} />
+                  </button>
+                ))}
+
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderBottom: `1px solid ${theme.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Sun size={15} color={theme.textSecondary} />
+                    <span style={{ color: theme.textPrimary, fontSize: 14, fontWeight: 600 }}>Switch to Light Mode</span>
+                  </div>
+
+                  <button
+                    onClick={onToggleTheme}
+                    style={{
+                      width: 40,
+                      height: 22,
+                      borderRadius: 999,
+                      border: 'none',
+                      background: !isDark ? '#30A46C' : '#3A3A3A',
+                      position: 'relative',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 3,
+                        left: !isDark ? 21 : 3,
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#fff',
+                        transition: 'left 0.15s',
+                      }}
+                    />
+                  </button>
+                </div>
+
+                <button
+                  style={{
+                    width: '100%',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#E5484D',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  <LogOut size={15} /> Sign Out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
