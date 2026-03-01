@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
@@ -8,6 +8,14 @@ import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
+import {
+  getActions,
+  approveAction,
+  blockAction,
+  type ActionRecord,
+} from '../api/client';
+import { escalateAction } from './api/client';
+import { useSignalsWs, type WsStatus } from './hooks/useSignalsWs';
 
 export default function App() {
   const [isDark, setIsDark] = useState(true);
@@ -15,70 +23,180 @@ export default function App() {
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(
     mockActions.find((a) => a.riskStatus === 'HIGH_RISK_PENDING') ?? null
   );
+  const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
 
-  /** Live "last sync" timer for footer truthfulness */
-  const [lastSync, setLastSync] = useState(() => new Date());
-  const [syncLabel, setSyncLabel] = useState('just now');
-  const lastSyncRef = useRef(lastSync);
-  lastSyncRef.current = lastSync;
+  // ─── Map backend action → UI ActionItem ──────────────────────────────────
+  const toUI = useCallback((a: ActionRecord): ActionItem => {
+    const statusMap: Record<string, ActionItem['riskStatus']> = {
+      pending_review: 'HIGH_RISK_PENDING',
+      blocked: 'HIGH_RISK_BLOCKED',
+      blocked_by_human: 'HIGH_RISK_BLOCKED',
+      approved_auto: 'APPROVED',
+      approved_by_human: 'APPROVED',
+      escalated: 'MEDIUM_RISK_PENDING',
+    };
+    return {
+      id: a.actionId,
+      timestamp: new Date(a.createdAt).toLocaleTimeString('en-US', { hour12: false }),
+      agentName: a.action?.target ?? 'unknown-agent',
+      proposedAction: `${a.action?.type ?? 'UNKNOWN'} ${a.action?.target ?? ''}`,
+      environment: ((a.context as Record<string, unknown>)?.environment as ActionItem['environment']) ?? 'PROD',
+      riskStatus: statusMap[a.status] ?? 'MEDIUM_RISK_PENDING',
+      riskScore: Math.round(((a.context as Record<string, unknown>)?.riskScore as number ?? 50) * 100),
+      flagReasons: a.policy?.reasonTags ?? [],
+      source: 'sentinel-backend',
+    };
+  }, []);
+
+  // ─── Load actions from backend (used on mount + after mutations) ──────────
+  const loadActions = useCallback(async () => {
+    try {
+      const res = await getActions();
+      if (res.actions.length > 0) {
+        const mapped = res.actions.map(toUI);
+        setActions(mapped);
+        setSelectedAction((prev) =>
+          prev
+            ? mapped.find((a) => a.id === prev.id) ?? mapped.find((a) => a.riskStatus === 'HIGH_RISK_PENDING') ?? null
+            : mapped.find((a) => a.riskStatus === 'HIGH_RISK_PENDING') ?? null,
+        );
+      }
+      setLastFetchedAt(new Date());
+    } catch {
+      // backend unreachable — keep current data
+    }
+  }, [toUI]);
+
+  // ─── Fetch on mount ───────────────────────────────────────────────────────
+  useEffect(() => {
+    loadActions();
+  }, [loadActions]);
+
+  // ─── WebSocket: live governance signals (with backoff reconnect) ──────────
+  const handleWsEvent = useCallback(
+    (evt: import('../api/client').WsSignalEvent) => {
+      const statusMap: Record<string, ActionItem['riskStatus']> = {
+        approved_by_human: 'APPROVED',
+        blocked_by_human: 'HIGH_RISK_BLOCKED',
+        escalated: 'MEDIUM_RISK_PENDING',
+      };
+
+      // new_action → append to feed
+      if (evt.type === 'new_action' && evt.action) {
+        const newItem = toUI(evt.action);
+        setActions((prev) => {
+          if (prev.some((a) => a.id === newItem.id)) return prev;
+          return [newItem, ...prev];
+        });
+        setLastFetchedAt(new Date());
+        toast.info(`New action proposed: ${evt.actionId}`, { duration: 3000 });
+        return;
+      }
+
+      // action_updated → replace in-place with full record
+      if (evt.type === 'action_updated' && evt.action) {
+        const updated = toUI(evt.action);
+        setActions((prev) =>
+          prev.map((a) => (a.id === updated.id ? updated : a)),
+        );
+        setLastFetchedAt(new Date());
+        toast.info(`Action ${evt.actionId} → ${evt.decision}`, { duration: 3000 });
+        return;
+      }
+
+      // Legacy fallback: partial status update
+      const newStatus = statusMap[evt.status];
+      if (!newStatus) return;
+      setActions((prev) =>
+        prev.map((a) =>
+          a.id === evt.actionId ? { ...a, riskStatus: newStatus } : a,
+        ),
+      );
+      toast.info(`Action ${evt.actionId} → ${evt.decision}`, { duration: 3000 });
+    },
+    [toUI],
+  );
+
+  const wsStatus: WsStatus = useSignalsWs({ onEvent: handleWsEvent });
+
+  /** Live "last sync" timer — driven by real lastFetchedAt */
+  const [syncLabel, setSyncLabel] = useState('never');
+  const lastFetchedRef = useRef(lastFetchedAt);
+  lastFetchedRef.current = lastFetchedAt;
 
   useEffect(() => {
-    const tick = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - lastSyncRef.current.getTime()) / 1000);
+    const update = () => {
+      const ts = lastFetchedRef.current;
+      if (!ts) { setSyncLabel('never'); return; }
+      const elapsed = Math.floor((Date.now() - ts.getTime()) / 1000);
       if (elapsed < 5) setSyncLabel('just now');
       else if (elapsed < 60) setSyncLabel(`${elapsed}s ago`);
       else setSyncLabel(`${Math.floor(elapsed / 60)}m ago`);
-    }, 3000);
+    };
+    update();
+    const tick = setInterval(update, 3000);
     return () => clearInterval(tick);
-  }, []);
+  }, [lastFetchedAt]);
 
-  // Reset sync clock when actions change
-  useEffect(() => {
-    setLastSync(new Date());
-    setSyncLabel('just now');
-  }, [actions]);
-
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
+    // Optimistic UI update
     setActions((prev) =>
       prev.map((a) => (a.id === id ? { ...a, riskStatus: 'APPROVED' } : a))
     );
-    toast.success('Action approved successfully', {
-      description: `Agent action has been permitted to proceed.`,
-      duration: 3500,
-    });
-    // Select next pending
     const next = actions.find(
       (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
     );
     setSelectedAction(next ?? null);
+    try {
+      await approveAction(id);
+      toast.success('Action approved successfully', {
+        description: 'Agent action has been permitted to proceed.',
+        duration: 3500,
+      });
+      await loadActions();
+    } catch {
+      toast.error('Backend approve failed – local update only');
+    }
   };
 
-  const handleEscalate = (id: string) => {
-    toast.warning('Action escalated to senior review', {
-      description: `Flagged for senior security team review.`,
-      duration: 3500,
-    });
+  const handleEscalate = async (id: string) => {
     const next = actions.find(
       (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
     );
     setSelectedAction(next ?? null);
+    try {
+      await escalateAction(id);
+      toast.warning('Action escalated to senior review', {
+        description: 'Flagged for senior security team review.',
+        duration: 3500,
+      });
+      await loadActions();
+    } catch {
+      toast.error('Backend escalate failed – local update only');
+    }
   };
 
-  const handleBlock = (id: string) => {
+  const handleBlock = async (id: string) => {
     setActions((prev) =>
       prev.map((a) => (a.id === id ? { ...a, riskStatus: 'HIGH_RISK_BLOCKED' } : a))
     );
-    toast.error('Action blocked', {
-      description: `Agent action has been permanently blocked.`,
-      duration: 3500,
-    });
     const next = actions.find(
       (a) => a.id !== id && (a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING')
     );
     setSelectedAction(next ?? null);
+    try {
+      await blockAction(id);
+      toast.error('Action blocked', {
+        description: 'Agent action has been permanently blocked.',
+        duration: 3500,
+      });
+      await loadActions();
+    } catch {
+      toast.error('Backend block failed – local update only');
+    }
   };
 
   // Keep selectedAction in sync with updated actions list
@@ -217,10 +335,33 @@ export default function App() {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  background: '#30A46C',
+                  background:
+                    wsStatus === 'connected'
+                      ? '#30A46C'
+                      : wsStatus === 'connecting'
+                        ? '#F5A623'
+                        : '#E5484D',
+                  transition: 'background 0.3s',
                 }}
               />
-              <span style={{ color: '#30A46C', fontSize: 12 }}>All systems normal</span>
+              <span
+                style={{
+                  color:
+                    wsStatus === 'connected'
+                      ? '#30A46C'
+                      : wsStatus === 'connecting'
+                        ? '#F5A623'
+                        : '#E5484D',
+                  fontSize: 12,
+                  transition: 'color 0.3s',
+                }}
+              >
+                {wsStatus === 'connected'
+                  ? 'Live · connected'
+                  : wsStatus === 'connecting'
+                    ? 'Reconnecting…'
+                    : 'Disconnected'}
+              </span>
             </div>
           </div>
         </div>

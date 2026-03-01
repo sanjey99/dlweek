@@ -97,12 +97,19 @@ export function createActionLifecycleStore() {
     };
   }
 
+  function listAll() {
+    return [...actions.values()].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+  }
+
   return {
     saveProposal,
     getAction,
     resolveAction,
     listEvents,
     getEventLedgerState,
+    listAll,
   };
 }
 

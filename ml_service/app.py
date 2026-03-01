@@ -131,6 +131,10 @@ def _fallback(reason: str = "model_unavailable_or_low_confidence"):
         "reason_tags": [reason],
         "model_version": "fallback-v1",
         "fallback_used": True,
+        # ── strict-contract fields required by backend mlContract ──
+        "label": "medium",
+        "confidence": 0.0,
+        "timestamp": _now(),
     }
 
 
@@ -171,6 +175,7 @@ def infer_legacy(inp: InferIn):
         else:
             category = "high"
 
+        confidence = _clamp01(1.0 - uncertainty)
         recommendation = _recommendation(risk_score, uncertainty)
         return {
             "risk_category": category,
@@ -180,6 +185,10 @@ def infer_legacy(inp: InferIn):
             "reason_tags": [],
             "model_version": "legacy-heuristic-v2",
             "fallback_used": False,
+            # ── strict-contract fields required by backend mlContract ──
+            "label": category,
+            "confidence": round(confidence, 4),
+            "timestamp": _now(),
         }
     except Exception:
         return _fallback("legacy_infer_exception")
@@ -223,6 +232,7 @@ def classify_action(inp: RiskIn):
             return fb
 
         recommendation = _recommendation(risk_score, uncertainty)
+        confidence = _clamp01(1.0 - uncertainty)
         return {
             "risk_category": category,
             "risk_score": round(risk_score, 4),
@@ -231,6 +241,10 @@ def classify_action(inp: RiskIn):
             "reason_tags": [],
             "model_version": source_version,
             "fallback_used": False,
+            # ── strict-contract fields ──
+            "label": category,
+            "confidence": round(confidence, 4),
+            "timestamp": _now(),
         }
     except Exception:
         return _fallback("classify_exception")

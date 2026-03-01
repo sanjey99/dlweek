@@ -131,9 +131,17 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
     };
   }
 
+  function list() {
+    return {
+      actions: store.listAll(),
+      ledger: store.getEventLedgerState(),
+    };
+  }
+
   return {
     propose,
     resolve,
     detail,
+    list,
   };
 }

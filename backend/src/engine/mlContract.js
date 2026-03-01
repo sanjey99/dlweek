@@ -33,16 +33,50 @@ function normalizeTimestamp(raw) {
   return null;
 }
 
+/** Required keys and their human-readable expectation (for error messages). */
+const REQUIRED_KEYS = ['risk_score', 'confidence', 'label', 'timestamp'];
+
 export function validateStrictMlContract(raw) {
-  if (!raw || typeof raw !== 'object') return { ok: false, error: 'ml_assessment must be an object' };
+  if (!raw || typeof raw !== 'object') {
+    return { ok: false, error: 'ml_assessment must be a non-null object', errors: ['ml_assessment must be a non-null object'] };
+  }
+
+  // ── Validate all required keys, collecting every failure ────────────────
+  const errors = [];
+
   const riskScore = normalizeRisk(raw);
-  if (riskScore === null) return { ok: false, error: 'ml_assessment.risk_score must be a finite number' };
+  if (riskScore === null) {
+    errors.push(`risk_score: expected finite number, got ${typeof raw.risk_score} (${JSON.stringify(raw.risk_score ?? raw.riskScore)})`);
+  }
+
   const confidence = normalizeConfidence(raw);
-  if (confidence === null) return { ok: false, error: 'ml_assessment.confidence must be a finite number' };
+  if (confidence === null) {
+    errors.push(`confidence: expected finite number 0..1, got ${typeof raw.confidence} (${JSON.stringify(raw.confidence ?? raw.mlConfidence)})`);
+  }
+
   const label = typeof raw.label === 'string' && raw.label.trim().length > 0 ? raw.label.trim() : null;
-  if (!label) return { ok: false, error: 'ml_assessment.label must be a non-empty string' };
+  if (!label) {
+    errors.push(`label: expected non-empty string, got ${typeof raw.label} (${JSON.stringify(raw.label)})`);
+  }
+
   const timestamp = normalizeTimestamp(raw);
-  if (!timestamp) return { ok: false, error: 'ml_assessment.timestamp must be ISO-8601' };
+  if (!timestamp) {
+    errors.push(`timestamp: expected ISO-8601 string, got ${typeof (raw.timestamp ?? raw.evaluated_at)} (${JSON.stringify(raw.timestamp ?? raw.evaluated_at ?? raw.evaluatedAt)})`);
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, error: errors[0], errors };
+  }
+
+  // ── Build value: required keys + known optional keys + extra pass-through
+  const KNOWN_KEYS = new Set([...REQUIRED_KEYS, 'riskScore', 'mlConfidence', 'evaluated_at', 'evaluatedAt',
+    'decision_reason', 'recommendation', 'source', 'stale_state', 'fallback_reason']);
+
+  // Collect extra keys the ML service sent (e.g. risk_category, uncertainty, model_version)
+  const extras = {};
+  for (const key of Object.keys(raw)) {
+    if (!KNOWN_KEYS.has(key)) extras[key] = raw[key];
+  }
 
   return {
     ok: true,
@@ -56,6 +90,7 @@ export function validateStrictMlContract(raw) {
       source: 'ml_service',
       stale_state: false,
       fallback_reason: null,
+      ...extras,
     },
   };
 }
@@ -76,6 +111,7 @@ export function buildFallbackMlAssessment({ reason, timestamp, seedRisk, seedCon
     recommendation: 'require review',
     source: 'fallback',
     stale_state: true,
+    fallback_used: true,
     fallback_reason: reason || 'ML_CONTRACT_UNAVAILABLE',
   };
 }

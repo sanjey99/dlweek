@@ -29,6 +29,16 @@ const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
 const realtimeTracker = createRealtimeIntegrityTracker({ staleAfterMs: 7000 });
 
+// Module-level WS reference for broadcast (set when server starts)
+let _wss = null;
+function broadcastWs(payload) {
+  if (!_wss) return;
+  const msg = JSON.stringify(payload);
+  _wss.clients.forEach((c) => {
+    if (c.readyState === 1) c.send(msg);
+  });
+}
+
 const DEMO_CASES = [
   { name: 'normal_profile', features: [0.12, 0.08, -0.1, 0.03, 0.15, -0.06, 0.02, 0.01] },
   { name: 'suspicious_profile', features: [1.2, 0.95, -0.45, 0.3, 0.1, 1.1, 0.2, 0.5] },
@@ -60,13 +70,37 @@ app.get('/api/markets/snapshot', async (_req, res) => {
   return res.json({ ok: true, markets });
 });
 
-app.get('/api/simulate', async (_req, res) => {
+// ─── ML proxy: classify ──────────────────────────────────────────────────────
+app.post('/api/classify', async (req, res) => {
   try {
-    const r = await fetch(`${ML_URL}/simulate`);
-    const data = await r.json();
-    return res.json({ ok: true, ...data });
+    let data, fetchOk;
+    try {
+      const r = await fetch(`${ML_URL}/classify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: req.body.text || '', features: req.body.features }),
+      });
+      fetchOk = r.ok;
+      data = await r.json();
+    } catch (netErr) {
+      const fallback = buildFallbackMlAssessment({ reason: `ML_NETWORK_ERROR:${netErr.message}` });
+      return res.json({ ok: true, ...fallback, ml_contract: { strict_valid: false, used_fallback: true, fallback_reason: fallback.fallback_reason } });
+    }
+
+    if (!fetchOk) {
+      const fallback = buildFallbackMlAssessment({ reason: `ML_UPSTREAM_NON_200:${data?.error || 'unknown'}` });
+      return res.json({ ok: true, ...fallback, ml_contract: { strict_valid: false, used_fallback: true, fallback_reason: fallback.fallback_reason } });
+    }
+
+    const contract = validateStrictMlContract(data);
+    if (!contract.ok) {
+      const fallback = buildFallbackMlAssessment({ reason: `ML_RESPONSE_INVALID:${contract.error}` });
+      return res.json({ ok: true, ...fallback, ml_contract: { strict_valid: false, used_fallback: true, fallback_reason: fallback.fallback_reason } });
+    }
+
+    return res.json({ ok: true, ...contract.value, ml_contract: { strict_valid: true, used_fallback: false } });
   } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
+    return res.status(502).json({ ok: false, error: `Unrecoverable: ${String(e)}` });
   }
 });
 
@@ -75,22 +109,45 @@ app.post('/api/infer', async (req, res) => {
     const err = validPayload(req.body);
     if (err) return res.status(400).json({ ok: false, error: err });
     const payload = { features: req.body.features.map((x) => Number(x)) };
-    const r = await fetch(`${ML_URL}/infer`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-    });
-    const data = await r.json();
-    if (!r.ok) return res.status(r.status).json({ ok: false, ...data });
+
+    let data, fetchOk;
+    try {
+      const r = await fetch(`${ML_URL}/infer`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      fetchOk = r.ok;
+      data = await r.json();
+    } catch (netErr) {
+      // ML service unreachable — use fallback, return 200
+      const fallback = buildFallbackMlAssessment({ reason: `ML_NETWORK_ERROR:${netErr.message}` });
+      return res.json({
+        ok: true,
+        packetId: 'BE-P3',
+        ...fallback,
+        ml_contract: { strict_valid: false, used_fallback: true, fallback_reason: fallback.fallback_reason },
+      });
+    }
+
+    if (!fetchOk) {
+      // ML returned non-200 — use fallback, return 200
+      const fallback = buildFallbackMlAssessment({ reason: `ML_UPSTREAM_NON_200:${data?.error || 'unknown'}` });
+      return res.json({
+        ok: true,
+        packetId: 'BE-P3',
+        ...fallback,
+        ml_contract: { strict_valid: false, used_fallback: true, fallback_reason: fallback.fallback_reason },
+      });
+    }
 
     const contract = validateStrictMlContract(data);
     if (!contract.ok) {
-      const fallback = buildFallbackMlAssessment({
-        reason: `ML_RESPONSE_INVALID:${contract.error}`,
-      });
-      return res.status(502).json({
-        ok: false,
+      // ML returned garbage — use fallback, return 200
+      const fallback = buildFallbackMlAssessment({ reason: `ML_RESPONSE_INVALID:${contract.error}` });
+      return res.json({
+        ok: true,
         packetId: 'BE-P3',
-        error: contract.error,
-        fallback,
+        ...fallback,
+        ml_contract: { strict_valid: false, used_fallback: true, validation_errors: contract.errors, fallback_reason: fallback.fallback_reason },
       });
     }
 
@@ -98,10 +155,11 @@ app.post('/api/infer', async (req, res) => {
       ok: true,
       packetId: 'BE-P3',
       ...contract.value,
-      ml_contract: { strict_valid: true },
+      ml_contract: { strict_valid: true, used_fallback: false },
     });
   } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
+    // Truly unrecoverable (e.g. payload serialization bug) — 502
+    return res.status(502).json({ ok: false, error: `Unrecoverable: ${String(e)}` });
   }
 });
 
@@ -110,15 +168,25 @@ app.post('/api/ensemble', async (req, res) => {
     const err = validPayload(req.body);
     if (err) return res.status(400).json({ ok: false, error: err });
 
-    const inferResp = await fetch(`${ML_URL}/infer`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ features: req.body.features })
-    });
-    const anomalyRaw = await inferResp.json();
-    const normalized = normalizeMlAssessmentForEnsemble({
-      responseOk: inferResp.ok,
-      responseStatus: inferResp.status,
-      responseBody: anomalyRaw,
-    });
+    let normalized;
+    try {
+      const inferResp = await fetch(`${ML_URL}/infer`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ features: req.body.features })
+      });
+      const anomalyRaw = await inferResp.json();
+      normalized = normalizeMlAssessmentForEnsemble({
+        responseOk: inferResp.ok,
+        responseStatus: inferResp.status,
+        responseBody: anomalyRaw,
+      });
+    } catch (_netErr) {
+      // ML unreachable — synthesize a fallback-based normalization
+      const fallback = buildFallbackMlAssessment({ reason: `ML_NETWORK_ERROR:${_netErr.message}` });
+      normalized = {
+        anomaly: fallback,
+        mlContract: { strict_valid: false, used_fallback: true, validation_error: fallback.fallback_reason, fallback_reason: fallback.fallback_reason, upstream_status: null, upstream_error: _netErr.message },
+      };
+    }
 
     const markets = await getMarketSnapshot();
     const regime = inferRegime(markets);
@@ -132,7 +200,7 @@ app.post('/api/ensemble', async (req, res) => {
       ml_contract: normalized.mlContract,
     });
   } catch (e) {
-    return res.status(500).json({ ok: false, error: String(e) });
+    return res.status(502).json({ ok: false, error: `Unrecoverable: ${String(e)}` });
   }
 });
 
@@ -246,18 +314,79 @@ app.post('/api/governance/policy-gate/v2', handleLegacyViaFusion);
 app.post('/api/policy/gate/v2', handleLegacyViaFusion);
 app.post('/api/risk/gate/v2', handleLegacyViaFusion);
 
-app.post('/api/governance/actions/propose', (req, res) => {
+app.post('/api/governance/actions/propose', async (req, res) => {
+  const _rid = generateRequestId();
+  const _endpoint = '/api/governance/actions/propose';
+  const _t0 = Date.now();
+  console.log(JSON.stringify({ rid: _rid, event: 'propose_start', endpoint: _endpoint }));
   try {
-    const result = policyEnforcement.propose(req.body);
+    const body = { ...req.body };
+
+    // Auto-call ML /infer when features present but ml_assessment absent
+    if (!body.ml_assessment && !body.mlAssessment && Array.isArray(body.features) && body.features.length > 0) {
+      const _mlUrl = `${ML_URL}/infer`;
+      try {
+        const mlResp = await fetch(_mlUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ features: body.features.map(Number) }),
+        });
+        console.log(JSON.stringify({ rid: _rid, event: 'ml_response', endpoint: _endpoint, upstream: _mlUrl, status: mlResp.status }));
+        if (mlResp.ok) {
+          const mlData = await mlResp.json();
+          body.ml_assessment = mlData;
+        }
+      } catch (_mlErr) {
+        // ML call failed — proceed without; normalizeMlAssessmentForGovernance will provide fallback
+        console.log(JSON.stringify({ rid: _rid, event: 'ml_error', endpoint: _endpoint, upstream: _mlUrl, error: String(_mlErr.cause || _mlErr.message) }));
+      }
+    }
+
+    const result = policyEnforcement.propose(body);
+    console.log(JSON.stringify({ rid: _rid, event: 'propose_ok', endpoint: _endpoint, status: 200, ms: Date.now() - _t0 }));
+
+    // Broadcast to WS clients so UIs pick up the new action immediately
+    try {
+      const { action: newAction } = policyEnforcement.detail(result.actionId);
+      broadcastWs({
+        type: 'new_action',
+        actionId: result.actionId,
+        status: result.status,
+        decision: result.decision,
+        resolution: null,
+        action: newAction,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (_bcastErr) {
+      // non-fatal — HTTP response still goes out
+    }
+
     return res.json({ ok: true, ...result });
   } catch (e) {
-    return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
+    const _status = e.status || 500;
+    console.log(JSON.stringify({ rid: _rid, event: 'propose_fail', endpoint: _endpoint, status: _status, validationError: String(e.message || e), ms: Date.now() - _t0 }));
+    return res.status(_status).json({ ok: false, error: String(e.message || e) });
   }
 });
 
 function resolveActionFromRequest(req, res, resolution) {
   try {
     const result = policyEnforcement.resolve(req.body, resolution);
+
+    // Fetch the full updated action record from the same store
+    const { action: updatedAction } = policyEnforcement.detail(result.actionId);
+
+    // Broadcast full action record to all connected WS clients
+    broadcastWs({
+      type: 'action_updated',
+      actionId: result.actionId,
+      status: result.status,
+      decision: result.decision,
+      resolution: result.resolution,
+      action: updatedAction,
+      timestamp: new Date().toISOString(),
+    });
+
     return res.json({ ok: true, ...result });
   } catch (e) {
     return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
@@ -294,6 +423,16 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
     return res.json({ ok: true, ...result });
   } catch (e) {
     return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+// ─── List all actions ────────────────────────────────────────────────────────
+app.get('/api/governance/actions', (_req, res) => {
+  try {
+    const result = policyEnforcement.list();
+    return res.json({ ok: true, ...result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e.message || e) });
   }
 });
 
@@ -372,6 +511,7 @@ const isTestEnv = process.env.VITEST === 'true' || process.env.NODE_ENV === 'tes
 if (!isTestEnv) {
   const server = createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws/signals' });
+  _wss = wss;
 
   wss.on('connection', (ws) => {
     const timer = setInterval(async () => {
