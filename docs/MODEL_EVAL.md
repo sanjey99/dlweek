@@ -6,12 +6,13 @@ This document freezes the ML inference response contract for downstream backend/
 
 ```json
 {
-"risk_category": "low|medium|high",
-"risk_score": "float in [0,1]",
-"uncertainty": "float in [0,1]",
-"recommendation": "allow|review|block",
-"model_version": "string",
-"reason_tags": "string[]",`n"model_version": "string",`n"fallback_used": "boolean"
+  "risk_category": "low|medium|high",
+  "risk_score": "float in [0,1]",
+  "uncertainty": "float in [0,1]",
+  "recommendation": "allow|review|block",
+  "reason_tags": "string[]",
+  "model_version": "string",
+  "fallback_used": "boolean"
 }
 ```
 
@@ -44,4 +45,3 @@ Caveat: local environment had limited dependency/runtime validation; CI should b
 
 Adverse example:
 - high-risk destructive action pattern => recommendation=block (low uncertainty case)
-
