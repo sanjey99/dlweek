@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
@@ -18,6 +18,28 @@ export default function App() {
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
+
+  /** Live "last sync" timer for footer truthfulness */
+  const [lastSync, setLastSync] = useState(() => new Date());
+  const [syncLabel, setSyncLabel] = useState('just now');
+  const lastSyncRef = useRef(lastSync);
+  lastSyncRef.current = lastSync;
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - lastSyncRef.current.getTime()) / 1000);
+      if (elapsed < 5) setSyncLabel('just now');
+      else if (elapsed < 60) setSyncLabel(`${elapsed}s ago`);
+      else setSyncLabel(`${Math.floor(elapsed / 60)}m ago`);
+    }, 3000);
+    return () => clearInterval(tick);
+  }, []);
+
+  // Reset sync clock when actions change
+  useEffect(() => {
+    setLastSync(new Date());
+    setSyncLabel('just now');
+  }, [actions]);
 
   const handleApprove = (id: string) => {
     setActions((prev) =>
@@ -187,7 +209,7 @@ export default function App() {
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ color: theme.textTertiary, fontSize: 12 }}>
-              Last sync: just now
+              Last sync: {syncLabel}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div

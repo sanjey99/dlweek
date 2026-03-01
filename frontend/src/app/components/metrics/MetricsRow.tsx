@@ -1,5 +1,5 @@
 import { AreaChart, Area, Tooltip } from 'recharts';
-import { TrendingUp, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { TrendingUp, Clock, AlertTriangle, CheckCircle, Database } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Theme } from '../../types';
 import { sparklineData } from '../../data/mockData';
@@ -133,14 +133,15 @@ function MetricCard({
 
 export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-        gap: isMobile ? 10 : 16,
-        fontFamily: 'Inter, sans-serif',
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+          gap: isMobile ? 10 : 16,
+          fontFamily: 'Inter, sans-serif',
+        }}
+      >
       <MetricCard
         title="Total AI Actions Today"
         value="1,245"
@@ -184,6 +185,31 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
         isDark={isDark}
         isMobile={isMobile}
       />
+      </div>
+      {/* Source / Timestamp truthfulness strip */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: 12,
+          padding: '0 2px',
+          fontFamily: 'Inter, sans-serif',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Database size={9} color={theme.textTertiary} />
+          <span style={{ color: theme.textTertiary, fontSize: 10 }}>
+            sentinel-ml-v3.2 · aggregated
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Clock size={9} color={theme.textTertiary} />
+          <span style={{ color: theme.textTertiary, fontSize: 10 }}>
+            Updated 14:32 UTC
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
