@@ -24,6 +24,20 @@ curl -s http://localhost:4000/api/simulate
 curl -s -X POST http://localhost:4000/api/infer \
   -H 'Content-Type: application/json' \
   -d '{"features":[0.1,0.4,0.2,0.3,0.8,0.2,0.5,0.9]}'
+curl -s -X POST http://localhost:4000/api/governance/policy-gate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "action":{"type":"deploy-prod"},
+    "context":{
+      "riskScore":0.81,
+      "mlConfidence":0.87,
+      "testsPassing":false,
+      "touchesCriticalPaths":true,
+      "targetEnvironment":"prod",
+      "destructive":true,
+      "rollbackPlanPresent":false
+    }
+  }'
 ```
 
 ## Fallback (no Docker)

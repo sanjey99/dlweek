@@ -5,6 +5,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { getMarketSnapshot } from './adapters/marketData.js';
 import { inferRegime, runEnsemble } from './engine/ensemble.js';
+import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 
 dotenv.config();
 const app = express();
@@ -98,6 +99,31 @@ app.post('/api/scenario/run', async (req, res) => {
   const regime = inferRegime(stressed);
   return res.json({ ok: true, scenario, before: markets, after: stressed, regime });
 });
+
+function handlePolicyGate(req, res) {
+  const validationError = validatePolicyGatePayload(req.body);
+  if (validationError) {
+    return res.status(400).json({ ok: false, error: validationError });
+  }
+
+  const verdict = evaluatePolicyGate(req.body);
+  return res.json({
+    ok: true,
+    packetId: 'BE-P1',
+    evaluatedAt: new Date().toISOString(),
+    ...verdict,
+    migration: {
+      strategy: 'revamp',
+      notes: 'Endpoint added alongside existing routes; no destructive rewrites.',
+    },
+  });
+}
+
+// Primary governance endpoint.
+app.post('/api/governance/policy-gate', handlePolicyGate);
+// Compatibility aliases during migration from prior route conventions.
+app.post('/api/policy/gate', handlePolicyGate);
+app.post('/api/risk/gate', handlePolicyGate);
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws/signals' });
