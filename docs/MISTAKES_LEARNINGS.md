@@ -35,7 +35,7 @@
 **Reproduced**: branch recheck after P2 merge/rebase showed `/api/ensemble` consumed ML body without checking `inferResp.ok`.
 **Root cause**: route validated schema only; HTTP status path was not represented in fallback metadata.
 **Fix**: added explicit non-200 branch in `backend/src/index.js` with `ML_UPSTREAM_NON_200:<status>` fallback reason and surfaced `fallback_reason`, `upstream_status`, `upstream_error`.
-**Regression check**: added `backend/tests/mlEndpoints.integration.test.js` covering `/api/infer` non-200 passthrough and `/api/ensemble` explicit fallback reason propagation.
+**Regression check**: added `normalizeMlAssessmentForEnsemble` unit coverage in `backend/tests/mlContract.test.js` for upstream non-200 status and fallback reason propagation.
 **Lesson**: endpoint-level fallback logic must encode transport failures distinctly from contract-shape failures.
 
 ### [2026-03-01] — BE-P3 escalate test asserted wrong event type

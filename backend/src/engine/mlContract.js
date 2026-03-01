@@ -116,3 +116,49 @@ export function normalizeMlAssessmentForGovernance(payload) {
     validationError: null,
   };
 }
+
+export function normalizeMlAssessmentForEnsemble({ responseOk, responseStatus, responseBody }) {
+  if (!responseOk) {
+    const reason = `ML_UPSTREAM_NON_200:${responseStatus}`;
+    const fallback = buildFallbackMlAssessment({ reason });
+    return {
+      anomaly: fallback,
+      mlContract: {
+        strict_valid: false,
+        used_fallback: true,
+        validation_error: reason,
+        fallback_reason: fallback.fallback_reason,
+        upstream_status: responseStatus,
+        upstream_error: typeof responseBody?.error === 'string' ? responseBody.error : null,
+      },
+    };
+  }
+
+  const contract = validateStrictMlContract(responseBody);
+  if (!contract.ok) {
+    const fallback = buildFallbackMlAssessment({ reason: `ML_RESPONSE_INVALID:${contract.error}` });
+    return {
+      anomaly: fallback,
+      mlContract: {
+        strict_valid: false,
+        used_fallback: true,
+        validation_error: contract.error,
+        fallback_reason: fallback.fallback_reason,
+        upstream_status: null,
+        upstream_error: null,
+      },
+    };
+  }
+
+  return {
+    anomaly: contract.value,
+    mlContract: {
+      strict_valid: true,
+      used_fallback: false,
+      validation_error: null,
+      fallback_reason: null,
+      upstream_status: null,
+      upstream_error: null,
+    },
+  };
+}
