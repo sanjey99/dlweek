@@ -23,16 +23,18 @@
 | 11 | curl proof — allow / review / block | Done | Orchestrator |
 | 12 | Git branch + commit | Done | Orchestrator |
 
-## Phase 2 — Hardening (next sprint)
+## Phase 2 — Hardening (DP1 — this packet)
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | Add unit tests for fusionEvaluator.js | Planned |
-| 2 | Add integration tests (supertest) for all routes | Planned |
-| 3 | Wire live ML service output into fusion via `/api/ensemble` | Planned |
-| 4 | Promote `/v2` compat routes to replace originals | Planned |
-| 5 | Add OpenAPI spec for `/api/governance/fusion` | Planned |
-| 6 | Dashboard widget to visualize fusion decisions | Planned |
+| 1 | Add unit tests for fusionEvaluator.js | Done |
+| 2 | Add integration tests (supertest) for all routes | Done |
+| 3 | Add `policy_version` + `model_version` fields | Done |
+| 4 | Implement hard-policy-first guard | Done |
+| 5 | Implement uncertainty guard (no auto-allow non-trivial risk) | Done |
+| 6 | Add legacy finance payload adapter | Done |
+| 7 | Update all documentation (4 files) | Done |
+| 8 | Curl proofs for new logic paths | Done |
 
 ## Phase 3 — Production
 
