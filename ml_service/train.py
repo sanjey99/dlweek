@@ -1,53 +1,46 @@
+# Updated ml_service/train.py for multiclass risk classification
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parent / "model.pt"
+OUT = Path(__file__).resolve().parent / "risk_model.pt"
+EMBED_DIM = 128
+NUM_CLASSES = 3  # low=0, medium=1, high=2
+RiskMLP = ...  # Copy class from app.py
 
-class TinyMLP(nn.Module):
-    def __init__(self, dim=8):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, 16), nn.ReLU(),
-            nn.Linear(16, 8), nn.ReLU(),
-            nn.Linear(8, 1), nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
-def make_data(n=3000, dim=8):
-    X = np.random.normal(0, 1, (n, dim)).astype(np.float32)
-    # synthetic anomaly rule
-    y = ((0.8*X[:,0] + 0.6*X[:,1] - 0.4*X[:,2] + 0.7*X[:,5] + np.random.normal(0,0.8,n)) > 1.2).astype(np.float32)
-    return X, y.reshape(-1,1)
-
+def make_sdlc_data(n=3000):  # Synthetic SDLC risk labels [web:1][web:6][web:10]
+    X = np.random.normal(0, 1, (n, EMBED_DIM)).astype(np.float32)
+    # Simulate risks: high if 'destructive' patterns (e.g., rm, drop table)
+    linear = 0.8*X[:,0] + 0.6*X[:,1] - 0.4*X[:,2] + np.random.normal(0, 0.5, n)
+    y = np.zeros(n, dtype=np.int64)
+    y[linear > 1.5] = 2  # high
+    y[(linear > 0.5) & (linear <= 1.5)] = 1  # medium
+    y[linear <= 0.5] = 0  # low
+    return X, y
 
 def main():
     torch.manual_seed(42)
-    X, y = make_data()
+    X, y = make_sdlc_data()
     x = torch.tensor(X)
     t = torch.tensor(y)
 
-    m = TinyMLP(dim=8)
-    loss_fn = nn.BCELoss()
-    opt = optim.Adam(m.parameters(), lr=0.004)
+    m = RiskMLP()
+    loss_fn = nn.CrossEntropyLoss()
+    opt = optim.Adam(m.parameters(), lr=0.001)
 
     for ep in range(200):
         pred = m(x)
         loss = loss_fn(pred, t)
         opt.zero_grad(); loss.backward(); opt.step()
         if ep % 40 == 0:
-            with torch.no_grad():
-                acc = ((pred > 0.5).float() == t).float().mean().item()
+            acc = (pred.argmax(-1) == t).float().mean().item()
             print(f"ep={ep} loss={loss.item():.4f} acc={acc:.4f}")
 
     torch.save(m.state_dict(), OUT)
-    print(f"saved {OUT}")
-
+    print(f"Saved {OUT}")
 
 if __name__ == "__main__":
     main()
