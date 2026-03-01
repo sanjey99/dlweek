@@ -39,11 +39,11 @@
 **Lesson**: adapter layers need explicit shape detection and deterministic fallback behavior.
 
 ### 2026-03-01 - BE-P3 upstream non-200 fallback masking in /api/ensemble
-**Reproduced**: branch recheck showed ML body consumption without `inferResp.ok` handling.
-**Root cause**: schema validation existed but transport failure metadata was not surfaced.
-**Fix**: added explicit non-200 fallback branch and propagated fallback reason/status details.
-**Regression check**: contract normalization tests cover non-200 propagation.
-**Lesson**: endpoint fallback logic must distinguish transport failures from schema failures.
+**Reproduced**: branch recheck after merge/rebase showed `/api/ensemble` consumed ML body without checking `inferResp.ok`.
+**Root cause**: route validated schema only; HTTP status path was not represented in fallback metadata.
+**Fix**: added explicit non-200 handling with fallback reason propagation and surfaced upstream status/error metadata.
+**Regression check**: added normalization unit coverage for non-200 status and fallback reason propagation.
+**Lesson**: endpoint-level fallback logic must encode transport failures distinctly from contract-shape failures.
 
 ### 2026-03-01 - BE-P3 escalate test asserted wrong event type
 **Reproduced**: `policyEnforcement.e2e.test.js` expected `action_block` on escalate path.
@@ -51,3 +51,17 @@
 **Fix**: updated assertion to `action_escalate`.
 **Regression check**: backend test suite passed after correction.
 **Lesson**: transition-specific tests should assert exact event semantics.
+
+### 2026-03-01 - Merge conflict in index.js between policyEnforcementService and fusion imports
+**Reproduced**: conflict markers were found in `index.js` import section during branch integration.
+**Root cause**: BE-P2 (policy enforcement) and ARCH-CORE-DP1 (fusion) both modified the same import block.
+**Fix**: preserved both import sets and restored fusion-compatible routes/handlers.
+**Regression check**: full suite passed after conflict resolution in that lane.
+**Lesson**: run conflict-marker scans and full tests immediately after merges.
+
+### 2026-03-01 - v2 compat route migration.strategy mismatch
+**Reproduced**: integration tests expected `migration.strategy: 'fusion-compat'` but received `'revamp'`.
+**Root cause**: restored compat path reused non-compat migration metadata.
+**Fix**: updated compat response to emit `strategy: 'fusion-compat'` with fusion source details.
+**Regression check**: integration suite passed after update.
+**Lesson**: restored code after conflicts must be validated against current test expectations.

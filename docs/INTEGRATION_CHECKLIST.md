@@ -24,6 +24,7 @@
 | `POST /api/governance/policy-gate/v2` | Fusion → compat adapter | Legacy | **New** |
 | `POST /api/policy/gate/v2` | Fusion → compat adapter | Legacy | **New** |
 | `POST /api/risk/gate/v2` | Fusion → compat adapter | Legacy | **New** |
+| `GET /api/governance/fusion/health` | Metrics snapshot | Health envelope | **P3** |
 
 ## Acceptance Criteria
 
@@ -40,6 +41,11 @@
 - [x] **DP1: Hard-policy-first**: destructive prod delete + unapproved secret rotation → immediate block before ML
 - [x] **DP1: Uncertainty guard**: high uncertainty + non-trivial risk → escalate allow to review
 - [x] **DP1: Finance adapter**: `/api/governance/fusion/finance` accepts legacy finance payloads with deprecation notice
+- [x] **P3: Health endpoint**: `GET /api/governance/fusion/health` returns `{ ok, policy_version, model_version_support, metrics }`
+- [x] **P3: Structured logging**: every fusion evaluation emits NDJSON log line with requestId, decision, risk_score, etc.
+- [x] **P3: Metrics counters**: in-memory counters for decision distribution, staleness, ML presence, errors
+- [x] **P3: Request ID**: every fusion response includes `_requestId` for correlation
+- [x] **P3: Backward compat**: all existing routes and response shapes unchanged
 
 ## Rollback
 
@@ -79,6 +85,9 @@
 | **DP1: Hard-policy-first block** | 4 | ✅ |
 | **DP1: Uncertainty guard** | 2 | ✅ |
 | **DP1: Finance legacy adapter** | 3 | ✅ |
+| **P3: Health endpoint** | 2 | ✅ |
+| **P3: Metrics counters** | 7 | ✅ |
+| **P3: Request ID / logging** | 3 | ✅ |
 
 ### Curl Proof — Allow
 ```bash
