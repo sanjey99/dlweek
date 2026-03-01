@@ -121,6 +121,13 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
     };
   }
 
+  function list() {
+    return {
+      actions: store.listActions(),
+      ledger: store.getEventLedgerState(),
+    };
+  }
+
   function detail(actionId) {
     const record = store.getAction(actionId);
     if (!record) throw toError(404, 'action not found');
@@ -134,6 +141,8 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
   return {
     propose,
     resolve,
+    list,
     detail,
   };
 }
+

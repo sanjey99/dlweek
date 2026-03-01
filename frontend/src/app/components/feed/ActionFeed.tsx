@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bg: string; icon: ReactNode; dotColor: string }
 > = {
   HIGH_RISK_PENDING: {
-    label: 'HIGH RISK · PENDING',
+    label: 'HIGH RISK - PENDING',
     color: COLORS.red,
     bg: COLORS.redMuted,
     icon: <AlertOctagon size={11} />,
@@ -32,7 +32,7 @@ const STATUS_CONFIG: Record<
     dotColor: COLORS.red,
   },
   MEDIUM_RISK_PENDING: {
-    label: 'MEDIUM · PENDING',
+    label: 'MEDIUM - PENDING',
     color: COLORS.amber,
     bg: COLORS.amberMuted,
     icon: <AlertTriangle size={11} />,
@@ -132,9 +132,9 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
 
   /** Reason text shown for non-clickable rows */
   const getDisabledReason = (status: RiskStatus): string | null => {
-    if (status === 'APPROVED') return 'Already approved — no action needed';
-    if (status === 'HIGH_RISK_BLOCKED') return 'Blocked — auto-policy enforced';
-    if (status === 'LOW_RISK') return 'Low risk — auto-approved by policy';
+    if (status === 'APPROVED') return 'Already approved - no action needed';
+    if (status === 'HIGH_RISK_BLOCKED') return 'Blocked - auto-policy enforced';
+    if (status === 'LOW_RISK') return 'Low risk - auto-approved by policy';
     return null;
   };
 
@@ -463,7 +463,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                 <StatusBadge status={action.riskStatus} />
               </div>
 
-              {/* Chevron (only for pending — removed for resolved to eliminate dead control) */}
+              {/* Chevron (only for pending - removed for resolved to eliminate dead control) */}
               <div style={{ color: theme.textTertiary }}>
                 {isPending ? <ChevronRight size={14} /> : null}
               </div>
@@ -481,3 +481,5 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
     </div>
   );
 }
+
+

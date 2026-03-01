@@ -14,6 +14,7 @@ app = FastAPI(title="SDLC Sentinel ML Service")
 
 RISK_CATEGORIES = ["low", "medium", "high"]
 NUM_CLASSES = len(RISK_CATEGORIES)
+RISK_LEVELS = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float32)
 
 THRESHOLDS = {
     "allow_max": 0.30,
@@ -209,8 +210,15 @@ def classify_action(inp: RiskIn):
         probs = pred_mean[0]
         category_idx = int(torch.argmax(probs).item())
 
-        risk_score = _clamp01(probs[category_idx].item())
-        uncertainty = _clamp01(pred_std[0, category_idx].item())
+        # Convert class probabilities to calibrated risk score rather than
+        # using argmax confidence as a proxy for risk severity.
+        risk_score = _clamp01(torch.sum(probs * RISK_LEVELS).item())
+
+        # Blend entropy and MC-dropout disagreement into uncertainty signal.
+        entropy = -torch.sum(probs * torch.log(probs + 1e-8)).item()
+        entropy_norm = entropy / np.log(NUM_CLASSES)
+        disagreement = pred_std[0].mean().item() * 4.0
+        uncertainty = _clamp01(max(entropy_norm, disagreement))
         if risk_score is None or uncertainty is None:
             return _fallback("classify_invalid_numeric_output")
 

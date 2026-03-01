@@ -105,6 +105,50 @@ app.post('/api/infer', async (req, res) => {
   }
 });
 
+app.post('/api/ml/classify', async (req, res) => {
+  try {
+    const text = typeof req.body?.text === 'string' ? req.body.text : '';
+    const featuresRaw = Array.isArray(req.body?.features) ? req.body.features : [];
+    const features = featuresRaw
+      .map((x) => Number(x))
+      .filter((x) => Number.isFinite(x))
+      .slice(0, 128);
+
+    const payload = { text, features };
+    const r = await fetch(`${ML_URL}/classify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await r.json();
+    if (!r.ok) {
+      return res.status(r.status).json({ ok: false, error: data?.detail || 'ML classify failed' });
+    }
+
+    const requiredKeys = [
+      'risk_category',
+      'risk_score',
+      'uncertainty',
+      'recommendation',
+      'reason_tags',
+      'model_version',
+      'fallback_used',
+    ];
+    const missing = requiredKeys.filter((k) => !(k in data));
+    if (missing.length > 0) {
+      return res.status(502).json({
+        ok: false,
+        error: `ML response missing keys: ${missing.join(', ')}`,
+      });
+    }
+
+    return res.json({ ok: true, ...data });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 app.post('/api/ensemble', async (req, res) => {
   try {
     const err = validPayload(req.body);
@@ -255,6 +299,15 @@ app.post('/api/governance/actions/propose', (req, res) => {
   }
 });
 
+app.get('/api/governance/actions', (_req, res) => {
+  try {
+    const result = policyEnforcement.list();
+    return res.json({ ok: true, ...result });
+  } catch (e) {
+    return res.status(e.status || 500).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
 function resolveActionFromRequest(req, res, resolution) {
   try {
     const result = policyEnforcement.resolve(req.body, resolution);
@@ -398,3 +451,4 @@ if (!isTestEnv) {
 }
 
 export { app };
+

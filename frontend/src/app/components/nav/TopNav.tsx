@@ -22,7 +22,7 @@ const initialNotifications: NotificationItem[] = [
   {
     id: 'n1',
     title: 'Critical action requires review',
-    detail: 'agent-db-ops proposed DROP TABLE users_backup in PROD — Risk score 94/100.',
+    detail: 'agent-db-ops proposed DROP TABLE users_backup in PROD  -  Risk score 94/100.',
     timeAgo: '2m ago',
     level: 'critical',
     unread: true,
@@ -132,7 +132,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
             </span>
           </div>
 
-          {/* Divider — hidden on mobile */}
+          {/* Divider  -  hidden on mobile */}
           {!isMobile && <div style={{ width: 1, height: 20, background: theme.border }} />}
 
           {/* Status indicator */}
@@ -412,7 +412,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
             )}
           </div>
 
-          {/* Divider — hidden on mobile */}
+          {/* Divider  -  hidden on mobile */}
           {!isMobile && <div style={{ width: 1, height: 20, background: theme.border, margin: '0 8px' }} />}
 
           {/* User Avatar + account popup */}
@@ -625,3 +625,4 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile }: TopNavProps) 
     </nav>
   );
 }
+

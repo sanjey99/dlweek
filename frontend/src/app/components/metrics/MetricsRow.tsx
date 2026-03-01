@@ -1,5 +1,5 @@
 import { AreaChart, Area, Tooltip } from 'recharts';
-import { TrendingUp, Clock, AlertTriangle, CheckCircle, Database } from 'lucide-react';
+import { TrendingUp, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Theme } from '../../types';
 import { sparklineData } from '../../data/mockData';
@@ -9,6 +9,12 @@ interface MetricsRowProps {
   theme: Theme;
   isDark: boolean;
   isMobile: boolean;
+  metrics?: {
+    totalActions: number;
+    pendingReviews: number;
+    highRiskInterventions: number;
+    approvalRatePct: number;
+  };
 }
 
 interface MetricCardProps {
@@ -54,7 +60,6 @@ function MetricCard({
         minWidth: 0,
       }}
     >
-      {/* Top row: title + icon */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ color: theme.textSecondary, fontSize: isMobile ? 11 : 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           {title}
@@ -76,7 +81,6 @@ function MetricCard({
         </div>
       </div>
 
-      {/* Value */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
           <div
@@ -95,7 +99,6 @@ function MetricCard({
           </div>
         </div>
 
-        {/* Sparkline — only on desktop */}
         {hasSparkline && !isMobile && (
           <div style={{ width: 80, height: 36, flexShrink: 0 }}>
             <AreaChart
@@ -110,10 +113,7 @@ function MetricCard({
                   <stop offset="100%" stopColor={COLORS.green} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <Tooltip
-                contentStyle={{ display: 'none' }}
-                cursor={false}
-              />
+              <Tooltip contentStyle={{ display: 'none' }} cursor={false} />
               <Area
                 type="monotone"
                 dataKey="v"
@@ -131,21 +131,25 @@ function MetricCard({
   );
 }
 
-export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
+export function MetricsRow({ theme, isDark, isMobile, metrics }: MetricsRowProps) {
+  const totalActions = metrics?.totalActions ?? 1245;
+  const pendingReviews = metrics?.pendingReviews ?? 4;
+  const highRiskInterventions = metrics?.highRiskInterventions ?? 12;
+  const approvalRatePct = metrics?.approvalRatePct ?? 94;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
-          gap: isMobile ? 10 : 16,
-          fontFamily: 'Inter, sans-serif',
-        }}
-      >
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+        gap: isMobile ? 10 : 16,
+        fontFamily: 'Inter, sans-serif',
+      }}
+    >
       <MetricCard
         title="Total AI Actions Today"
-        value="1,245"
-        subtitle="↑ +12% from yesterday"
+        value={totalActions.toLocaleString()}
+        subtitle="+12% from yesterday"
         icon={<TrendingUp size={14} />}
         hasSparkline
         theme={theme}
@@ -154,7 +158,7 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="Pending Reviews"
-        value="4"
+        value={pendingReviews.toString()}
         subtitle="2 require urgent attention"
         icon={<Clock size={14} />}
         accentColor={COLORS.amber}
@@ -165,7 +169,7 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="High-Risk Interventions"
-        value="12"
+        value={highRiskInterventions.toString()}
         subtitle="3 blocked automatically"
         icon={<AlertTriangle size={14} />}
         accentColor={COLORS.red}
@@ -176,7 +180,7 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
       />
       <MetricCard
         title="Global Approval Rate"
-        value="94%"
+        value={`${approvalRatePct}%`}
         subtitle="Last 24 hours"
         icon={<CheckCircle size={14} />}
         accentColor={COLORS.green}
@@ -185,31 +189,6 @@ export function MetricsRow({ theme, isDark, isMobile }: MetricsRowProps) {
         isDark={isDark}
         isMobile={isMobile}
       />
-      </div>
-      {/* Source / Timestamp truthfulness strip */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: 12,
-          padding: '0 2px',
-          fontFamily: 'Inter, sans-serif',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Database size={9} color={theme.textTertiary} />
-          <span style={{ color: theme.textTertiary, fontSize: 10 }}>
-            sentinel-ml-v3.2 · aggregated
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Clock size={9} color={theme.textTertiary} />
-          <span style={{ color: theme.textTertiary, fontSize: 10 }}>
-            Updated 14:32 UTC
-          </span>
-        </div>
-      </div>
     </div>
   );
 }

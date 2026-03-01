@@ -94,7 +94,7 @@ function RiskGauge({ score, isDark }: { score: number; isDark: boolean }) {
       >
         <AlertOctagon size={13} color={color} />
         <span style={{ color, fontSize: 12, fontWeight: 600, fontFamily: 'Inter, sans-serif' }}>
-          {score >= 80 ? 'Critical Risk — Immediate Review Required' : score >= 50 ? 'Elevated Risk — Review Recommended' : 'Low Risk — Routine Review'}
+          {score >= 80 ? 'Critical Risk - Immediate Review Required' : score >= 50 ? 'Elevated Risk - Review Recommended' : 'Low Risk - Routine Review'}
         </span>
       </div>
     </div>
@@ -209,7 +209,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
           <Database size={9} color={theme.textTertiary} />
           <span style={{ color: theme.textTertiary, fontSize: 10 }}>
-            sentinel-ml-v3.2 · ready
+            sentinel-ml-v3.2 - ready
           </span>
         </div>
       </div>
@@ -236,7 +236,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             : 'none',
       }}
     >
-      {/* Panel Header — high-contrast for quick scan */}
+      {/* Panel Header - high-contrast for quick scan */}
       <div
         style={{
           padding: isMobile ? '12px 14px' : '14px 18px',
@@ -325,7 +325,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
                 {action.agentName}
               </div>
               <div style={{ color: theme.textSecondary, fontSize: 11, marginTop: 1 }}>
-                {action.environment} · {action.timestamp}
+                {action.environment} - {action.timestamp}
               </div>
             </div>
             <div style={{ flexShrink: 0 }}>
@@ -445,7 +445,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
         {/* Divider */}
         <div style={{ height: 1, background: theme.border }} />
 
-        {/* CTA summary — instant comprehension for judge scan */}
+        {/* CTA summary - instant comprehension for judge scan */}
         {isPending && (
           <div
             style={{
@@ -463,8 +463,8 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
             <AlertOctagon size={14} color={scoreColor} />
             <span style={{ color: theme.textPrimary, fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>
               {action.riskScore >= 80
-                ? 'Critical — approve or block this action now'
-                : 'Review required — approve or block below'}
+                ? 'Critical - approve or block this action now'
+                : 'Review required - approve or block below'}
             </span>
           </div>
         )}
@@ -530,7 +530,7 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <Clock size={10} color={theme.textTertiary} />
             <span style={{ color: theme.textTertiary, fontSize: 10 }}>
-              Scored at {action.timestamp} · {isPending ? 'awaiting review' : action.riskStatus === 'APPROVED' ? 'approved' : 'blocked'}
+              Scored at {action.timestamp} - {isPending ? 'awaiting review' : action.riskStatus === 'APPROVED' ? 'approved' : 'blocked'}
             </span>
           </div>
         </div>
@@ -538,3 +538,4 @@ export function ReviewPanel({ theme, isDark, action, onApprove, onEscalate, onBl
     </div>
   );
 }
+

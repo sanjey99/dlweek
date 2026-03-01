@@ -65,6 +65,10 @@ export function createActionLifecycleStore() {
     return actions.get(actionId) || null;
   }
 
+  function listActions() {
+    return [...actions.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
   function resolveAction(actionId, { resolution, actor }) {
     const record = actions.get(actionId);
     if (!record) return null;
@@ -100,6 +104,7 @@ export function createActionLifecycleStore() {
   return {
     saveProposal,
     getAction,
+    listActions,
     resolveAction,
     listEvents,
     getEventLedgerState,
@@ -123,3 +128,4 @@ export function validateActionResolutionPayload(body) {
   }
   return null;
 }
+
