@@ -50,6 +50,10 @@ DANGEROUS_WORDS = {
     "delete", "drop", "truncate", "purge", "terminate", "kill", "remove",
     "disable", "overwrite", "revoke", "force", "wipe", "destroy", "flush",
     "erase", "shutdown", "nuke", "rollback", "downgrade", "open",
+    "exfiltrate", "dump", "leak", "breach", "exploit", "bypass",
+    "privilege", "escalate", "inject", "poison", "backdoor", "ransom",
+    "chmod", "chown", "sudo", "root", "formatdisk", "deprovision",
+    "reset", "restart", "drain", "evict", "invalidate", "desync",
 }
 
 SAFE_WORDS = {
@@ -58,6 +62,10 @@ SAFE_WORDS = {
     "coverage", "type-check", "mypy", "eslint", "prettier", "storybook",
     "diagram", "translate", "wiki", "readme", "notes", "changelog", "tag",
     "badge", "outdated",
+    "validate", "verify", "dryrun", "noop", "observe", "monitor",
+    "inspect", "explain", "summarize", "backup", "restore", "checksum",
+    "signed", "approved", "stable", "readonly", "sandbox", "simulate",
+    "baseline", "trace", "log", "telemetry", "unit", "integration",
 }
 
 MEDIUM_WORDS = {
@@ -66,6 +74,10 @@ MEDIUM_WORDS = {
     "deploy", "canary", "toggle", "flag", "retry", "skip", "experimental",
     "reroute", "replicate", "webhook", "threshold", "partition", "index",
     "cache", "warm", "pre-populate",
+    "patch", "refactor", "reconfigure", "reshard", "rebalance", "sync",
+    "import", "export", "transform", "compress", "rotate", "provision",
+    "scale", "autoscale", "reconcile", "optimize", "throttle", "queue",
+    "rollout", "pin", "unpin", "promote", "demote", "mirror",
 }
 
 CRITICAL_INFRA = {
@@ -73,6 +85,10 @@ CRITICAL_INFRA = {
     "pii", "admin", "kernel", "dns", "tls", "certificate", "cluster",
     "redis", "vault", "backup", "session", "auth", "authentication",
     "security", "encryption",
+    "payments", "billing", "identity", "iam", "kubernetes", "k8s",
+    "postgres", "mysql", "mongodb", "s3", "bucket", "cdn", "gateway",
+    "loadbalancer", "proxy", "queue", "kafka", "rabbitmq", "webhook",
+    "token", "apikey", "oauth", "ssh", "vpn", "compliance",
 }
 
 
