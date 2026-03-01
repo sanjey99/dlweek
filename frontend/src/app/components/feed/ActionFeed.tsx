@@ -263,14 +263,14 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '80px 120px 1fr 100px 80px 160px 20px',
+            gridTemplateColumns: '80px 140px 120px 1fr 80px 160px 20px',
             gap: '0 8px',
             padding: '8px 20px',
             borderBottom: `1px solid ${theme.border}`,
             background: theme.tableHeaderBg,
           }}
         >
-          {['TIME', 'AGENT', 'PROPOSED ACTION', 'USER', 'ENV', 'STATUS', ''].map((col) => (
+          {['TIME', 'AGENT', 'USER', 'PROPOSED ACTION', 'ENV', 'STATUS', ''].map((col) => (
             <div
               key={col}
               style={{
@@ -312,7 +312,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                 onMouseEnter={() => setHoveredId(action.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 title={disabledReason ?? undefined}
-                aria-label={isPending ? `Review ${action.agentName} action` : disabledReason ?? undefined}
+                aria-label={isPending ? `Review ${(action as any).agent || (action as any).agent_name || action.agentName} action` : disabledReason ?? undefined}
                 style={{
                   padding: '14px',
                   borderBottom: `1px solid ${theme.border}`,
@@ -344,7 +344,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                       minWidth: 0,
                     }}
                   >
-                    {action.agentName}
+                    {(action as any).agent || (action as any).agent_name || action.agentName}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                     <EnvBadge env={action.environment} isDark={isDark} />
@@ -407,10 +407,10 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
               onMouseEnter={() => setHoveredId(action.id)}
               onMouseLeave={() => setHoveredId(null)}
               title={disabledReason ?? undefined}
-              aria-label={isPending ? `Review ${action.agentName} action` : disabledReason ?? undefined}
+              aria-label={isPending ? `Review ${(action as any).agent || (action as any).agent_name || action.agentName} action` : disabledReason ?? undefined}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 120px 1fr 100px 80px 160px 20px',
+                gridTemplateColumns: '80px 140px 120px 1fr 80px 160px 20px',
                 gap: '0 8px',
                 padding: '11px 20px',
                 borderBottom: `1px solid ${theme.border}`,
@@ -446,9 +446,24 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}
-                title={action.agentName}
+                title={(action as any).agent || (action as any).agent_name || action.agentName}
               >
-                {action.agentName}
+                {(action as any).agent || (action as any).agent_name || action.agentName}
+              </div>
+
+              {/* User */}
+              <div
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  fontFamily: 'JetBrains Mono, monospace',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={(action as any).user || ''}
+              >
+                {(action as any).user || '-'}
               </div>
 
               {/* Proposed Action */}

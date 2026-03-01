@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router';
 import { Toaster, toast } from 'sonner';
 import { TopNav } from './components/nav/TopNav';
 import type { NotificationItem as TopNavNotificationItem } from './components/nav/TopNav';
@@ -410,6 +411,24 @@ export default function App() {
               Real-time monitoring and human review of all autonomous AI agent activity.
             </p>
           )}
+          <div style={{ marginTop: 10 }}>
+            <Link
+              to="/agent-terminal"
+              style={{
+                display: 'inline-block',
+                textDecoration: 'none',
+                border: `1px solid ${theme.border}`,
+                borderRadius: 7,
+                padding: '7px 10px',
+                background: theme.surface,
+                color: theme.textSecondary,
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              Open Agent Terminal
+            </Link>
+          </div>
         </div>
 
         {/* Upload Panel */}
