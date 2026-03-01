@@ -1,0 +1,62 @@
+commit b362cb672132d9c2488308f00fee5a880697417d
+Author: sanjey99 <157722435+sanjey99@users.noreply.github.com>
+Date:   Sun Mar 1 14:20:22 2026 +0800
+
+    feat(arch-core): add fusion evaluator as governance decision source
+
+diff --git a/docs/INTEGRATION_CHECKLIST.md b/docs/INTEGRATION_CHECKLIST.md
+new file mode 100644
+index 0000000..5a7c58d
+--- /dev/null
++++ b/docs/INTEGRATION_CHECKLIST.md
+@@ -0,0 +1,50 @@
++# Integration Checklist — Fusion Evaluator (ARCH-CORE v2)
++
++## Pre-Deploy
++
++- [x] `backend/src/fusion/fusionEvaluator.js` — core evaluation logic
++- [x] `backend/src/fusion/schema.js` — payload validation + response shape assertion
++- [x] `backend/src/fusion/compatAdapter.js` — legacy request/response shape adapters
++- [x] `backend/src/index.js` — new `/api/governance/fusion` route registered
++- [x] Legacy routes (`/api/governance/policy-gate`, `/api/policy/gate`, `/api/risk/gate`) **untouched**
++- [x] `/v2` compat routes added: same request → fusion-backed, legacy-shaped response
++- [x] `docs/POLICY_RULES.md` — updated with fusion schema and decision logic
++- [x] `docs/DELIVERY_PLAN.md` — created with phased rollout timeline
++- [x] `docs/MISTAKES_LEARNINGS.md` — self-repair log initialized
++
++## Endpoint Matrix
++
++| Route | Backed By | Response Shape | Status |
++|-------|-----------|----------------|--------|
++| `POST /api/governance/fusion` | Fusion Evaluator | Fusion envelope | **New** |
++| `POST /api/governance/policy-gate` | Policy Gate (direct) | Legacy | Unchanged |
++| `POST /api/policy/gate` | Policy Gate (direct) | Legacy | Unchanged |
++| `POST /api/risk/gate` | Policy Gate (direct) | Legacy | Unchanged |
++| `POST /api/governance/policy-gate/v2` | Fusion → compat adapter | Legacy | **New** |
++| `POST /api/policy/gate/v2` | Fusion → compat adapter | Legacy | **New** |
++| `POST /api/risk/gate/v2` | Fusion → compat adapter | Legacy | **New** |
++
++## Acceptance Criteria
++
++- [x] **curl allow**: `action.type = "READ"`, low-risk context → `decision: "allow"`
++- [x] **curl review**: `action.type = "DEPLOY_PROD"`, moderate ML risk → `decision: "review"`
++- [x] **curl block**: `action.type = "DELETE_RESOURCE"`, high ML risk, destructive → `decision: "block"`
++- [x] **Schema stable**: all 8 required output fields present (`decision`, `reason_tags`, `risk_category`, `risk_score`, `uncertainty`, `source`, `timestamp`, `stale_state`)
++- [x] **Source truthful**: `source` accurately reflects whether ML was provided / stale
++- [x] **Timestamp truthful**: `timestamp` is server-side evaluation time
++- [x] **stale_state truthful**: reflects actual ML timestamp age (> 60 s = stale)
++- [x] **Compatibility**: legacy routes return identical shape to before
++
++## Rollback
++
++1. Revert imports + route registrations in `backend/src/index.js`
++2. Delete `backend/src/fusion/` directory
++3. Original routes are never modified → no further rollback needed
++4. No database migrations to revert
++
++## Compatibility Notes
++
++- `policyGate.js` and `ensemble.js` are **read-only dependencies** of the fusion module; no changes made.
++- Frontend callers using `/api/governance/policy-gate` are unaffected.
++- The `/v2` compat routes can be promoted to replace originals once validated.
++- `ml_output` is optional in the fusion payload; omitting it degrades gracefully to `policy-only` mode.

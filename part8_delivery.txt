@@ -1,0 +1,73 @@
+commit b362cb672132d9c2488308f00fee5a880697417d
+Author: sanjey99 <157722435+sanjey99@users.noreply.github.com>
+Date:   Sun Mar 1 14:20:22 2026 +0800
+
+    feat(arch-core): add fusion evaluator as governance decision source
+
+diff --git a/docs/DELIVERY_PLAN.md b/docs/DELIVERY_PLAN.md
+new file mode 100644
+index 0000000..86198cc
+--- /dev/null
++++ b/docs/DELIVERY_PLAN.md
+@@ -0,0 +1,61 @@
++# Delivery Plan — ARCH-CORE v2: Fusion Evaluator
++
++**Branch**: `lane/orchestrator/arch-core-v2`
++**Commit**: `feat(arch-core): add fusion evaluator as governance decision source`
++**Checkpoint cadence**: every 45 min
++
++---
++
++## Phase 1 — Core Build (this PR)
++
++| # | Task | Status | Owner |
++|---|------|--------|-------|
++| 1 | Explore existing backend code & contracts | Done | Orchestrator |
++| 2 | Create `backend/src/fusion/fusionEvaluator.js` | Done | Orchestrator |
++| 3 | Create `backend/src/fusion/schema.js` (validation) | Done | Orchestrator |
++| 4 | Create `backend/src/fusion/compatAdapter.js` | Done | Orchestrator |
++| 5 | Wire `POST /api/governance/fusion` into `index.js` | Done | Orchestrator |
++| 6 | Wire `/v2` compat routes | Done | Orchestrator |
++| 7 | Verify legacy routes unchanged | Done | Orchestrator |
++| 8 | Update `docs/POLICY_RULES.md` | Done | Orchestrator |
++| 9 | Create `docs/INTEGRATION_CHECKLIST.md` | Done | Orchestrator |
++| 10 | Create `docs/DELIVERY_PLAN.md` | Done | Orchestrator |
++| 11 | curl proof — allow / review / block | Done | Orchestrator |
++| 12 | Git branch + commit | Done | Orchestrator |
++
++## Phase 2 — Hardening (next sprint)
++
++| # | Task | Status |
++|---|------|--------|
++| 1 | Add unit tests for fusionEvaluator.js | Planned |
++| 2 | Add integration tests (supertest) for all routes | Planned |
++| 3 | Wire live ML service output into fusion via `/api/ensemble` | Planned |
++| 4 | Promote `/v2` compat routes to replace originals | Planned |
++| 5 | Add OpenAPI spec for `/api/governance/fusion` | Planned |
++| 6 | Dashboard widget to visualize fusion decisions | Planned |
++
++## Phase 3 — Production
++
++| # | Task | Status |
++|---|------|--------|
++| 1 | Load testing / latency benchmarks | Planned |
++| 2 | Alerting on stale_state frequency | Planned |
++| 3 | Audit log persistence (Postgres) | Planned |
++| 4 | RBAC on fusion endpoint | Planned |
++
++---
++
++## Risk Assessment
++
++| Risk | Likelihood | Impact | Mitigation |
++|------|-----------|--------|------------|
++| ML service unavailable | Medium | Low | Fusion degrades to policy-only; `source: "policy-only"` |
++| Stale ML data | Medium | Medium | `stale_state: true` + increased policy weight |
++| Schema drift between policy & fusion | Low | High | Schema validation in `schema.js`; assertion utility |
++| Legacy consumers break | Very Low | High | Original routes untouched; `/v2` is additive |
++
++## ETA
++
++- **PR ready**: now (Phase 1 complete)
++- **Hardening**: +1 sprint
++- **Production**: +2 sprints
