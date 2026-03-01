@@ -1,5 +1,32 @@
-[
-  {"name":"normal_profile","features":[0.12,0.08,-0.10,0.03,0.15,-0.06,0.02,0.01]},
-  {"name":"suspicious_profile","features":[1.20,0.95,-0.45,0.30,0.10,1.10,0.20,0.50]},
-  {"name":"portfolio_stress","features":[0.60,0.70,-0.30,0.50,-0.40,0.90,-0.20,0.10]}
-]
+{
+  "contract_version": "ml-risk-v2",
+  "examples": {
+    "success_low": {
+      "risk_category": "low",
+      "risk_score": 0.12,
+      "uncertainty": 0.10,
+      "recommendation": "allow",
+      "reason_tags": [],
+      "model_version": "risk-mlp-v2",
+      "fallback_used": false
+    },
+    "success_high_adverse": {
+      "risk_category": "high",
+      "risk_score": 0.91,
+      "uncertainty": 0.18,
+      "recommendation": "block",
+      "reason_tags": ["destructive_pattern_detected"],
+      "model_version": "risk-mlp-v2",
+      "fallback_used": false
+    },
+    "fallback_model_unavailable": {
+      "risk_category": "medium",
+      "risk_score": 0.5,
+      "uncertainty": 1.0,
+      "recommendation": "review",
+      "reason_tags": ["model_unavailable_or_low_confidence"],
+      "model_version": "fallback-v1",
+      "fallback_used": true
+    }
+  }
+}
