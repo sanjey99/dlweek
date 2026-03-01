@@ -14,7 +14,13 @@ app = FastAPI(title="SDLC Sentinel ML Service")
 
 RISK_CATEGORIES = ["low", "medium", "high"]
 NUM_CLASSES = len(RISK_CATEGORIES)
-THRESHOLDS = {"auto_approve": 0.3, "review": 0.7}
+
+THRESHOLDS = {
+    "allow_max": 0.30,
+    "block_min": 0.80,
+    "uncertainty_review_min": 0.40,
+}
+
 EMBED_DIM = 128
 LEGACY_INPUT_DIM = 8
 
@@ -50,10 +56,11 @@ class RiskMLP(nn.Module):
 MODEL_PATH = Path(__file__).resolve().parent / "risk_model.pt"
 model = RiskMLP()
 model_loaded = False
+
 if MODEL_PATH.exists():
     model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model_loaded = True
-model.eval()
+    model.eval()
 
 
 def _legacy_pad(features: List[float], dim: int = LEGACY_INPUT_DIM) -> np.ndarray:
@@ -64,7 +71,7 @@ def _legacy_pad(features: List[float], dim: int = LEGACY_INPUT_DIM) -> np.ndarra
 
 
 def _text_embedding(text: str, dim: int = EMBED_DIM) -> np.ndarray:
-    """Deterministic hash-based embedding for stable API behavior in demo mode."""
+    """Deterministic hash-based embedding for stable API behavior."""
     v = np.zeros(dim, dtype=np.float32)
     if not text:
         return v
@@ -80,6 +87,7 @@ def _text_embedding(text: str, dim: int = EMBED_DIM) -> np.ndarray:
     norm = float(np.linalg.norm(v))
     if norm > 0:
         v = v / norm
+
     return v.astype(np.float32)
 
 
@@ -96,9 +104,39 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _clamp01(x):
+    try:
+        v = float(x)
+    except Exception:
+        return None
+    return max(0.0, min(1.0, v))
+
+
+def _recommendation(risk_score: float, uncertainty: float) -> str:
+    if uncertainty > THRESHOLDS["uncertainty_review_min"]:
+        return "review"
+    if risk_score >= THRESHOLDS["block_min"]:
+        return "block"
+    if risk_score < THRESHOLDS["allow_max"]:
+        return "allow"
+    return "review"
+
+
+def _fallback(reason: str = "model_unavailable_or_low_confidence"):
+    return {
+        "risk_category": "medium",
+        "risk_score": 0.5,
+        "uncertainty": 1.0,
+        "recommendation": "review",
+        "reason_tags": [reason],
+        "model_version": "fallback-v1",
+        "fallback_used": True,
+    }
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "ml_sdlc"}
+    return {"ok": True, "service": "ml_sdlc", "ts": _now()}
 
 
 @app.get("/model/info")
@@ -114,82 +152,101 @@ def model_info():
 
 @app.post("/infer")
 def infer_legacy(inp: InferIn):
-    """Backward-compatible legacy endpoint (numeric features only)."""
-    arr = _legacy_pad(inp.features)
-    # deterministic baseline score for migration compatibility
-    score_raw = 0.8 * arr[0] + 0.6 * arr[1] - 0.4 * arr[2] + 0.7 * arr[5]
-    score = 1 / (1 + np.exp(-score_raw))
-    score = float(np.clip(score, 0.0, 1.0))
+    """Backward-compatible endpoint with frozen response contract."""
+    try:
+        arr = _legacy_pad(inp.features)
+        score_raw = 0.8 * arr[0] + 0.6 * arr[1] - 0.4 * arr[2] + 0.7 * arr[5]
+        risk_score = _clamp01(1 / (1 + np.exp(-score_raw)))
+        if risk_score is None:
+            return _fallback("legacy_invalid_numeric_output")
 
-    label = "anomaly" if score >= 0.65 else "normal"
-    confidence = round(float(max(score, 1.0 - score)), 4)
+        uncertainty = _clamp01(abs(0.5 - risk_score) * 2.0)
+        if uncertainty is None:
+            return _fallback("legacy_invalid_uncertainty")
 
-    return {
-        "risk_score": round(score, 4),
-        "label": label,
-        "confidence": confidence,
-        "timestamp": _now(),
-    }
+        if risk_score < 0.33:
+            category = "low"
+        elif risk_score < 0.66:
+            category = "medium"
+        else:
+            category = "high"
+
+        recommendation = _recommendation(risk_score, uncertainty)
+        return {
+            "risk_category": category,
+            "risk_score": round(risk_score, 4),
+            "uncertainty": round(uncertainty, 4),
+            "recommendation": recommendation,
+            "reason_tags": [],
+            "model_version": "legacy-heuristic-v2",
+            "fallback_used": False,
+        }
+    except Exception:
+        return _fallback("legacy_infer_exception")
 
 
 @app.post("/classify")
 def classify_action(inp: RiskIn):
-    x = torch.tensor(_build_embed(inp)).unsqueeze(0)
+    try:
+        x = torch.tensor(_build_embed(inp), dtype=torch.float32).unsqueeze(0)
 
-    if model_loaded:
-        preds = []
-        model.train()
-        with torch.no_grad():
-            for _ in range(10):
-                logits = model(x, mc_dropout=True)
-                preds.append(F.softmax(logits, dim=-1))
-        model.eval()
+        if model_loaded:
+            preds = []
+            model.train()
+            with torch.no_grad():
+                for _ in range(10):
+                    logits = model(x, mc_dropout=True)
+                    preds.append(F.softmax(logits, dim=-1))
+            model.eval()
 
-        stacked = torch.stack(preds)
-        pred_mean = stacked.mean(0)
-        pred_std = stacked.std(0)
-    else:
-        # deterministic fallback if model is not yet trained/loaded
-        base = x[0, :3]
-        logits = torch.tensor([[float(-base[0]), float(base[1]), float(base[2])]])
-        pred_mean = F.softmax(logits, dim=-1)
-        pred_std = torch.zeros_like(pred_mean)
+            stacked = torch.stack(preds)
+            pred_mean = stacked.mean(0)
+            pred_std = stacked.std(0)
+            source_version = "risk-mlp-v2"
+        else:
+            return _fallback("model_unavailable_or_low_confidence")
 
-    probs = pred_mean[0]
-    category_idx = int(torch.argmax(probs).item())
-    risk_score = float(probs[category_idx].item())
-    uncertainty = float(pred_std[0, category_idx].item())
-    confidence = float(max(0.0, min(1.0, 1.0 - uncertainty)))
-    category = RISK_CATEGORIES[category_idx]
+        probs = pred_mean[0]
+        category_idx = int(torch.argmax(probs).item())
 
-    if risk_score < THRESHOLDS["auto_approve"] or uncertainty > 0.2:
-        recommendation = "review"
-    elif risk_score > THRESHOLDS["review"]:
-        recommendation = "block"
-    else:
-        recommendation = "auto-approve"
+        risk_score = _clamp01(probs[category_idx].item())
+        uncertainty = _clamp01(pred_std[0, category_idx].item())
+        if risk_score is None or uncertainty is None:
+            return _fallback("classify_invalid_numeric_output")
 
-    return {
-        "risk_score": round(risk_score, 4),
-        "risk_category": category,
-        "confidence": round(confidence, 4),
-        "uncertainty": round(uncertainty, 4),
-        "recommendation": recommendation,
-        "probs": {cat: round(float(p), 4) for cat, p in zip(RISK_CATEGORIES, probs.tolist())},
-        "model_loaded": model_loaded,
-        "timestamp": _now(),
-    }
+        category = RISK_CATEGORIES[category_idx]
+
+        if uncertainty >= 0.90:
+            fb = _fallback("extreme_uncertainty")
+            fb["risk_category"] = category
+            fb["risk_score"] = round(risk_score, 4)
+            return fb
+
+        recommendation = _recommendation(risk_score, uncertainty)
+        return {
+            "risk_category": category,
+            "risk_score": round(risk_score, 4),
+            "uncertainty": round(uncertainty, 4),
+            "recommendation": recommendation,
+            "reason_tags": [],
+            "model_version": source_version,
+            "fallback_used": False,
+        }
+    except Exception:
+        return _fallback("classify_exception")
 
 
 @app.post("/drift/check")
 def check_drift(recent_scores: List[float]):
     if len(recent_scores) < 10:
-        return {"drift": False, "signal": "insufficient data"}
+        return {"drift": False, "signal": "insufficient_data"}
+
     mean_recent = float(np.mean(recent_scores))
     historical_mean = 0.4
     std = 0.2
     z = (mean_recent - historical_mean) / std
     drift = abs(z) > 3
+
     return {
         "drift": drift,
         "z_score": round(float(z), 2),
