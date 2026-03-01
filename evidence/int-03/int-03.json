@@ -1,0 +1,51 @@
+{
+    "ok":  true,
+    "decision":  "review",
+    "reason_tags":  [
+                        "NO_ROLLBACK_PLAN",
+                        "REQUIRES_HUMAN_REVIEW",
+                        "FUSED_REVIEW_REQUIRED"
+                    ],
+    "risk_category":  "high",
+    "risk_score":  0.766,
+    "uncertainty":  0.385,
+    "source":  "policy+ml",
+    "timestamp":  "2026-03-01T10:27:29.941Z",
+    "stale_state":  "fresh",
+    "threshold_ms":  60000,
+    "stale":  false,
+    "policy_version":  "1.1.0",
+    "model_version":  "unavailable",
+    "detail":  {
+                   "policy":  {
+                                  "decision":  "review",
+                                  "risk_score":  0.65,
+                                  "rule_risk":  1,
+                                  "model_risk":  0,
+                                  "confidence":  {
+                                                     "decision":  0.53,
+                                                     "policy":  0.55,
+                                                     "model":  0.5
+                                                 },
+                                  "action_type":  "DELETE_RESOURCE",
+                                  "reason_tags":  [
+                                                      "NO_ROLLBACK_PLAN",
+                                                      "REQUIRES_HUMAN_REVIEW"
+                                                  ]
+                              },
+                   "ml":  {
+                              "risk_score":  0.94,
+                              "uncertainty":  0.5,
+                              "label":  null,
+                              "decision_hint":  null,
+                              "stale_state":  "fresh",
+                              "raw_timestamp":  "2026-03-01T10:27:29.6905717Z",
+                              "age_ms":  251
+                          },
+                   "weights":  {
+                                   "policy":  0.6,
+                                   "ml":  0.4
+                               }
+               },
+    "_requestId":  "fusion-1772360849941-3"
+}

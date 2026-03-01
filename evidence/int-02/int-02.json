@@ -1,0 +1,51 @@
+{
+    "ok":  true,
+    "decision":  "review",
+    "reason_tags":  [
+                        "NO_ROLLBACK_PLAN",
+                        "REQUIRES_HUMAN_REVIEW",
+                        "FUSED_REVIEW_REQUIRED"
+                    ],
+    "risk_category":  "high",
+    "risk_score":  0.5824,
+    "uncertainty":  0.3755,
+    "source":  "policy+ml",
+    "timestamp":  "2026-03-01T10:27:07.705Z",
+    "stale_state":  "fresh",
+    "threshold_ms":  60000,
+    "stale":  false,
+    "policy_version":  "1.1.0",
+    "model_version":  "unavailable",
+    "detail":  {
+                   "policy":  {
+                                  "decision":  "review",
+                                  "risk_score":  0.604,
+                                  "rule_risk":  0.93,
+                                  "model_risk":  0,
+                                  "confidence":  {
+                                                     "decision":  0.549,
+                                                     "policy":  0.582,
+                                                     "model":  0.5
+                                                 },
+                                  "action_type":  "DEPLOY_PROD",
+                                  "reason_tags":  [
+                                                      "NO_ROLLBACK_PLAN",
+                                                      "REQUIRES_HUMAN_REVIEW"
+                                                  ]
+                              },
+                   "ml":  {
+                              "risk_score":  0.55,
+                              "uncertainty":  0.5,
+                              "label":  null,
+                              "decision_hint":  null,
+                              "stale_state":  "fresh",
+                              "raw_timestamp":  "2026-03-01T10:27:07.9334940Z",
+                              "age_ms":  -228
+                          },
+                   "weights":  {
+                                   "policy":  0.6,
+                                   "ml":  0.4
+                               }
+               },
+    "_requestId":  "fusion-1772360827705-2"
+}

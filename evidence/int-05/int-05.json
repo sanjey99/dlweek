@@ -1,0 +1,11 @@
+Invoke-RestMethod `
+>>     -Uri "http://localhost:4000/api/infer" `
+>>     -Method POST `
+>>     -Body $body `
+>>     -ContentType "application/json"
+Invoke-RestMethod : {"ok":false,"error":"TypeError: fetch failed"}
+At line:1 char:1
++ Invoke-RestMethod `
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest) [Invoke-RestMethod], WebException
+    + FullyQualifiedErrorId : WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeRestMethodCommand

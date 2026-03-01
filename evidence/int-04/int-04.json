@@ -1,0 +1,52 @@
+{
+    "ok":  true,
+    "decision":  "review",
+    "reason_tags":  [
+                        "NO_ROLLBACK_PLAN",
+                        "REQUIRES_HUMAN_REVIEW",
+                        "ML_DATA_STALE",
+                        "FUSED_REVIEW_REQUIRED"
+                    ],
+    "risk_category":  "high",
+    "risk_score":  0.5884,
+    "uncertainty":  0.5755,
+    "source":  "policy+ml(stale)",
+    "timestamp":  "2026-03-01T10:33:54.771Z",
+    "stale_state":  "stale",
+    "threshold_ms":  60000,
+    "stale":  true,
+    "policy_version":  "1.1.0",
+    "model_version":  "unavailable",
+    "detail":  {
+                   "policy":  {
+                                  "decision":  "review",
+                                  "risk_score":  0.604,
+                                  "rule_risk":  0.93,
+                                  "model_risk":  0,
+                                  "confidence":  {
+                                                     "decision":  0.549,
+                                                     "policy":  0.582,
+                                                     "model":  0.5
+                                                 },
+                                  "action_type":  "DEPLOY_PROD",
+                                  "reason_tags":  [
+                                                      "NO_ROLLBACK_PLAN",
+                                                      "REQUIRES_HUMAN_REVIEW"
+                                                  ]
+                              },
+                   "ml":  {
+                              "risk_score":  0.5,
+                              "uncertainty":  0.5,
+                              "label":  null,
+                              "decision_hint":  null,
+                              "stale_state":  "stale",
+                              "raw_timestamp":  "2026-03-01T10:28:54.6654436Z",
+                              "age_ms":  300106
+                          },
+                   "weights":  {
+                                   "policy":  0.85,
+                                   "ml":  0.15000000000000002
+                               }
+               },
+    "_requestId":  "fusion-1772361234770-4"
+}
