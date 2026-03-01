@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
-import { Eye, Building2 } from 'lucide-react';
-import { TopNav, PageId } from './components/nav/TopNav';
+import { TopNav } from './components/nav/TopNav';
+import type { PageId } from './components/nav/TopNav';
 import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
 import { UploadPanel } from './components/upload/UploadPanel';
 import { OrganisationPage } from './components/organisation/OrganisationPage';
+import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
 import { getTheme } from './utils/theme';

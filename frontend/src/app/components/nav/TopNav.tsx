@@ -3,14 +3,18 @@ import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, Use
 import { Theme } from '../../types';
 
 export type PageId = 'dashboard' | 'organisation';
+import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Activity, FileText } from 'lucide-react';
+import { Theme } from '../../types';
+
+export type PageId = 'dashboard' | 'audit-trail';
 
 interface TopNavProps {
   isDark: boolean;
   theme: Theme;
   onToggleTheme: () => void;
   isMobile: boolean;
-  currentPage?: PageId;
-  onNavigate?: (page: PageId) => void;
+  activePage?: PageId;
+  onPageChange?: (page: PageId) => void;
 }
 
 type NotificationItem = {
@@ -57,7 +61,7 @@ const initialNotifications: NotificationItem[] = [
   },
 ];
 
-export function TopNav({ isDark, theme, onToggleTheme, isMobile, currentPage = 'dashboard', onNavigate }: TopNavProps) {
+export function TopNav({ isDark, theme, onToggleTheme, isMobile, activePage = 'dashboard', onPageChange }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
