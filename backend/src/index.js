@@ -178,17 +178,23 @@ app.get('/api/governance/actions/:actionId', (req, res) => {
   }
 });
 
-const server = createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws/signals' });
-
-wss.on('connection', (ws) => {
-  const timer = setInterval(async () => {
-    const markets = await getMarketSnapshot();
-    const regime = inferRegime(markets);
-    ws.send(JSON.stringify({ type: 'tick', markets, regime, ts: new Date().toISOString() }));
-  }, 2000);
-  ws.on('close', () => clearInterval(timer));
-});
-
 const port = process.env.PORT || 4000;
-server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+const isTestEnv = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
+
+if (!isTestEnv) {
+  const server = createServer(app);
+  const wss = new WebSocketServer({ server, path: '/ws/signals' });
+
+  wss.on('connection', (ws) => {
+    const timer = setInterval(async () => {
+      const markets = await getMarketSnapshot();
+      const regime = inferRegime(markets);
+      ws.send(JSON.stringify({ type: 'tick', markets, regime, ts: new Date().toISOString() }));
+    }, 2000);
+    ws.on('close', () => clearInterval(timer));
+  });
+
+  server.listen(port, () => console.log(`backend+ws listening on :${port}`));
+}
+
+export { app };
