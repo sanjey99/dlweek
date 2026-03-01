@@ -19,6 +19,52 @@ export function legacyPolicyGateToFusion(body) {
 }
 
 /**
+ * Convert a legacy finance-style payload into a fusion request.
+ *
+ * Finance payloads use keys like:
+ *   { transaction_type, amount, currency, account_id, risk_flags, ... }
+ *
+ * This adapter maps them into the standard fusion input shape and
+ * logs a deprecation warning so consumers know to migrate.
+ *
+ * @param {object} body  Legacy finance payload
+ * @returns {{ fusionInput: object, deprecated: boolean }}
+ */
+export function legacyFinanceToFusion(body) {
+  const hasFinanceKeys = 'transaction_type' in body || 'amount' in body;
+  if (!hasFinanceKeys) return { fusionInput: null, deprecated: false };
+
+  console.warn(
+    '[DEPRECATION] Legacy finance payload detected — migrate to { action, context, ml_output } shape. ' +
+    'See docs/POLICY_RULES.md for the canonical contract.',
+  );
+
+  const txType = body.transaction_type ?? body.transactionType ?? 'UNKNOWN';
+  const amount = Number(body.amount ?? 0);
+  const riskFlags = body.risk_flags ?? body.riskFlags ?? [];
+
+  return {
+    fusionInput: {
+      action: { type: txType },
+      context: {
+        amount,
+        currency: body.currency ?? 'USD',
+        accountId: body.account_id ?? body.accountId ?? null,
+        riskFlags,
+        // Map finance-specific context hints
+        destructive: riskFlags.includes('irreversible') || amount > 100_000,
+        targetEnvironment: body.environment ?? 'prod',
+        testsPassing: body.verified !== false,
+        rollbackPlanPresent: body.reversible === true,
+        hasHumanApproval: body.approved === true,
+      },
+      ml_output: body.ml_output ?? body.mlOutput ?? undefined,
+    },
+    deprecated: true,
+  };
+}
+
+/**
  * Convert the fusion response envelope to the old policy-gate shape,
  * so `/api/policy/gate` and `/api/risk/gate` keep returning the same format.
  */
