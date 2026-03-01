@@ -31,6 +31,7 @@
 **Regression check**: Integration test "falls through to standard fusion if no finance keys" validates this path.
 **Lesson**: When adding adapter layers, always implement explicit shape detection with a clean fallback rather than guessing the payload type.
 
+<<<<<<< HEAD
 ### [2026-03-01] — BE-P3 upstream non-200 fallback masking in `/api/ensemble`
 **Reproduced**: branch recheck after P2 merge/rebase showed `/api/ensemble` consumed ML body without checking `inferResp.ok`.
 **Root cause**: route validated schema only; HTTP status path was not represented in fallback metadata.
@@ -44,3 +45,18 @@
 **Fix**: changed assertion to require `action_escalate`.
 **Regression check**: backend test suite passes after fix.
 **Lesson**: transition-specific tests should assert exact event semantics, not shared generic expectations.
+=======
+### 2026-03-01 — Merge conflict in index.js between policyEnforcementService and fusion imports
+**Reproduced**: During P3 file reads, discovered unresolved Git conflict markers (`<<<<<<< HEAD` / `=======` / `>>>>>>>`) in `index.js` import section. The HEAD branch had added `policyEnforcementService.js` while commit 6b9e9e8 had fusion imports.
+**Root cause**: Feature branches diverged — BE-P2 (policy enforcement) and ARCH-CORE-DP1 (fusion) both modified the import section of `index.js`. The merge left conflict markers unresolved.
+**Fix**: Resolved by keeping BOTH import sets — policyEnforcementService AND all fusion modules. Also re-added the missing `handleFusionEvaluate`, `handleLegacyViaFusion`, `/api/governance/fusion` POST route, and v2 compat routes which were lost during the merge.
+**Regression check**: All 94 tests pass (14 unit evaluator + 14 unit observability + 66 integration).
+**Lesson**: After merging feature branches, always run the full test suite and grep for conflict markers (`<<<<<<<`) before committing. Automate this check in CI.
+
+### 2026-03-01 — v2 compat route migration.strategy mismatch
+**Reproduced**: After restoring v2 compat routes, 3 integration tests failed — expected `migration.strategy: 'fusion-compat'` but got `'revamp'`.
+**Root cause**: The restored `handleLegacyViaFusion` used the same migration block as the original `handlePolicyGate` (strategy: 'revamp') instead of the fusion-specific variant (strategy: 'fusion-compat' with fusionSource field).
+**Fix**: Updated `handleLegacyViaFusion` to return `{ strategy: 'fusion-compat', fusionSource: fusionResult.source }`.
+**Regression check**: All 94 tests pass.
+**Lesson**: When restoring lost code after a merge conflict, always verify against the test expectations — don't assume the restored code matches the last known-good version.
+>>>>>>> a55be3e (feat(arch-core): P3 observability guardrails — structured logging, metrics, health endpoint)
