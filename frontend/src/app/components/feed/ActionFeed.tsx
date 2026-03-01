@@ -263,14 +263,14 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '80px 140px 1fr 80px 160px 20px',
+            gridTemplateColumns: '80px 120px 1fr 100px 80px 160px 20px',
             gap: '0 8px',
             padding: '8px 20px',
             borderBottom: `1px solid ${theme.border}`,
             background: theme.tableHeaderBg,
           }}
         >
-          {['TIME', 'AGENT', 'PROPOSED ACTION', 'ENV', 'STATUS', ''].map((col) => (
+          {['TIME', 'AGENT', 'PROPOSED ACTION', 'USER', 'ENV', 'STATUS', ''].map((col) => (
             <div
               key={col}
               style={{
@@ -352,6 +352,13 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                   </div>
                 </div>
 
+                {/* User */}
+                {action.user && (
+                  <span style={{ color: theme.textTertiary, fontSize: 11 }}>
+                    Requested by {action.user}
+                  </span>
+                )}
+
                 {/* Proposed action */}
                 <div
                   style={{
@@ -403,7 +410,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
               aria-label={isPending ? `Review ${action.agentName} action` : disabledReason ?? undefined}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 140px 1fr 80px 160px 20px',
+                gridTemplateColumns: '80px 120px 1fr 100px 80px 160px 20px',
                 gap: '0 8px',
                 padding: '11px 20px',
                 borderBottom: `1px solid ${theme.border}`,
@@ -458,6 +465,20 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                 title={action.proposedAction}
               >
                 {action.proposedAction}
+              </div>
+
+              {/* User */}
+              <div
+                style={{
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={action.user || '—'}
+              >
+                {action.user || '—'}
               </div>
 
               {/* Environment */}

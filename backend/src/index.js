@@ -117,6 +117,7 @@ async function processAction(actionData) {
     agentName: actionData.agent_name || actionData.agentName || 'unknown-agent',
     proposedAction: actionData.proposed_action || actionData.proposedAction || '',
     environment: (actionData.environment || 'STAGING').toUpperCase(),
+    user: actionData.user || '',
     riskStatus: mapToRiskStatus(mlResult.risk_category, fusionResult.decision),
     riskScore: riskScoreTo100(fusionResult.risk_score),
     source: `${mlResult.model_version} · ${fusionResult.source}`,
