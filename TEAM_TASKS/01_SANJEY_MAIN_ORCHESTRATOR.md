@@ -3,6 +3,12 @@
 ## Mission
 Own product direction, challenge alignment, task allocation, integration approvals, and final demo narrative.
 
+## Migration Context
+You are orchestrating a **domain migration**:
+- from finance-focused flows in current `dlweek`
+- to a safe, human-governed AI coding agent across SDLC.
+Do not restart from scratch; migrate iteratively with compatibility checkpoints.
+
 ## Success Criteria
 - Team execution stays aligned to challenge: **safe, human-governed AI coding agent across SDLC**.
 - All 3 technical lanes integrate into one coherent product.

@@ -3,6 +3,11 @@
 ## Mission
 Design and implement the governance console UX that looks enterprise-ready and is fully interactive on desktop + mobile.
 
+## Migration Context
+Revamp existing finance UI surfaces into challenge-aligned governance UI.
+- Prefer component reuse + relabel + behavior rewiring over full rebuild.
+- Remove finance-only wording/widgets as corresponding governance widgets replace them.
+
 ## Scope
 - Figma design system + component states
 - Frontend implementation quality

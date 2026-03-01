@@ -3,6 +3,10 @@
 ## Mission
 Build the governed runtime and policy enforcement pipeline around agent actions, with real-time eventing and complete auditability.
 
+## Migration Context
+Migrate backend endpoints from finance semantics to governance semantics in controlled stages.
+Preserve working routes behind compatibility adapters until frontend/ML consumers are switched.
+
 ## Scope
 - Policy engine and gates
 - Action lifecycle (approve/block/escalate)

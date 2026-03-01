@@ -3,6 +3,10 @@
 ## Mission
 Deliver the deep-learning risk intelligence layer that powers governance decisions (risk score, category, uncertainty, anomaly/drift signals).
 
+## Migration Context
+Refactor current ML service from finance-oriented inference endpoints to SDLC action-risk intelligence.
+Keep existing service skeleton; evolve contracts progressively to avoid breaking integration.
+
 ## Scope
 - Risk classification model/inference endpoints
 - Intent/destructive-action detection
