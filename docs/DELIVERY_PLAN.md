@@ -49,7 +49,19 @@
 | 7 | Add 12 P3 integration tests + 14 P3 unit tests | Done |
 | 8 | Update docs (checklist, delivery plan, mistakes log) | Done |
 
-## Phase 4 — Production
+## Phase 4 — Audit Trail (P4 — this packet)
+
+| # | Task | Status |
+|---|------|--------|
+| 1 | Create `fusionAuditStore.js` — append-only in-memory store with safety cap | Done |
+| 2 | Wire audit writes into all fusion route handlers (POST fusion, v2 compat, finance) | Done |
+| 3 | Add `GET /api/governance/fusion/audit` endpoint (list, limit, newest-first) | Done |
+| 4 | Add `GET /api/governance/fusion/audit/:request_id` endpoint (lookup/404) | Done |
+| 5 | Resolve merge conflicts (index.js + MISTAKES_LEARNINGS.md) | Done |
+| 6 | Add 18 unit tests for audit store + 9 integration tests for audit endpoints | Done |
+| 7 | Update docs (checklist, delivery plan) | Done |
+
+## Phase 5 — Production
 
 | # | Task | Status |
 |---|------|--------|
