@@ -1,7 +1,13 @@
 backend/node_modules/ 
 node_modules/
 node_modules
-venv/
+
+
 .venv/
+.venv311/
+venv/
+venv311/
 env/
+
+
 __pycache__/
