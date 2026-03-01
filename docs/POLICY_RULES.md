@@ -1,4 +1,4 @@
-# Policy Rules (BE-P1)
+# Policy Rules (BE-P1 to BE-P3)
 
 ## Endpoint
 - Primary: `POST /api/governance/policy-gate`
@@ -6,7 +6,6 @@
   - `POST /api/policy/gate`
   - `POST /api/risk/gate`
 
-<<<<<<< HEAD
 ## BE-P2 Enforcement Path Endpoints
 - `POST /api/governance/actions/propose`
   - Evaluates policy gate and stores governed action state.
@@ -16,8 +15,19 @@
 - `GET /api/governance/actions/:actionId`
   - Returns action state + event log for auditability.
 
-## Input Contract
-=======
+## BE-P3 Lifecycle Integrity
+- Transition guardrails are enforced:
+  - `pending_review` -> `approve|block|escalate`
+  - `approved_auto` -> no further transitions (terminal)
+  - `escalated` -> `approve|block`
+  - `blocked` -> no further transitions (terminal)
+  - terminal states (`approved_by_human`, `blocked_by_human`) reject further transitions
+- Invalid transitions fail safely with `409` and no state mutation.
+- Audit events are append-only style with:
+  - monotonic `seq`
+  - hash chain (`prevHash`, `hash`)
+  - immutable frozen event records
+
 ## Fusion Evaluator (ARCH-CORE v2) — Decision Source-of-Truth
 
 ### Endpoint
@@ -121,7 +131,6 @@
 ## Legacy Policy-Gate Contract (unchanged)
 
 ### Input Contract
->>>>>>> origin/main
 ```json
 {
   "action": { "type": "deploy-prod" },
@@ -146,6 +155,40 @@ The endpoint always returns:
 - `risk`: combined rule/model risk scores
 
 For BE-P2 action lifecycle endpoints, this contract is enforced consistently as top-level fields on proposal and resolution responses.
+
+## Strict ML Contract Consumption (BE-P3)
+- Expected ML payload fields:
+  - `risk_score` (number)
+  - `confidence` (number)
+  - `label` (string)
+  - `timestamp` (ISO-8601 string)
+- If ML payload is invalid/missing:
+  - governance propose path falls back safely to bounded defaults
+  - response includes `ml_contract.used_fallback=true`
+  - `realtime.stale_state=true` and reason tags include `ML_CONTRACT_FALLBACK_USED`
+- `/api/infer` fails safely with `502` and fallback payload when ML response contract is invalid.
+- `/api/ensemble` handles ML upstream non-200 explicitly and surfaces fallback reason via:
+  - `ml_contract.validation_error` (for example `ML_UPSTREAM_NON_200:503`)
+  - `ml_contract.fallback_reason` + `anomaly.fallback_reason`
+
+## Realtime Integrity Contract (BE-P3)
+- Realtime feed frames include:
+  - `source`
+  - `timestamp`
+  - `stale_state`
+- Additional truthfulness metadata:
+  - `stale_reason`
+  - `age_ms`
+  - `stale_due_to_age`
+- On upstream fetch failure, system emits stale frames with cached/last payload and clear stale reason (no fake-live masking).
+
+## Contract Sync Note
+- Backend now consumes ML outputs via strict contract adapter (`mlContract`) and normalizes fields for governance decisions.
+- Field aliases from old context (`riskScore`, `mlConfidence`) remain accepted only as fallback seeds to preserve migration compatibility.
+
+## Rollback Note
+- BE-P3 changes are additive modules (`mlContract`, `realtimeIntegrity`) with no route removals.
+- Safe rollback path: revert BE-P3 commit to restore prior BE-P2 behavior while keeping existing endpoint surface.
 
 ## Core Rule Signals
 - Base risk by action type (safe reads/comments lower, production/deletion higher)

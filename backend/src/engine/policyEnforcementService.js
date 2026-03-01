@@ -4,6 +4,7 @@ import {
   validateActionProposalPayload,
   validateActionResolutionPayload,
 } from './actionLifecycle.js';
+import { normalizeMlAssessmentForGovernance } from './mlContract.js';
 
 function asDecisionContract(policy) {
   return {
@@ -39,19 +40,41 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
     const validationError = validateActionProposalPayload(payload);
     if (validationError) throw toError(400, validationError);
 
-    const policy = evaluatePolicyGate({ action: payload.action, context: payload.context });
+    const ml = normalizeMlAssessmentForGovernance(payload);
+    const mergedContext = {
+      ...payload.context,
+      riskScore: ml.mlAssessment.risk_score,
+      mlConfidence: ml.mlAssessment.confidence,
+    };
+    const policy = evaluatePolicyGate({ action: payload.action, context: mergedContext });
+    const policyWithFallbackTags = {
+      ...policy,
+      reasonTags: ml.usedFallback
+        ? [...policy.reasonTags, 'ML_CONTRACT_FALLBACK_USED']
+        : [...policy.reasonTags],
+    };
     const record = store.saveProposal({
       action: payload.action,
-      context: payload.context,
-      policy,
+      context: mergedContext,
+      policy: policyWithFallbackTags,
     });
 
     return {
-      packetId: 'BE-P2',
+      packetId: 'BE-P3',
       actionId: record.actionId,
       status: record.status,
-      ...asDecisionContract(policy),
-      policy,
+      ...asDecisionContract(policyWithFallbackTags),
+      policy: policyWithFallbackTags,
+      ml_contract: {
+        strict_valid: ml.strictContractValid,
+        used_fallback: ml.usedFallback,
+        validation_error: ml.validationError,
+      },
+      realtime: {
+        source: ml.mlAssessment.source,
+        timestamp: ml.mlAssessment.timestamp,
+        stale_state: ml.mlAssessment.stale_state,
+      },
     };
   }
 
@@ -86,7 +109,7 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
     };
 
     return {
-      packetId: 'BE-P2',
+      packetId: 'BE-P3',
       actionId: updated.actionId,
       status: updated.status,
       ...policyContract,
@@ -101,7 +124,11 @@ export function createPolicyEnforcementService(store = createActionLifecycleStor
   function detail(actionId) {
     const record = store.getAction(actionId);
     if (!record) throw toError(404, 'action not found');
-    return { action: record, events: store.listEvents(actionId) };
+    return {
+      action: record,
+      events: store.listEvents(actionId),
+      ledger: store.getEventLedgerState(),
+    };
   }
 
   return {
