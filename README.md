@@ -1,51 +1,39 @@
-# FinSentinel
+# Sentinel
 
-FinSentinel is a hackathon finance AI platform with a microservice architecture:
-- **Frontend**: React + Vite dashboard
-- **Backend**: Node.js + Express API gateway
-- **ML Service**: FastAPI (Python) for inference/simulation
-- **Database**: Postgres (optional persistence)
+Sentinel is a hackathon AI governance platform that acts as a centralized safety monitor and policy enforcement checkpoint for autonomous coding agents in development pipelines.
 
-It is designed for fast demos and iterative development of portfolio analytics, stock insights, and fraud workflows.
+## Canonical Product Definition
 
----
+### Primary Purpose
+Sentinel serves as a centralized safety monitor and policy enforcement checkpoint for AI agents operating within development pipelines.
 
-## Features
+### Problem Addressed
+Sentinel mitigates operational, compliance, and security risks caused by unbounded AI autonomy by intercepting high-risk proposed actions and requiring human oversight before execution.
 
-- Portfolio analysis and optimization flow
-- Stock picker workflow with scoring output
-- Fraud scan workflow with action-oriented decisions
-- System health endpoints for backend and ML services
-- Docker-first local development
+### Key Features
+1. **Automated Risk Scoring Engine**
+2. **Human-in-the-Loop Review Queue**
+3. **Comprehensive Audit Logging**
 
----
+## Architecture
+
+- **Frontend**: React + Vite Sentinel governance console
+- **Backend**: Node.js + Express policy/fusion/lifecycle APIs
+- **ML Service**: FastAPI risk inference service
+- **Realtime**: WebSocket signal feed (`/ws/signals`) for integrity status
 
 ## Project Structure
 
 ```text
-hackathon_fin_ai/
-├── frontend/      # Vite React app
-├── backend/       # Express API service
-├── ml_service/    # FastAPI ML service
-├── data/          # Sample/synthetic datasets
-├── docs/          # Runbooks and implementation notes
+dlweek/
+├── frontend/      # Sentinel governance UI
+├── backend/       # Governance APIs and lifecycle logic
+├── ml_service/    # Risk scoring service
+├── docs/          # Runbooks, policy docs, checklists
 └── docker-compose.yml
 ```
 
----
-
-## Prerequisites
-
-- Docker Desktop (recommended)
-- OR local runtimes:
-  - Node.js 20+
-  - Python 3.11+
-
----
-
 ## Quick Start (Docker)
-
-From the repository root:
 
 ```bash
 docker compose down
@@ -54,121 +42,73 @@ docker compose ps
 ```
 
 ### Service URLs
-
 - Frontend: `http://localhost:5173`
 - Backend health: `http://localhost:4000/health`
 - ML health: `http://localhost:8000/health`
-- Postgres: `localhost:5432`
+- Realtime WS: `ws://localhost:4000/ws/signals`
 
-### Useful logs
-
-```bash
-docker compose logs -f frontend
-docker compose logs -f backend
-docker compose logs -f ml-service
-```
-
-Stop services:
-
-```bash
-docker compose down
-```
-
----
-
-## Local Development (Without Docker)
+## Local Development
 
 ### 1) ML Service
-
 ```bash
 cd ml_service
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
 ### 2) Backend
-
 ```bash
 cd backend
 npm install
 ML_URL=http://localhost:8000 npm run dev
-# Windows CMD: set ML_URL=http://localhost:8000 && npm run dev
 ```
 
 ### 3) Frontend
-
 ```bash
 cd frontend
 npm install
 VITE_API_URL=http://localhost:4000 npm run dev
-# Windows CMD: set VITE_API_URL=http://localhost:4000 && npm run dev
 ```
 
----
+## Core API Surface
 
-## Environment Variables
+### Governance
+- `POST /api/governance/policy-gate`
+- `POST /api/governance/fusion`
+- `POST /api/governance/actions/propose`
+- `GET /api/governance/actions/:actionId`
+- `POST /api/action/approve`
+- `POST /api/action/block`
+- `POST /api/action/escalate` *(compatibility route; not used in Sentinel MVP UI flow)*
 
-### Backend
-
-- `ML_URL` (default: `http://localhost:8000`)
-
-### Frontend
-
-- `VITE_API_URL` (default expected backend origin)
-
----
-
-## API (Core)
-
-### Backend
+### Health / Risk / Integrity
 - `GET /health`
-- `GET /api/system/status`
+- `GET /api/demo-cases`
+- `GET /api/model-info`
+- `GET /api/simulate`
 - `POST /api/infer`
-- `POST /api/portfolio/optimize`
-- `GET /api/stocks/picker`
-- `POST /api/fraud/scan`
+- `POST /api/ensemble`
+- `WS /ws/signals`
 
-### ML Service
-- `GET /health`
-- `GET /model/info`
-- `POST /infer`
-- `GET /simulate`
+## MVP Decision Scope
 
-> See `docs/RUNBOOK.md` for endpoint examples and smoke-test commands.
+Sentinel MVP UI is binary by design:
+- **Approve**
+- **Reject/Block**
 
----
+Escalation is intentionally excluded from MVP interaction controls.
 
-## Deployment
+## Deployment Notes
 
-Typical setup:
-- Deploy `frontend/` to Vercel
-- Deploy `backend/` and `ml_service/` to Render (or equivalent)
-- Set frontend env:
-  - `VITE_API_URL=https://<your-backend-url>`
-- Set backend env:
-  - `ML_URL=https://<your-ml-url>`
-
----
+- Frontend: Vercel/Netlify/static host
+- Backend + ML: Render/Fly/VM
+- Frontend env: `VITE_API_URL=<backend-url>`
+- Backend env: `ML_URL=<ml-url>`
 
 ## Known Limitations
 
-- Some modules may still rely on demo-friendly assumptions depending on branch state
-- Live market data quality depends on configured adapter/source availability
-- Production hardening (auth, rate limiting, full audit persistence) may be incomplete
-
----
-
-## Contributing
-
-1. Create a feature branch from `main`
-2. Make focused changes with clear commits
-3. Run local smoke checks
-4. Open a PR with test notes
-
----
-
-## License
-
-Add your project license here (e.g., MIT).
+- Some compatibility routes remain from migration packets.
+- Audit persistence may be in-memory depending on branch state.
+- Auth/RBAC and enterprise hardening are partial for hackathon scope.
