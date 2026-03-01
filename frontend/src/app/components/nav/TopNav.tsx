@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Activity, FileText } from 'lucide-react';
+import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Activity, FileText, Building2 } from 'lucide-react';
 import { Theme } from '../../types';
 
-export type PageId = 'dashboard' | 'audit-trail';
+export type PageId = 'dashboard' | 'organisation' | 'audit-trail';
 
 interface TopNavProps {
   isDark: boolean;
@@ -148,7 +148,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 8 }}>
               {[
                 { id: 'dashboard' as PageId, label: 'Security Monitor', icon: <Activity size={14} /> },
-                { id: 'audit-trail' as PageId, label: 'Audit Trail', icon: <FileText size={14} /> },
+                { id: 'organisation' as PageId, label: 'Organisation', icon: <Building2 size={14} /> },
               ].map((tab) => {
                 const isActive = activePage === tab.id;
                 return (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router';
 import { Toaster, toast } from 'sonner';
+import { Eye, Building2, ArrowLeft } from 'lucide-react';
 import { TopNav } from './components/nav/TopNav';
 import type { NotificationItem as TopNavNotificationItem } from './components/nav/TopNav';
 import type { PageId } from './components/nav/TopNav';
@@ -8,6 +9,7 @@ import { MetricsRow } from './components/metrics/MetricsRow';
 import { ActionFeed } from './components/feed/ActionFeed';
 import { ReviewPanel } from './components/review/ReviewPanel';
 import { UploadPanel } from './components/upload/UploadPanel';
+import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
@@ -27,6 +29,8 @@ import {
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [activePage, setActivePage] = useState<PageId>('dashboard');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedTeamName, setSelectedTeamName] = useState<string>('');
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [selectedAction, setSelectedAction] = useState<ActionItem | null>(null);
   const [backendConnected, setBackendConnected] = useState(false);
@@ -373,6 +377,53 @@ export default function App() {
         onPageChange={setActivePage}
       />
 
+      {/* Mobile page tabs */}
+      {isMobile && (
+        <div
+          style={{
+            display: 'flex',
+            background: theme.surface,
+            borderBottom: `1px solid ${theme.border}`,
+            position: 'sticky',
+            top: 48,
+            zIndex: 49,
+          }}
+        >
+          {([
+            { id: 'dashboard' as PageId, label: 'Security Monitor', icon: <Eye size={14} /> },
+            { id: 'organisation' as PageId, label: 'Organisation', icon: <Building2 size={14} /> },
+          ]).map((tab) => {
+            const isActive = activePage === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActivePage(tab.id)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '10px 0',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid #30A46C' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: isActive ? 600 : 500,
+                  fontFamily: 'Inter, sans-serif',
+                  color: isActive ? theme.textPrimary : theme.textTertiary,
+                  background: 'transparent',
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Page content */}
       <div
         style={{
@@ -381,8 +432,73 @@ export default function App() {
           padding: isMobile ? '0 12px 32px' : '0 24px 40px',
         }}
       >
-        {activePage === 'audit-trail' ? (
-          <AuditTrail theme={theme} isDark={isDark} isMobile={isMobile} actions={actions} />
+        {activePage === 'audit-trail' && selectedTeamId ? (
+          <>
+            {/* Back button + breadcrumb */}
+            <div style={{ padding: isMobile ? '14px 0 4px' : '20px 0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    setActivePage('organisation');
+                    setSelectedTeamId(null);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#30A46C',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  <ArrowLeft size={14} />
+                  Organisation
+                </button>
+                <span style={{ color: theme.textTertiary, fontSize: 12 }}>/</span>
+                <span style={{ color: theme.textSecondary, fontSize: 12, fontWeight: 500 }}>
+                  {selectedTeamName} · Audit Trail
+                </span>
+              </div>
+              <h1
+                style={{
+                  color: theme.textPrimary,
+                  marginTop: 4,
+                  fontSize: isMobile ? 17 : 20,
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.3,
+                }}
+              >
+                {selectedTeamName} — Audit Trail
+              </h1>
+            </div>
+            <AuditTrail
+              theme={theme}
+              isDark={isDark}
+              isMobile={isMobile}
+              actions={actions.filter((a) => {
+                const agentName = (a.agentName || '').toLowerCase();
+                const teamKey = selectedTeamId.toLowerCase();
+                return agentName.includes(teamKey) || true;
+              })}
+            />
+          </>
+        ) : activePage === 'organisation' ? (
+          <OrganisationPage
+            theme={theme}
+            isDark={isDark}
+            isMobile={isMobile}
+            onViewTeamAudit={(teamId, teamName) => {
+              setSelectedTeamId(teamId);
+              setSelectedTeamName(teamName);
+              setActivePage('audit-trail');
+            }}
+          />
         ) : (
           <>
         {/* Page title / breadcrumb */}
