@@ -75,22 +75,29 @@ VITE_API_URL=http://localhost:4000 npm run dev
 ## Core API Surface
 
 ### Governance
-- `POST /api/governance/policy-gate`
-- `POST /api/governance/fusion`
-- `POST /api/governance/actions/propose`
-- `GET /api/governance/actions/:actionId`
-- `POST /api/action/approve`
-- `POST /api/action/block`
+- `POST /api/governance/policy-gate` — legacy policy gate
+- `POST /api/governance/fusion` — fusion evaluator (primary)
+- `POST /api/governance/fusion/finance` — legacy finance adapter → fusion *(deprecated)*
+- `POST /api/governance/actions/propose` — propose action for review
+- `GET /api/governance/actions/:actionId` — action lifecycle detail
+- `POST /api/action/approve` — human approve
+- `POST /api/action/block` — human block
 - `POST /api/action/escalate` *(compatibility route; not used in Sentinel MVP UI flow)*
+
+### Fusion Observability & Audit (ARCH-CORE P3/P4)
+- `GET /api/governance/fusion/health` — policy version, metrics snapshot
+- `GET /api/governance/fusion/audit` — audit trail (newest-first, `?limit=N`)
+- `GET /api/governance/fusion/audit/:request_id` — single audit record lookup
 
 ### Health / Risk / Integrity
 - `GET /health`
 - `GET /api/demo-cases`
 - `GET /api/model-info`
-- `GET /api/simulate`
-- `POST /api/infer`
-- `POST /api/ensemble`
-- `WS /ws/signals`
+- `GET /api/markets/snapshot` — live market data
+- `POST /api/infer` — ML inference proxy
+- `POST /api/ensemble` — ensemble risk scoring
+- `POST /api/scenario/run` — stress-test scenario runner
+- `WS /ws/signals` — realtime integrity feed
 
 ## MVP Decision Scope
 
