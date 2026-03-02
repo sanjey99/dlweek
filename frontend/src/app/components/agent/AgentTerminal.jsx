@@ -16,8 +16,15 @@ async function parseJsonResponse(response) {
 
 export default function AgentTerminal() {
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const executedActionIdsRef = useRef(new Set());
+  const proposalByActionIdRef = useRef({});
+  const isExecutingRef = useRef(false);
+  const activeContextRef = useRef({ action: '', content: '', fileName: '', fileType: '' });
   const [isDark, setIsDark] = useState(true);
   const [input, setInput] = useState('');
+  const [pendingFile, setPendingFile] = useState(null);
+  const [pollingStatus, setPollingStatus] = useState('IDLE');
   const [currentActionId, setCurrentActionId] = useState(() => {
     try {
       return sessionStorage.getItem('agentActionId') || null;
@@ -73,6 +80,48 @@ export default function AgentTerminal() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  async function fetchFinalTurn(promptText) {
+    const response = await fetch('http://localhost:4000/api/agent/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userInput: promptText,
+        agent: 'OpenAI',
+        isExecutionTurn: true,
+        file: activeContextRef.current.content
+          ? {
+              name: activeContextRef.current.fileName || 'approved-context.txt',
+              content: activeContextRef.current.content,
+              type: activeContextRef.current.fileType || 'text/plain',
+            }
+          : undefined,
+      }),
+    });
+    return response;
+  }
+
+  async function requestFinalOutput(actionId, previousProposal) {
+    const followupPrompt = `HUMAN APPROVAL GRANTED. You previously proposed: "${previousProposal || activeContextRef.current.action || 'No proposal text available.'}". Using the provided file content, execute this change NOW. Return ONLY the updated code block or a completion summary. CRITICAL: Do not call any tools. Do not propose new actions. STOP after this response.
+Approved Action ID: ${actionId}`;
+    const response = await fetchFinalTurn(followupPrompt);
+    if (!response.ok) {
+      throw new Error(`Final output request failed with HTTP ${response.status}`);
+    }
+    const data = await parseJsonResponse(response);
+    if (data?.type === 'text' && data?.message) return String(data.message);
+    if (data?.type === 'tool_call') {
+      const retryPrompt = `SYSTEM INSTRUCTION: Finalization retry. Do not propose any actions or tool calls. Return only the final updated file content (or a concise completion summary if no file edit is needed).`;
+      const retryResponse = await fetchFinalTurn(retryPrompt);
+      if (!retryResponse.ok) {
+        throw new Error(`Final retry failed with HTTP ${retryResponse.status}`);
+      }
+      const retryData = await parseJsonResponse(retryResponse);
+      if (retryData?.type === 'text' && retryData?.message) return String(retryData.message);
+    }
+    if (data?.message) return String(data.message);
+    return 'Action approved and executed.';
+  }
+
   useEffect(() => {
     scrollToBottom();
   }, [history]);
@@ -99,6 +148,8 @@ export default function AgentTerminal() {
 
   useEffect(() => {
     if (!currentActionId) return undefined;
+    if (isExecutingRef.current) return undefined;
+    setPollingStatus('PENDING');
 
     const intervalId = setInterval(async () => {
       try {
@@ -134,10 +185,25 @@ export default function AgentTerminal() {
         const normalizedStatus = currentStatus.toUpperCase();
 
         if (normalizedStatus.includes('PENDING')) {
+          if (!activeContextRef.current.action && matchedAction?.proposedAction) {
+            activeContextRef.current.action = String(matchedAction.proposedAction);
+          }
           return;
         }
 
         if (normalizedStatus.includes('APPROVE')) {
+          if (isExecutingRef.current) {
+            return;
+          }
+          if (executedActionIdsRef.current.has(currentActionId)) {
+            return;
+          }
+          const approvedActionId = currentActionId;
+          executedActionIdsRef.current.add(currentActionId);
+          isExecutingRef.current = true;
+          clearInterval(intervalId);
+          setCurrentActionId(null);
+
           setHistory((prev) => [
             ...prev,
             {
@@ -147,8 +213,37 @@ export default function AgentTerminal() {
               ts: new Date().toLocaleTimeString(),
             },
           ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
+          try {
+            const previousProposal = proposalByActionIdRef.current[approvedActionId];
+            const finalText = await requestFinalOutput(approvedActionId, previousProposal);
+            setHistory((prev) => [
+              ...prev,
+              {
+                id: `s-${Date.now()}-approved-final`,
+                role: 'system',
+                text: finalText,
+                ts: new Date().toLocaleTimeString(),
+              },
+            ]);
+          } catch (finalErr) {
+            setHistory((prev) => [
+              ...prev,
+              {
+                id: `s-${Date.now()}-approved-final-error`,
+                role: 'system',
+                text: `Sentinel Approved, but final output failed: ${String(finalErr?.message || finalErr)}`,
+                ts: new Date().toLocaleTimeString(),
+              },
+            ]);
+          } finally {
+            isExecutingRef.current = false;
+          }
+          delete proposalByActionIdRef.current[approvedActionId];
+          executedActionIdsRef.current.delete(approvedActionId);
+          setPendingFile(null);
+          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+          setPollingStatus('IDLE');
+          setInput('');
           return;
         }
 
@@ -164,6 +259,7 @@ export default function AgentTerminal() {
           ]);
           clearInterval(intervalId);
           setCurrentActionId(null);
+          setPollingStatus('IDLE');
         }
       } catch {
         // Keep polling; transient fetch failures should not crash terminal state.
@@ -182,10 +278,16 @@ export default function AgentTerminal() {
       ...prev,
       { id: `u-${Date.now()}`, role: 'agent', text, ts },
     ]);
+    activeContextRef.current = {
+      action: text,
+      content: pendingFile?.content ? String(pendingFile.content) : '',
+      fileName: pendingFile?.name ? String(pendingFile.name) : '',
+      fileType: pendingFile?.type ? String(pendingFile.type) : '',
+    };
     setInput('');
 
     try {
-      const payload = { userInput: text, agent: 'OpenAI' };
+      const payload = { userInput: text, agent: 'OpenAI', file: pendingFile || undefined };
       console.log('JSON Payload sent to Sentinel:', JSON.stringify(payload, null, 2));
 
       const response = await fetch('http://localhost:4000/api/agent/chat', {
@@ -223,6 +325,8 @@ export default function AgentTerminal() {
         if (!data?.actionId) {
           throw new Error('Missing actionId in tool_call response');
         }
+        proposalByActionIdRef.current[data.actionId] = text;
+        activeContextRef.current.action = text;
         setHistory((prev) => [
           ...prev,
           {
@@ -233,6 +337,8 @@ export default function AgentTerminal() {
           },
         ]);
         setCurrentActionId(data.actionId);
+        setPollingStatus('PENDING');
+        setPendingFile(null);
         return;
       }
 
@@ -261,6 +367,24 @@ export default function AgentTerminal() {
       event.preventDefault();
       handleSend();
     }
+  }
+
+  function handleFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = String(e.target?.result || '');
+      setPendingFile({
+        name: file.name,
+        content: content,
+        type: file.type,
+      });
+      console.log('📂 File Read Success:', file.name, 'Length:', content.length);
+      event.target.value = '';
+    };
+    reader.readAsText(file);
   }
 
   return (
@@ -437,6 +561,69 @@ export default function AgentTerminal() {
           </div>
 
           <div style={{ borderTop: `1px solid ${theme.border}`, padding: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <input
+                ref={fileInputRef}
+                id="agent-file-input"
+                type="file"
+                accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.txt,.md"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              {!pendingFile ? (
+                <>
+                  <label
+                    htmlFor="agent-file-input"
+                    style={{
+                      border: `1px solid ${theme.border}`,
+                      background: theme.surface,
+                      color: theme.textSecondary,
+                      borderRadius: 999,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Choose file
+                  </label>
+                  <span style={{ color: theme.textTertiary, fontSize: 11 }}>No file chosen</span>
+                </>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      border: `1px solid rgba(48,164,108,0.45)`,
+                      background: isDark ? 'rgba(48,164,108,0.15)' : '#E9F8EE',
+                      color: isDark ? '#83D3A5' : '#237A4B',
+                      borderRadius: 999,
+                      padding: '6px 10px',
+                      fontSize: 12,
+                    }}
+                  >
+                    <span>{pendingFile.name}</span>
+                    <span style={{ opacity: 0.9 }}>Ready</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingFile(null)}
+                    style={{
+                      border: `1px solid ${theme.border}`,
+                      background: theme.surface,
+                      color: theme.textSecondary,
+                      borderRadius: 999,
+                      padding: '5px 9px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    X
+                  </button>
+                </>
+              )}
+            </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 value={input}

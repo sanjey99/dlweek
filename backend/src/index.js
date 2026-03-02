@@ -29,6 +29,50 @@ const policyEnforcement = createPolicyEnforcementService();
 // ─── OpenAI client for agent chat ────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+function parseJsonSafe(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
+const AGENT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'propose_action',
+      description: 'Create a governance action proposal from user input.',
+      parameters: {
+        type: 'object',
+        properties: {
+          intent: { type: 'string', enum: ['action'] },
+          agent_name: { type: 'string' },
+          proposed_action: { type: 'string' },
+          action_type: {
+            type: 'string',
+            enum: ['DEPLOYMENT', 'DATA_MODIFICATION', 'FINANCIAL_TRANSACTION', 'CONFIG_CHANGE', 'ACCESS_CHANGE', 'OTHER'],
+          },
+          environment: { type: 'string', enum: ['PRODUCTION', 'STAGING', 'DEV'] },
+          description: { type: 'string' },
+          context: { type: 'object' },
+          ai_flagging_reasons: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Generate 2-3 short, critical risks. Focus strictly on negative outcomes (e.g., "Potential Data Loss", "Unauthorized Script Injection"). NEVER list benefits or code quality improvements.',
+          },
+          user: {
+            type: 'string',
+            description: 'Extract the human name from chat history (e.g., "John" or "Jerald"). Default to "Anonymous User" if unknown.',
+          },
+        },
+        required: ['intent', 'proposed_action', 'action_type', 'environment', 'description', 'ai_flagging_reasons', 'user'],
+        additionalProperties: true,
+      },
+    },
+  },
+];
+
 const AGENT_SYSTEM_PROMPT = `You are an AI agent operating within the Sentinel governance platform.
 Users will send you messages that are either:
 1. An ACTION PROPOSAL — the user wants to perform a risky operation (deploy, delete, transfer funds, modify config, etc.).
@@ -37,12 +81,13 @@ Users will send you messages that are either:
 You MUST respond with valid JSON only (no markdown, no code fences). Use one of these two formats:
 
 For action proposals:
-{"intent": "action", "agent_name": "OpenAI-Agent", "proposed_action": "<short description of what the agent wants to do>", "action_type": "<one of: DEPLOYMENT, DATA_MODIFICATION, FINANCIAL_TRANSACTION, CONFIG_CHANGE, ACCESS_CHANGE, OTHER>", "environment": "<one of: PRODUCTION, STAGING, DEV>", "description": "<detailed description of the action and its impact>", "context": {"targetEnvironment": "<production|staging|dev>", "riskScore": <0.0-1.0 estimate>}}
+{"intent": "action", "agent_name": "OpenAI-Agent", "proposed_action": "<short description of what the agent wants to do>", "action_type": "<one of: DEPLOYMENT, DATA_MODIFICATION, FINANCIAL_TRANSACTION, CONFIG_CHANGE, ACCESS_CHANGE, OTHER>", "environment": "<one of: PRODUCTION, STAGING, DEV>", "description": "<detailed description of the action and its impact>", "context": {"targetEnvironment": "<production|staging|dev>", "riskScore": <0.0-1.0 estimate>}, "ai_flagging_reasons": ["<risk reason 1>", "<risk reason 2>"], "user": "<name of human from chat history; use Anonymous User if unknown>"}
 
 For general questions/conversation:
 {"intent": "chat", "message": "<your helpful response>"}
 
-Always classify deployment, deletion, transfers, and config changes as action proposals. Be concise.`;
+Always classify deployment, deletion, transfers, and config changes as action proposals. Be concise.
+When generating flagging reasons, focus strictly on negative outcomes and critical risks. NEVER list benefits or code quality improvements.`;
 
 // ─── In-memory action store for real-time dashboard ──────────────────────────
 const actionStore = [];
@@ -445,7 +490,7 @@ app.get('/api/governance/fusion/health', (_req, res) => {
 // ─── Agent chat (LLM-powered) ────────────────────────────────────────────────
 app.post('/api/agent/chat', async (req, res) => {
   try {
-    const { userInput, agent } = req.body;
+    const { userInput, agent, isExecutionTurn } = req.body;
     if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
       return res.status(400).json({ ok: false, error: 'userInput is required' });
     }
@@ -453,20 +498,53 @@ app.post('/api/agent/chat', async (req, res) => {
     // 1. Call OpenAI to interpret the user message
     let llmParsed;
     try {
+      const messages = [{ role: 'system', content: AGENT_SYSTEM_PROMPT }];
+      if (typeof req.body?.file?.content === 'string' && req.body.file.content.length > 0) {
+        messages.push({
+          role: 'system',
+          content: `FILE ATTACHED: ${req.body.file.name}. CONTENT: \n\n ${req.body.file.content}`,
+        });
+      }
+      messages.push({ role: 'user', content: userInput });
+
+      if (isExecutionTurn === true) {
+        const executionCompletion = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          temperature: 0.2,
+          max_tokens: 1200,
+          messages,
+        });
+        const executionText = executionCompletion.choices?.[0]?.message?.content?.trim() || 'Execution completed.';
+        return res.json({
+          ok: true,
+          type: 'text',
+          message: executionText,
+        });
+      }
+
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         temperature: 0.3,
         max_tokens: 512,
-        messages: [
-          { role: 'system', content: AGENT_SYSTEM_PROMPT },
-          { role: 'user', content: userInput },
-        ],
+        tools: AGENT_TOOLS,
+        messages,
       });
 
-      const raw = completion.choices?.[0]?.message?.content || '';
-      // Strip any accidental markdown fences
-      const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      llmParsed = JSON.parse(cleaned);
+      const choiceMessage = completion.choices?.[0]?.message;
+      const toolCall = choiceMessage?.tool_calls?.find((call) => call?.function?.name === 'propose_action');
+      if (toolCall) {
+        const toolArgsRaw = toolCall.function.arguments || '{}';
+        const parsedArguments = parseJsonSafe(toolArgsRaw);
+        const userName = parsedArguments.user; // No hardcoded fallback
+        const forwardedPayload = { ...parsedArguments, user: userName };
+        console.log('[agent/chat] userName extracted from tool call:', userName);
+        llmParsed = { intent: 'action', ...forwardedPayload };
+      } else {
+        const raw = choiceMessage?.content || '';
+        // Strip any accidental markdown fences
+        const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        llmParsed = JSON.parse(cleaned);
+      }
     } catch (llmErr) {
       console.error('[agent/chat] LLM error:', llmErr.message);
       return res.json({
@@ -486,15 +564,21 @@ app.post('/api/agent/chat', async (req, res) => {
     }
 
     if (llmParsed.intent === 'action') {
+      const toolArgsRaw = JSON.stringify(llmParsed);
+      const parsedArguments = parseJsonSafe(toolArgsRaw);
+      const userName = parsedArguments.user; // No hardcoded fallback
+      const forwardedPayload = { ...parsedArguments, user: userName };
+      console.log('[agent/chat] userName forwarded to governance:', userName);
+
       // Pipe through the governance pipeline
       const actionData = {
-        agent_name: llmParsed.agent_name || agent || 'OpenAI-Agent',
-        proposed_action: llmParsed.proposed_action || userInput,
-        action_type: llmParsed.action_type || 'OTHER',
-        environment: llmParsed.environment || 'STAGING',
-        description: llmParsed.description || userInput,
-        context: llmParsed.context || {},
-        user: 'agent-terminal',
+        agent_name: forwardedPayload.agent_name || agent || 'OpenAI-Agent',
+        proposed_action: forwardedPayload.proposed_action || userInput,
+        action_type: forwardedPayload.action_type || 'OTHER',
+        environment: forwardedPayload.environment || 'STAGING',
+        description: forwardedPayload.description || userInput,
+        context: forwardedPayload.context || {},
+        user: forwardedPayload.user || 'Anonymous User',
       };
 
       const record = await processAction(actionData);
@@ -602,11 +686,7 @@ function markAllNotificationsRead() {
   return changed;
 }
 
-app.get('/api/notifications', (req, res) => {
-  const limit = parseInt(req.query.limit, 10) || 50;
-  const result = listNotifications(limit);
-  return res.json({ ok: true, ...result });
-});
+app.get('/api/notifications', (_req, res) => res.json({ notifications: [], total: 0 }));
 
 app.post('/api/notifications/read', (req, res) => {
   const id = req.body?.id;
