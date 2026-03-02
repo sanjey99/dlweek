@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import {
   Users, Bot, TrendingUp, Ban, AlertTriangle, ChevronDown, ChevronUp, ChevronRight,
-  Search, Building2, Zap,
+  Search, Building2, Zap, ShieldCheck,
 } from 'lucide-react';
 import { Theme } from '../../types';
 import { teamsData, orgSummary, TeamData, TeamStatus } from '../../data/organisationData';
@@ -11,6 +11,7 @@ interface OrganisationPageProps {
   isDark: boolean;
   isMobile: boolean;
   onViewTeamAudit?: (teamId: string, teamName: string) => void;
+  onViewAllAudits?: () => void;
 }
 
 /* ─── Status badge colours ─────────────────────────── */
@@ -267,7 +268,7 @@ function ExpandedTeamDetails({ team, theme, isMobile }: { team: TeamData; theme:
 }
 
 /* ═══ MAIN COMPONENT ═══════════════════════════════ */
-export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit }: OrganisationPageProps) {
+export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onViewAllAudits }: OrganisationPageProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('All departments');
@@ -331,26 +332,59 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit }: O
             )}
           </div>
           {/* Active incident badge */}
-          {orgSummary.activeIncidents > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'rgba(229,72,77,0.14)',
-                border: '1px solid rgba(229,72,77,0.3)',
-                borderRadius: 8,
-                padding: '8px 14px',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              <AlertTriangle size={15} color="#E5484D" />
-              <span style={{ color: '#E5484D', fontSize: 13, fontWeight: 600 }}>
-                {orgSummary.activeIncidents} active incident{orgSummary.activeIncidents > 1 ? 's' : ''}
-              </span>
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {onViewAllAudits && (
+              <button
+                onClick={onViewAllAudits}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.4)'}`,
+                  background: isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.08)',
+                  color: '#3B82F6',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'Inter, sans-serif',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.2)' : 'rgba(59,130,246,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(59,130,246,0.1)' : 'rgba(59,130,246,0.08)';
+                }}
+              >
+                <ShieldCheck size={14} />
+                View All Audits
+                <ChevronRight size={14} />
+              </button>
+            )}
+            {orgSummary.activeIncidents > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(229,72,77,0.14)',
+                  border: '1px solid rgba(229,72,77,0.3)',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={15} color="#E5484D" />
+                <span style={{ color: '#E5484D', fontSize: 13, fontWeight: 600 }}>
+                  {orgSummary.activeIncidents} active incident{orgSummary.activeIncidents > 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

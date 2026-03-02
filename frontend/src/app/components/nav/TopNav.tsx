@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Activity, FileText, Building2 } from 'lucide-react';
 import { Theme } from '../../types';
 
-export type PageId = 'dashboard' | 'organisation' | 'audit-trail';
+export type PageId = 'dashboard' | 'organisation' | 'audit-trail' | 'all-audits';
 
 interface TopNavProps {
   isDark: boolean;
