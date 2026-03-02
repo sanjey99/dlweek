@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
   Users, Bot, TrendingUp, Ban, AlertTriangle, ChevronDown, ChevronUp, ChevronRight,
-  Search, Building2, Zap, ShieldCheck,
+  Search, Building2, Zap, ShieldCheck, FileSpreadsheet,
 } from 'lucide-react';
-import { Theme } from '../../types';
-import { teamsData, orgSummary, TeamData, TeamStatus } from '../../data/organisationData';
+import { Theme, ActionItem } from '../../types';
+import { teamsData as defaultTeamsData, orgSummary as defaultOrgSummary, TeamData, TeamStatus } from '../../data/organisationData';
+import { CsvImportModal } from './CsvImportModal';
+import type { ParsedAuditEvent } from '../../utils/csvParser';
 
 interface OrganisationPageProps {
   theme: Theme;
@@ -12,6 +14,8 @@ interface OrganisationPageProps {
   isMobile: boolean;
   onViewTeamAudit?: (teamId: string, teamName: string) => void;
   onViewAllAudits?: () => void;
+  importedTeams?: TeamData[];
+  onImportComplete?: (teams: TeamData[], auditActions: ActionItem[], auditEventsRaw: ParsedAuditEvent[]) => void;
 }
 
 /* ─── Status badge colours ─────────────────────────── */
@@ -268,24 +272,47 @@ function ExpandedTeamDetails({ team, theme, isMobile }: { team: TeamData; theme:
 }
 
 /* ═══ MAIN COMPONENT ═══════════════════════════════ */
-export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onViewAllAudits }: OrganisationPageProps) {
+export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onViewAllAudits, importedTeams, onImportComplete }: OrganisationPageProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('All departments');
   const [statusFilter, setStatusFilter] = useState('All statuses');
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Merge default teams with imported teams (imported take precedence by id)
+  const allTeams = useMemo(() => {
+    if (!importedTeams || importedTeams.length === 0) return defaultTeamsData;
+    const importedIds = new Set(importedTeams.map((t) => t.id));
+    const kept = defaultTeamsData.filter((t) => !importedIds.has(t.id));
+    return [...importedTeams, ...kept];
+  }, [importedTeams]);
+
+  // Recompute org summary from combined teams
+  const orgSummary = useMemo(() => {
+    const teams = allTeams;
+    return {
+      totalTeams: teams.length,
+      totalMembers: teams.reduce((s, t) => s + (t.members.length || t.memberCount), 0),
+      aiAgentsGoverned: teams.reduce((s, t) => s + t.agentCount, 0),
+      reviews30d: teams.reduce((s, t) => s + t.reviews30d, 0),
+      actionsBlocked: teams.reduce((s, t) => s + t.blocked, 0),
+      policyViolations: teams.reduce((s, t) => s + t.violations, 0),
+      activeIncidents: teams.filter((t) => t.status === 'Active Incident').length,
+    };
+  }, [allTeams]);
 
   const departments = useMemo(() => {
-    const deps = Array.from(new Set(teamsData.map((t) => t.department)));
+    const deps = Array.from(new Set(allTeams.map((t) => t.department)));
     return ['All departments', ...deps];
-  }, []);
+  }, [allTeams]);
 
   const statuses = useMemo(() => {
-    const sts = Array.from(new Set(teamsData.map((t) => t.status)));
+    const sts = Array.from(new Set(allTeams.map((t) => t.status)));
     return ['All statuses', ...sts];
-  }, []);
+  }, [allTeams]);
 
   const filteredTeams = useMemo(() => {
-    return teamsData.filter((t) => {
+    return allTeams.filter((t) => {
       const matchesSearch =
         !searchQuery ||
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -295,7 +322,7 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
       const matchesStatus = statusFilter === 'All statuses' || t.status === statusFilter;
       return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [searchQuery, deptFilter, statusFilter]);
+  }, [allTeams, searchQuery, deptFilter, statusFilter]);
 
   const toggleExpand = (id: string) => setExpandedTeam((prev) => (prev === id ? null : id));
 
@@ -331,8 +358,39 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
               </p>
             )}
           </div>
-          {/* Active incident badge */}
+          {/* Action buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {/* Import CSV button */}
+            {onImportComplete && (
+              <button
+                onClick={() => setImportModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: `1px solid ${isDark ? 'rgba(245,165,36,0.3)' : 'rgba(245,165,36,0.4)'}`,
+                  background: isDark ? 'rgba(245,165,36,0.1)' : 'rgba(245,165,36,0.08)',
+                  color: '#F5A524',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'Inter, sans-serif',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(245,165,36,0.2)' : 'rgba(245,165,36,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(245,165,36,0.1)' : 'rgba(245,165,36,0.08)';
+                }}
+              >
+                <FileSpreadsheet size={14} />
+                Import CSV
+              </button>
+            )}
             {onViewAllAudits && (
               <button
                 onClick={onViewAllAudits}
@@ -947,6 +1005,18 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
           </span>
         </div>
       </div>
+
+      {/* CSV Import Modal */}
+      {onImportComplete && (
+        <CsvImportModal
+          theme={theme}
+          isDark={isDark}
+          isMobile={isMobile}
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImportComplete={onImportComplete}
+        />
+      )}
     </div>
   );
 }
