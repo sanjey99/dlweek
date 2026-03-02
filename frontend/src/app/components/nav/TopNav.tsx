@@ -14,6 +14,8 @@ interface TopNavProps {
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void;
   onOpenAction?: (actionId: string) => void;
+  onOpenActivityLogs?: () => void;
+  forceOpenNotificationsKey?: number;
   activePage?: PageId;
   onPageChange?: (page: PageId) => void;
 }
@@ -41,12 +43,15 @@ function timeAgoLabel(iso: string): string {
   return `${hours}h ago`;
 }
 
-export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead, onOpenAction, activePage = 'dashboard', onPageChange }: TopNavProps) {
+export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead, onOpenAction, onOpenActivityLogs, forceOpenNotificationsKey = 0, activePage = 'dashboard', onPageChange }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
-  const notificationRows = useMemo(() => notifications, [notifications]);
+  const notificationRows = useMemo(
+    () => notifications.filter((n) => n.unread),
+    [notifications]
+  );
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -61,6 +66,12 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isNotificationsOpen, isAccountOpen]);
+
+  useEffect(() => {
+    if (!forceOpenNotificationsKey) return;
+    setIsNotificationsOpen(true);
+    setIsAccountOpen(false);
+  }, [forceOpenNotificationsKey]);
 
   const getLevelStyles = (level: NotificationItem['level']) => {
     if (level === 'critical') {
@@ -354,6 +365,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                         <div
                           key={n.id}
                           onClick={() => {
+                            setIsNotificationsOpen(false);
                             if (n.actionId && onOpenAction) {
                               onOpenAction(n.actionId);
                             }
@@ -436,6 +448,10 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                 </div>
 
                 <button
+                  onClick={() => {
+                    setIsNotificationsOpen(false);
+                    onOpenActivityLogs?.();
+                  }}
                   style={{
                     width: '100%',
                     border: 'none',
@@ -448,7 +464,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
                     cursor: 'pointer',
                   }}
                 >
-                  View all activity logs →
+                  See history in audit trail →
                 </button>
               </div>
             )}

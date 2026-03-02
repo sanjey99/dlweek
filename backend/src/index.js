@@ -95,6 +95,20 @@ When generating flagging reasons, focus strictly on negative outcomes and critic
 // ─── In-memory action store for real-time dashboard ──────────────────────────
 const actionStore = [];
 let actionIdCounter = 0;
+const OVERDUE_REVIEW_MS = 30 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const FINAL_WARNING_MS = 24 * ONE_HOUR_MS;
+const overdueReminderState = new Map();
+
+function getOverdueMilestonesMs() {
+  const milestones = [OVERDUE_REVIEW_MS];
+  for (let h = 1; h <= 24; h += 1) {
+    milestones.push(h * ONE_HOUR_MS);
+  }
+  return milestones;
+}
+
+const OVERDUE_MILESTONES_MS = getOverdueMilestonesMs();
 
 // ─── WebSocket client tracking ───────────────────────────────────────────────
 const wsClients = new Set();
@@ -215,6 +229,17 @@ async function processAction(actionData) {
       detail: `${actionRecord.agentName}: ${actionRecord.proposedAction}`,
       actionId: actionRecord.id,
       severity: actionRecord.riskStatus === 'HIGH_RISK_PENDING' ? 'critical' : 'warning',
+    });
+  }
+
+  // Notify when the action is auto-blocked by policy/ML fusion.
+  if (actionRecord.riskStatus === 'HIGH_RISK_BLOCKED') {
+    createNotification({
+      type: 'auto_blocked',
+      title: 'Action auto-blocked',
+      detail: `${actionRecord.agentName}: ${actionRecord.proposedAction}`,
+      actionId: actionRecord.id,
+      severity: 'critical',
     });
   }
 
@@ -689,7 +714,59 @@ function markAllNotificationsRead() {
   return changed;
 }
 
-app.get('/api/notifications', (_req, res) => res.json({ notifications: [], total: 0 }));
+function emitOverdueReviewNotifications() {
+  const nowMs = Date.now();
+  for (const action of actionStore) {
+    const isPending = action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING';
+    if (!isPending) {
+      overdueReminderState.delete(action.id);
+      continue;
+    }
+
+    const createdAtMs = new Date(action.timestampISO).getTime();
+    if (!Number.isFinite(createdAtMs)) continue;
+    const elapsedMs = nowMs - createdAtMs;
+    if (elapsedMs < OVERDUE_REVIEW_MS) continue;
+
+    let sentMilestones = overdueReminderState.get(action.id);
+    if (!sentMilestones) {
+      sentMilestones = new Set();
+      overdueReminderState.set(action.id, sentMilestones);
+    }
+
+    for (const milestoneMs of OVERDUE_MILESTONES_MS) {
+      if (elapsedMs < milestoneMs || sentMilestones.has(milestoneMs)) {
+        continue;
+      }
+
+      const hours = Math.floor(milestoneMs / ONE_HOUR_MS);
+      const isFinalWarning = milestoneMs === FINAL_WARNING_MS;
+      const title = isFinalWarning
+        ? 'Final warning: pending review for 24h'
+        : 'Overdue review, pls review asap';
+      const detail = milestoneMs < ONE_HOUR_MS
+        ? `${action.agentName}: ${action.proposedAction}`
+        : `${action.agentName}: ${action.proposedAction} (still pending for ${hours}h)`;
+
+      createNotification({
+        type: isFinalWarning ? 'overdue_review_final' : 'overdue_review',
+        title,
+        detail,
+        actionId: action.id,
+        severity: action.riskStatus === 'HIGH_RISK_PENDING' || isFinalWarning ? 'critical' : 'warning',
+      });
+      sentMilestones.add(milestoneMs);
+      break;
+    }
+  }
+}
+
+setInterval(emitOverdueReviewNotifications, 5 * 1000);
+
+app.get('/api/notifications', (req, res) => {
+  const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 50));
+  return res.json({ ok: true, ...listNotifications(limit) });
+});
 
 app.post('/api/notifications/read', (req, res) => {
   const id = req.body?.id;
