@@ -484,31 +484,16 @@ Previously proposed change: ${prior}`;
       }
 
       if (data?.type === 'text') {
-        const newMessages = [];
-        if (data?.mlRisk) {
-          newMessages.push({
-            id: `s-${Date.now()}-mlrisk`,
+        setHistory((prev) => [
+          ...prev,
+          {
+            id: `s-${Date.now()}-text`,
             role: 'system',
-            text: `Sentinel ML Risk Assessment — Score: ${data.mlRisk.score}% | Category: ${String(data.mlRisk.category).toUpperCase()} | Confidence: ${Math.round((data.mlRisk.confidence || 0) * 100)}%`,
+            text: String(data?.message || ''),
+            downloadFile: data?.downloadFile || null,
             ts: new Date().toLocaleTimeString(),
-          });
-        }
-        if (data?.sentinelAction === 'auto_approved') {
-          newMessages.push({
-            id: `s-${Date.now()}-sentinel-action`,
-            role: 'system',
-            text: 'Sentinel Approved. Executing action...',
-            ts: new Date().toLocaleTimeString(),
-          });
-        }
-        newMessages.push({
-          id: `s-${Date.now()}-text`,
-          role: 'system',
-          text: String(data?.message || ''),
-          downloadFile: (data?.hasFileUpload && data?.downloadFile) ? data.downloadFile : null,
-          ts: new Date().toLocaleTimeString(),
-        });
-        setHistory((prev) => [...prev, ...newMessages]);
+          },
+        ]);
         setPendingFile(null);
         setPollingStatus('IDLE');
         setCurrentActionId(null);
@@ -522,22 +507,15 @@ Previously proposed change: ${prior}`;
         }
         proposalByActionIdRef.current[data.actionId] = text;
         activeContextRef.current.action = text;
-        const toolCallMessages = [];
-        if (data?.mlRisk) {
-          toolCallMessages.push({
-            id: `s-${Date.now()}-mlrisk`,
+        setHistory((prev) => [
+          ...prev,
+          {
+            id: `s-${Date.now()}-tool-call`,
             role: 'system',
-            text: `Sentinel ML Risk Assessment — Score: ${data.mlRisk.score}% | Category: ${String(data.mlRisk.category).toUpperCase()} | Confidence: ${Math.round((data.mlRisk.confidence || 0) * 100)}%`,
+            text: String(data?.message || 'Agent proposing high-risk action. Awaiting Sentinel approval.'),
             ts: new Date().toLocaleTimeString(),
-          });
-        }
-        toolCallMessages.push({
-          id: `s-${Date.now()}-tool-call`,
-          role: 'system',
-          text: String(data?.message || 'Action proposed. Awaiting Sentinel governance decision.'),
-          ts: new Date().toLocaleTimeString(),
-        });
-        setHistory((prev) => [...prev, ...toolCallMessages]);
+          },
+        ]);
         setCurrentActionId(data.actionId);
         setPollingStatus('PENDING');
         setPendingFile(null);

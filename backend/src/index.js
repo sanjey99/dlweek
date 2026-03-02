@@ -791,8 +791,7 @@ app.post('/api/agent/chat', async (req, res) => {
         ok: true,
         type: 'text',
         message: finalText,
-        downloadFile: pending.fileId ? downloadFile : null,
-        hasFileUpload: !!pending.fileId,
+        downloadFile,
         threadId: FIXED_THREAD_ID,
       });
     }
@@ -808,13 +807,6 @@ app.post('/api/agent/chat', async (req, res) => {
     const preMlRiskCategory = String(preMlAssessment?.risk_category || '').toLowerCase();
     const isLowRiskDirectExecute = preMlRiskCategory === 'low';
     console.log(`[ML RISK]: ${riskBandFromCategory(preMlRiskCategory)} detected.`);
-
-    const mlRiskPayload = {
-      score: riskScoreTo100(preMlAssessment?.risk_score || 0),
-      category: String(preMlAssessment?.risk_category || 'unknown'),
-      recommendation: String(preMlAssessment?.recommendation || 'unknown'),
-      confidence: preMlAssessment?.confidence || 0,
-    };
 
     let uploadedFileId = null;
     if (typeof file?.content === 'string' && file.content.length > 0) {
@@ -882,7 +874,6 @@ app.post('/api/agent/chat', async (req, res) => {
     console.log('[DEBUG] Target Assistant:', process.env.ASSISTANT_ID);
     const runCreateParams = {
       assistant_id: ASSISTANT_ID,
-      truncation_strategy: { type: 'last_messages', last_messages: 10 },
       ...(isLowRiskDirectExecute
         ? {
             additional_instructions: `ML interceptor marked this request LOW risk. Execute immediately only if this is an explicit edit request. If this is a clarification/general question, respond with text only and do not call propose_file_edit. ${EXECUTION_OUTPUT_POLICY}`,
@@ -945,10 +936,7 @@ app.post('/api/agent/chat', async (req, res) => {
           ok: true,
           type: 'text',
           message: finalText,
-          downloadFile: uploadedFileId ? downloadFile : null,
-          mlRisk: mlRiskPayload,
-          sentinelAction: 'auto_approved',
-          hasFileUpload: !!uploadedFileId,
+          downloadFile,
           threadId: activeThreadId,
         });
       }
@@ -991,14 +979,6 @@ app.post('/api/agent/chat', async (req, res) => {
         type: 'tool_call',
         actionId: record.id,
         threadId: activeThreadId,
-        mlRisk: {
-          score: record.riskScore,
-          category: String(record.mlResult?.risk_category || mlRiskPayload.category),
-          recommendation: String(record.mlResult?.recommendation || mlRiskPayload.recommendation),
-          confidence: record.mlResult?.confidence || mlRiskPayload.confidence,
-        },
-        sentinelAction: 'pending_review',
-        hasFileUpload: !!uploadedFileId,
         message: `Action proposed: "${record.proposedAction}". Risk: ${record.riskScore}% (${record.riskStatus}). Awaiting Sentinel governance decision.`,
       });
     }
@@ -1014,10 +994,7 @@ app.post('/api/agent/chat', async (req, res) => {
         ok: true,
         type: 'text',
         message: finalText,
-        downloadFile: uploadedFileId ? downloadFile : null,
-        mlRisk: mlRiskPayload,
-        sentinelAction: null,
-        hasFileUpload: !!uploadedFileId,
+        downloadFile,
         threadId: activeThreadId,
       });
     }
