@@ -373,6 +373,7 @@ export default function App() {
       <Toaster
         theme={isDark ? 'dark' : 'light'}
         position="top-right"
+        closeButton
         toastOptions={{
           style: { fontFamily: 'Inter, sans-serif', fontSize: 13 },
         }}

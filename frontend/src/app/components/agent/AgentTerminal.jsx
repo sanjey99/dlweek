@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { TerminalSquare, Send, Bot, User, ShieldCheck } from 'lucide-react';
+import { TerminalSquare, Send, Bot, User, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { getTheme } from '../../utils/theme';
 import { useIsMobile } from '../../utils/useIsMobile';
 
@@ -464,7 +464,7 @@ Approved Action ID: ${actionId}`;
                 cursor: 'pointer',
               }}
             >
-              {isDark ? 'Light' : 'Dark'}
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <Link
               to="/"
