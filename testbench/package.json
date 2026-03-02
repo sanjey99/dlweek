@@ -1,0 +1,16 @@
+{
+  "name": "sentinel-testbench",
+  "version": "1.0.0",
+  "description": "Comprehensive Sentinel Platform Test Suite",
+  "type": "module",
+  "scripts": {
+    "test": "node run.js",
+    "test:ml": "node run.js --suite ml",
+    "test:api": "node run.js --suite api",
+    "test:fusion": "node run.js --suite fusion",
+    "test:policy": "node run.js --suite policy",
+    "test:integrity": "node run.js --suite integrity",
+    "test:perf": "node run.js --suite performance"
+  },
+  "dependencies": {}
+}
