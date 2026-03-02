@@ -352,11 +352,24 @@ export function assembleTeamsFromCsv(result: OrgCsvParseResult): TeamData[] {
     const totalDecisions = approved + autoApproved + blocked + pending;
     const blockRate = totalDecisions > 0 ? `${Math.round((blocked / totalDecisions) * 100)}%` : '0%';
 
-    const blockedCount = t.blocked || blocked;
+    // Compute stats from events when available (always prefer event-derived data)
+    const computedReviews = teamEvents.length;
+    const computedBlocked = blocked;
+    const computedViolations = teamEvents.filter(
+      (e) => e.riskScore >= 70
+    ).length;
+    const computedAvgRisk = teamEvents.length > 0
+      ? Math.round(teamEvents.reduce((s, e) => s + e.riskScore, 0) / teamEvents.length)
+      : 0;
+
+    const finalReviews = computedReviews > 0 ? computedReviews : t.reviews30d;
+    const finalBlocked = computedReviews > 0 ? computedBlocked : t.blocked;
+    const finalViolations = computedReviews > 0 ? computedViolations : t.violations;
+    const finalAvgRisk = computedReviews > 0 ? computedAvgRisk : t.avgRiskScore;
 
     const decisions: DecisionBreakdown = teamEvents.length > 0
       ? { approved: approved + autoApproved, blocked, pending, blockRate }
-      : { approved: 0, blocked: blockedCount, pending: 0, blockRate: blockedCount > 0 ? `${Math.round((blockedCount / Math.max(1, t.reviews30d)) * 100)}%` : '0%' };
+      : { approved: 0, blocked: finalBlocked, pending: 0, blockRate: finalBlocked > 0 ? `${Math.round((finalBlocked / Math.max(1, t.reviews30d)) * 100)}%` : '0%' };
 
     const memberAvatars = teamMembers.slice(0, 4).map((m) => ({
       initials: m.initials,
@@ -379,11 +392,11 @@ export function assembleTeamsFromCsv(result: OrgCsvParseResult): TeamData[] {
       memberCount: teamMembers.length || members.filter((m) => m.teamId === t.id).length,
       status: t.status,
       agentCount: teamAgents.length,
-      reviews30d: t.reviews30d || teamEvents.length,
-      blocked: blockedCount,
-      avgRiskScore: t.avgRiskScore,
+      reviews30d: finalReviews,
+      blocked: finalBlocked,
+      avgRiskScore: finalAvgRisk,
       avgResponse: t.avgResponse,
-      violations: t.violations,
+      violations: finalViolations,
       lastActive: t.lastActive,
       agents: teamAgents,
       decisions,
@@ -405,6 +418,8 @@ export function auditEventsToActionItems(events: ParsedAuditEvent[]): ActionItem
     flagReasons: e.flagReasons,
     source: e.source,
     user: e.user,
+    reviewer: e.reviewer,
+    duration: e.duration,
   }));
 }
 

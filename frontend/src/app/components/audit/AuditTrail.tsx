@@ -86,14 +86,27 @@ function riskLevel(score: number): string {
   return 'LOW';
 }
 
-/* generate fake event IDs from index */
-function eventId(idx: number): string {
+/* generate event IDs from action — prefer real ID, fallback to index */
+function eventId(action: ActionItem, idx: number): string {
+  if (action.id && !action.id.startsWith('action-')) return action.id;
   return `AUD-2026-${String(idx + 1).padStart(3, '0')}`;
 }
 
-/* generate fake full timestamps from the HH:MM:SS */
+/* parse timestamps — prefer real ISO string, fallback to generated */
 function fullTimestamp(ts: string, idx: number): { date: string; time: string } {
-  // Distribute events between Feb 28 and Mar 1, 2026
+  // Try to parse as ISO date first
+  if (ts && ts.includes('T')) {
+    const d = new Date(ts);
+    if (!isNaN(d.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const date = `${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const mm = String(d.getUTCMinutes()).padStart(2, '0');
+      const ss = String(d.getUTCSeconds()).padStart(2, '0');
+      return { date, time: `${hh}:${mm}:${ss}` };
+    }
+  }
+  // Fallback for HH:MM:SS or other formats
   const dayOffset = idx > 9 ? 0 : 1;
   const day = dayOffset === 0 ? 'Mar 1, 2026' : 'Feb 28, 2026';
   return { date: day, time: ts };
@@ -102,18 +115,21 @@ function fullTimestamp(ts: string, idx: number): { date: string; time: string } 
 /* generate plausible reviewer names */
 const REVIEWERS = ['Sarah Jones', 'Marcus Chen', 'Priya Patel', 'Alex Kim', 'System'];
 
-function getReviewer(action: ActionItem, idx: number): string {
+/* get reviewer — prefer real data from action, fallback to generated */
+function getReviewer(action: ActionItem, _idx: number): string {
+  if (action.reviewer) return action.reviewer;
   if (action.riskStatus === 'LOW_RISK') return 'System';
-  if (action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING') return 'System';
-  return REVIEWERS[idx % REVIEWERS.length];
+  if (action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING') return '—';
+  return REVIEWERS[_idx % REVIEWERS.length];
 }
 
-/* generate plausible durations */
-function getDuration(action: ActionItem, idx: number): string {
+/* get duration — prefer real data from action, fallback to generated */
+function getDuration(action: ActionItem, _idx: number): string {
+  if (action.duration) return action.duration;
   if (action.riskStatus === 'LOW_RISK') return '< 1s';
   if (action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING') return '—';
-  const mins = ((idx * 7 + 3) % 15);
-  const secs = ((idx * 13 + 7) % 60);
+  const mins = ((_idx * 7 + 3) % 15);
+  const secs = ((_idx * 13 + 7) % 60);
   if (mins === 0) return `${secs}s`;
   return `${mins}m ${secs}s`;
 }
@@ -130,9 +146,13 @@ export function AuditTrail({ theme, isDark, isMobile, actions }: AuditTrailProps
   const [sortField, setSortField] = useState<'time' | 'risk' | 'decision'>('time');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  /* unique agent list */
+  /* unique agent list — filter out AUD-xxx IDs that aren't real agent names */
   const agentNames = useMemo(() => {
-    const set = new Set(actions.map((a) => a.agentName));
+    const set = new Set(
+      actions
+        .map((a) => a.agentName)
+        .filter((n) => n && !/^AUD-/i.test(n))
+    );
     return ['all', ...Array.from(set).sort()];
   }, [actions]);
 
@@ -219,7 +239,8 @@ export function AuditTrail({ theme, isDark, isMobile, actions }: AuditTrailProps
     const rows = filtered
       .map((a, i) => {
         const ts = fullTimestamp(a.timestamp, i);
-        return `${eventId(i)},${ts.date},${ts.time},${a.agentName},"${a.proposedAction}",${a.user || ''},${a.environment},${a.riskScore},${decisionLabel(a.riskStatus)},${getReviewer(a, i)},${getDuration(a, i)}`;
+        const eid = eventId(a, i);
+        return `${eid},${ts.date},${ts.time},${a.agentName},"${a.proposedAction}",${a.user || ''},${a.environment},${a.riskScore},${decisionLabel(a.riskStatus)},${getReviewer(a, i)},${getDuration(a, i)}`;
       })
       .join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
@@ -681,6 +702,7 @@ export function AuditTrail({ theme, isDark, isMobile, actions }: AuditTrailProps
                 const rl = riskLevel(action.riskScore);
                 const reviewer = getReviewer(action, globalIdx);
                 const duration = getDuration(action, globalIdx);
+                const eid = eventId(action, globalIdx);
 
                 return (
                   <tr
@@ -694,7 +716,7 @@ export function AuditTrail({ theme, isDark, isMobile, actions }: AuditTrailProps
                   >
                     {/* Event ID */}
                     <td style={{ padding: '10px 12px', color: theme.textTertiary, fontFamily: 'monospace', fontSize: 11 }}>
-                      {eventId(globalIdx)}
+                      {eid}
                     </td>
 
                     {/* Date & Time */}

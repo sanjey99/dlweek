@@ -1,0 +1,69 @@
+﻿row_type,team_id,name,department,department_color,supervisor_name,supervisor_role,team_status,reviews_30d,blocked,avg_risk_score,avg_response,violations,last_active,role,is_lead,reviews,initials,color,agent_status,event_id,timestamp,agent_name,command,user,environment,risk_score,risk_status,flag_reasons,source,reviewer,duration
+team,team-core-infra,Core Infrastructure,Engineering,#3B82F6,Alex Kim,Team Lead,Operational,0,0,0,4m 32s,0,4h ago,,,,,,,,,,,,,,,,
+team,team-db-ops,Database Operations,Engineering,#3B82F6,Marcus Chen,Team Lead,Elevated Risk,0,0,0,5m 58s,0,4h ago,,,,,,,,,,,,,,,,
+team,team-sec-comp,Security & Compliance,Security,#E5484D,Priya Patel,Team Lead,Operational,0,0,0,3m 01s,0,4h ago,,,,,,,,,,,,,,,,
+team,team-ml-ds,ML & Data Science,AI Research,#8B5CF6,Sarah Jones,Team Lead,Under Review,0,0,0,7m 41s,0,4h ago,,,,,,,,,,,,,,,,
+team,team-file-storage,File & Storage Ops,Engineering,#3B82F6,Dan Osei,Team Lead,Active Incident,0,0,0,6m 35s,0,4h ago,,,,,,,,,,,,,,,,
+team,team-monitoring,Monitoring & Observability,Operations,#F59E0B,Lena Braun,Team Lead,Operational,0,0,0,2m 28s,0,4h ago,,,,,,,,,,,,,,,,
+member,team-core-infra,Alex Kim,,,,,,,,,,,,Engineering Manager,true,48,AK,#30A46C,,,,,,,,,,,
+member,team-core-infra,Dan Osei,,,,,,,,,,,,Senior SRE,false,31,DO,#E5484D,,,,,,,,,,,
+member,team-core-infra,Yuki Tanaka,,,,,,,,,,,,Platform Engineer,false,27,YT,#F5A524,,,,,,,,,,,
+member,team-core-infra,Lena Braun,,,,,,,,,,,,SRE,false,22,LB,#3B82F6,,,,,,,,,,,
+member,team-core-infra,Ravi Mehta,,,,,,,,,,,,DevOps Engineer,false,19,RM,#8B5CF6,,,,,,,,,,,
+member,team-core-infra,Chloe Martin,,,,,,,,,,,,Infra Analyst,false,14,CM,#EC4899,,,,,,,,,,,
+member,team-db-ops,Marcus Chen,,,,,,,,,,,,Database Lead,true,52,MC,#8B5CF6,,,,,,,,,,,
+member,team-db-ops,Amara Diallo,,,,,,,,,,,,DBA Senior,false,38,AD,#F97316,,,,,,,,,,,
+member,team-db-ops,Tomas Novak,,,,,,,,,,,,DB Engineer,false,28,TN,#06B6D4,,,,,,,,,,,
+member,team-db-ops,Preethi Sharma,,,,,,,,,,,,DB Analyst,false,17,PS,#EF4444,,,,,,,,,,,
+member,team-sec-comp,Priya Patel,,,,,,,,,,,,Security Lead,true,67,PP,#EC4899,,,,,,,,,,,
+member,team-sec-comp,James Okonjo,,,,,,,,,,,,Security Analyst,false,52,JO,#F59E0B,,,,,,,,,,,
+member,team-sec-comp,Nina Kowalski,,,,,,,,,,,,Compliance Officer,false,41,NK,#10B981,,,,,,,,,,,
+member,team-sec-comp,Sam Torres,,,,,,,,,,,,Security Engineer,false,31,ST,#6366F1,,,,,,,,,,,
+member,team-sec-comp,Kai Nakamura,,,,,,,,,,,,Compliance Analyst,false,18,KN,#F97316,,,,,,,,,,,
+member,team-ml-ds,Sarah Jones,,,,,,,,,,,,ML Team Lead,true,38,SJ,#06B6D4,,,,,,,,,,,
+member,team-ml-ds,Leo Fischer,,,,,,,,,,,,Data Scientist,false,29,LF,#84CC16,,,,,,,,,,,
+member,team-ml-ds,Ava Quinn,,,,,,,,,,,,ML Engineer,false,24,AQ,#F43F5E,,,,,,,,,,,
+member,team-ml-ds,Jay Park,,,,,,,,,,,,Research Engineer,false,20,JP,#A855F7,,,,,,,,,,,
+member,team-ml-ds,Mila Rossi,,,,,,,,,,,,Data Analyst,false,14,MR,#F97316,,,,,,,,,,,
+member,team-file-storage,Dan Osei,,,,,,,,,,,,Storage Lead,true,24,DO,#E5484D,,,,,,,,,,,
+member,team-file-storage,Clara Wright,,,,,,,,,,,,Storage Engineer,false,19,CW,#14B8A6,,,,,,,,,,,
+member,team-file-storage,Omar Said,,,,,,,,,,,,File Ops Analyst,false,14,OS,#F59E0B,,,,,,,,,,,
+member,team-monitoring,Lena Braun,,,,,,,,,,,,Observability Lead,true,18,LB,#3B82F6,,,,,,,,,,,
+member,team-monitoring,Finn Hoffman,,,,,,,,,,,,SRE,false,14,FH,#E879F9,,,,,,,,,,,
+member,team-monitoring,Ines Garcia,,,,,,,,,,,,Monitoring Engineer,false,12,IG,#22D3EE,,,,,,,,,,,
+member,team-monitoring,Mateo Ruiz,,,,,,,,,,,,Ops Analyst,false,8,MR,#F97316,,,,,,,,,,,
+agent,team-core-infra,agent-infra-ops,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-core-infra,agent-ci-cd,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-core-infra,agent-monitor,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-db-ops,agent-db-ops,,,,,,,,,,,,,,,,,,warning,,,,,,,,,,
+agent,team-db-ops,agent-db-backup,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-sec-comp,agent-sec-scan,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-sec-comp,agent-compliance,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-ml-ds,agent-ml-train,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-ml-ds,agent-data-pipeline,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+agent,team-file-storage,agent-file-ops,,,,,,,,,,,,,,,,,,warning,,,,,,,,,,
+agent,team-monitoring,agent-alert-manager,,,,,,,,,,,,,,,,,,online,,,,,,,,,,
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-001,2026-03-01T14:32:05Z,agent-infra-ops,kubectl scale deployment api --replicas=5,Alex Kim,PROD,72,HIGH_RISK_PENDING,production|scale-up,ml-ensemble,,
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-002,2026-03-01T14:28:12Z,agent-ci-cd,deploy v2.4.1 to staging,Dan Osei,STAGING,45,APPROVED,staging|deploy,rule-engine,Alex Kim,2m 15s
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-003,2026-03-01T14:15:44Z,agent-monitor,restart alertmanager pod,Lena Braun,PROD,18,LOW_RISK,,ml-ensemble,System,< 1s
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-004,2026-03-01T13:58:20Z,agent-infra-ops,modify firewall rule allow-ssh,Ravi Mehta,PROD,89,HIGH_RISK_BLOCKED,production|firewall|security,ml-ensemble,Alex Kim,4m 30s
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-005,2026-03-01T13:45:11Z,agent-ci-cd,rollback deployment api to v2.3.9,Yuki Tanaka,PROD,55,MEDIUM_RISK_PENDING,production|rollback,rule-engine,,
+audit,team-core-infra,,,,,,,,,,,,,,,,,,,AUD-2026-006,2026-03-01T13:30:00Z,agent-monitor,check service health endpoints,Chloe Martin,STAGING,12,LOW_RISK,,rule-engine,System,< 1s
+audit,team-db-ops,,,,,,,,,,,,,,,,,,,AUD-2026-007,2026-03-01T14:25:33Z,agent-db-ops,"ALTER TABLE users ADD COLUMN metadata JSONB",Marcus Chen,PROD,78,HIGH_RISK_PENDING,production|schema-change|data-integrity,ml-ensemble,,
+audit,team-db-ops,,,,,,,,,,,,,,,,,,,AUD-2026-008,2026-03-01T14:18:00Z,agent-db-backup,pg_dump --format=custom sentinel_prod,Amara Diallo,PROD,48,APPROVED,backup|database,rule-engine,Marcus Chen,1m 45s
+audit,team-db-ops,,,,,,,,,,,,,,,,,,,AUD-2026-009,2026-03-01T14:05:22Z,agent-db-ops,DROP INDEX idx_actions_timestamp,Tomas Novak,PROD,92,HIGH_RISK_BLOCKED,production|destructive|index-drop,ml-ensemble,Marcus Chen,3m 12s
+audit,team-db-ops,,,,,,,,,,,,,,,,,,,AUD-2026-010,2026-03-01T13:50:15Z,agent-db-backup,vacuum analyze public.audit_events,Preethi Sharma,PROD,22,LOW_RISK,,rule-engine,System,< 1s
+audit,team-sec-comp,,,,,,,,,,,,,,,,,,,AUD-2026-011,2026-03-01T14:30:55Z,agent-sec-scan,nmap -sV --top-ports 1000 internal-network,Priya Patel,PROD,68,MEDIUM_RISK_PENDING,network-scan|internal,ml-ensemble,,
+audit,team-sec-comp,,,,,,,,,,,,,,,,,,,AUD-2026-012,2026-03-01T14:22:10Z,agent-compliance,audit IAM role permissions,James Okonjo,PROD,52,APPROVED,iam|audit,rule-engine,Priya Patel,2m 50s
+audit,team-sec-comp,,,,,,,,,,,,,,,,,,,AUD-2026-013,2026-03-01T14:10:45Z,agent-sec-scan,rotate TLS certificates for api.sentinel.io,Nina Kowalski,PROD,42,APPROVED,tls|certificate,ml-ensemble,Priya Patel,5m 20s
+audit,team-sec-comp,,,,,,,,,,,,,,,,,,,AUD-2026-014,2026-03-01T13:55:30Z,agent-compliance,disable user account: suspicious_user_42,Sam Torres,PROD,85,HIGH_RISK_BLOCKED,user-management|security-incident,ml-ensemble,Priya Patel,1m 30s
+audit,team-ml-ds,,,,,,,,,,,,,,,,,,,AUD-2026-015,2026-03-01T14:20:18Z,agent-ml-train,retrain risk-model with 50k new samples,Sarah Jones,STAGING,48,APPROVED,model-retrain,rule-engine,Sarah Jones,8m 15s
+audit,team-ml-ds,,,,,,,,,,,,,,,,,,,AUD-2026-016,2026-03-01T14:08:42Z,agent-data-pipeline,truncate staging.training_data,Leo Fischer,STAGING,45,MEDIUM_RISK_PENDING,truncate|data-loss,ml-ensemble,,
+audit,team-ml-ds,,,,,,,,,,,,,,,,,,,AUD-2026-017,2026-03-01T13:40:00Z,agent-ml-train,deploy model v3.2.0 to production,Ava Quinn,PROD,75,HIGH_RISK_PENDING,production|model-deploy,ml-ensemble,,
+audit,team-ml-ds,,,,,,,,,,,,,,,,,,,AUD-2026-018,2026-03-01T13:25:55Z,agent-data-pipeline,sync S3 bucket sentinel-features,Jay Park,STAGING,18,LOW_RISK,,rule-engine,System,< 1s
+audit,team-file-storage,,,,,,,,,,,,,,,,,,,AUD-2026-019,2026-03-01T14:35:10Z,agent-file-ops,rm -rf /mnt/storage/tmp/*,Dan Osei,PROD,95,HIGH_RISK_BLOCKED,production|destructive|file-deletion,ml-ensemble,Dan Osei,0m 45s
+audit,team-file-storage,,,,,,,,,,,,,,,,,,,AUD-2026-020,2026-03-01T14:12:30Z,agent-file-ops,"rsync --delete backup:/archive/ /mnt/storage/archive/",Clara Wright,PROD,62,MEDIUM_RISK_PENDING,production|sync-delete,ml-ensemble,,
+audit,team-file-storage,,,,,,,,,,,,,,,,,,,AUD-2026-021,2026-03-01T13:48:22Z,agent-file-ops,chmod 777 /var/log/sentinel/,Omar Said,PROD,88,HIGH_RISK_BLOCKED,production|permissions|security,ml-ensemble,Dan Osei,2m 10s
+audit,team-monitoring,,,,,,,,,,,,,,,,,,,AUD-2026-022,2026-03-01T14:28:44Z,agent-alert-manager,update prometheus alerting rules,Lena Braun,STAGING,42,APPROVED,alerting|config,rule-engine,Lena Braun,1m 45s
+audit,team-monitoring,,,,,,,,,,,,,,,,,,,AUD-2026-023,2026-03-01T14:15:18Z,agent-alert-manager,silence alert: high-cpu-warning for 2h,Finn Hoffman,PROD,15,LOW_RISK,,rule-engine,System,< 1s
+audit,team-monitoring,,,,,,,,,,,,,,,,,,,AUD-2026-024,2026-03-01T13:55:00Z,agent-alert-manager,create pagerduty incident: disk-full,Ines Garcia,PROD,28,LOW_RISK,,rule-engine,System,< 1s

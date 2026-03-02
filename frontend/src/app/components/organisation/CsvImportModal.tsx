@@ -240,12 +240,14 @@ export function CsvImportModal({ theme, isDark, isMobile, isOpen, onClose, onImp
           />
 
           {step === 'done' ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <CheckCircle2 size={48} color={COLORS.green} />
-              <h3 style={{ color: theme.textPrimary, fontSize: 18, fontWeight: 700, marginTop: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', gap: 12 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${COLORS.green}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle2 size={32} color={COLORS.green} />
+              </div>
+              <h3 style={{ color: theme.textPrimary, fontSize: 18, fontWeight: 700, margin: 0 }}>
                 Import Complete!
               </h3>
-              <p style={{ color: theme.textSecondary, fontSize: 13 }}>
+              <p style={{ color: theme.textSecondary, fontSize: 13, margin: 0, textAlign: 'center' }}>
                 Organisation data has been updated successfully.
               </p>
             </div>

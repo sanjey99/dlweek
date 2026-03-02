@@ -13,7 +13,7 @@ import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
-import { teamsData, TeamData } from './data/organisationData';
+import { TeamData } from './data/organisationData';
 import type { ParsedAuditEvent } from './utils/csvParser';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
@@ -502,10 +502,8 @@ export default function App() {
               isDark={isDark}
               isMobile={isMobile}
               actions={(() => {
-                // Combine backend actions filtered by team + imported audit actions for this team
-                const allTeamsData = importedTeams.length > 0
-                  ? [...importedTeams, ...teamsData.filter((t) => !importedTeams.some((it) => it.id === t.id))]
-                  : teamsData;
+                // Use only CSV-imported teams — no demo/fallback data
+                const allTeamsData = importedTeams;
 
                 const backendFiltered = actions.filter((a) => {
                   const actionUser = (a.user || '').toLowerCase().trim();

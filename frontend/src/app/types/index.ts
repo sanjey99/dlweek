@@ -24,6 +24,10 @@ export interface ActionItem {
   source?: string;
   /** The user/person who requested the agent action */
   user?: string;
+  /** Reviewer name (System for auto-approved, team lead name for manual) */
+  reviewer?: string;
+  /** How long the review took */
+  duration?: string;
 }
 
 export interface Theme {
