@@ -7,7 +7,7 @@ node_modules
 .venv311/
 venv/
 venv311/
-# env/
-# .env
+env/
+.env
 
 __pycache__/
