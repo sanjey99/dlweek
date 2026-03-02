@@ -259,7 +259,7 @@ function riskBandFromCategory(riskCategory = '') {
 
 async function pollRunUntilStable(threadId, runId, {
   maxAttempts = 90,
-  intervalMs = 1000,
+  intervalMs = 400,
 } = {}) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const run = await openai.beta.threads.runs.retrieve(runId, { thread_id: threadId });
@@ -338,17 +338,33 @@ function broadcastToClients(message) {
 
 // ─── Map ML risk category to frontend risk status ────────────────────────────
 function mapToRiskStatus(riskCategory, recommendation) {
-  if (riskCategory === 'high' || recommendation === 'block') {
-    return recommendation === 'block' ? 'HIGH_RISK_BLOCKED' : 'HIGH_RISK_PENDING';
-  }
-  if (riskCategory === 'medium' || recommendation === 'review') {
-    return 'MEDIUM_RISK_PENDING';
-  }
+  const category = normalizeRiskCategory(riskCategory);
+  const rec = String(recommendation || '').toLowerCase();
+  const score = Number(arguments[2]);
+  const score100 = Number.isFinite(score) ? score : 0;
+  if (score100 >= 80) return 'HIGH_RISK_PENDING';
+  if (score100 >= 50) return 'MEDIUM_RISK_PENDING';
+  if (rec === 'review' || rec === 'block') return 'MEDIUM_RISK_PENDING';
+  if (category === 'medium' || category === 'high') return 'MEDIUM_RISK_PENDING';
   return 'LOW_RISK';
+}
+
+function initialRiskLevelFromStatus(status = '') {
+  const s = String(status || '').toUpperCase();
+  if (s.includes('HIGH')) return 'HIGH';
+  if (s.includes('MEDIUM')) return 'MEDIUM';
+  return 'LOW';
 }
 
 function riskScoreTo100(score01) {
   return Math.round(score01 * 100);
+}
+
+function normalizeRiskCategory(value) {
+  const v = String(value || '').toLowerCase();
+  if (v === 'high') return 'high';
+  if (v === 'medium') return 'medium';
+  return 'low';
 }
 
 // ─── Core: classify an action via ML service ─────────────────────────────────
@@ -376,9 +392,9 @@ async function classifyAction(actionData) {
 }
 
 // ─── Core: process a single action through the full pipeline ─────────────────
-async function processAction(actionData) {
+async function processAction(actionData, options = {}) {
   // 1. Classify via ML
-  const mlResult = await classifyAction(actionData);
+  const mlResult = options?.mlResult || await classifyAction(actionData);
 
   // 2. Run fusion evaluator (policy + ML)
   const fusionInput = {
@@ -401,6 +417,18 @@ async function processAction(actionData) {
   };
 
   const fusionResult = fusionEvaluate(fusionInput);
+  const mlCategory = normalizeRiskCategory(mlResult?.risk_category);
+  const fusionCategory = normalizeRiskCategory(fusionResult?.risk_category);
+  const effectiveRiskCategory =
+    mlCategory === 'high' || fusionCategory === 'high'
+      ? 'high'
+      : (mlCategory === 'medium' || fusionCategory === 'medium' ? 'medium' : 'low');
+  const fusedRiskScore100 = riskScoreTo100(fusionResult.risk_score);
+  const resolvedRiskStatus = mapToRiskStatus(
+    effectiveRiskCategory,
+    fusionResult.decision,
+    fusedRiskScore100
+  );
 
   // 3. Build the action record for the dashboard
   actionIdCounter += 1;
@@ -413,8 +441,9 @@ async function processAction(actionData) {
     proposedAction: actionData.proposed_action || actionData.proposedAction || '',
     environment: (actionData.environment || 'STAGING').toUpperCase(),
     user: actionData.user || '',
-    riskStatus: mapToRiskStatus(mlResult.risk_category, fusionResult.decision),
-    riskScore: riskScoreTo100(fusionResult.risk_score),
+    riskStatus: resolvedRiskStatus,
+    initialRiskLevel: initialRiskLevelFromStatus(resolvedRiskStatus),
+    riskScore: fusedRiskScore100,
     source: `${mlResult.model_version} · ${fusionResult.source}`,
     flagReasons: fusionResult.reason_tags.filter(t =>
       !['FUSED_RISK_ACCEPTABLE', 'RISK_WITHIN_POLICY'].includes(t)
@@ -609,7 +638,10 @@ app.post('/api/actions/:id/approve', (req, res) => {
 app.post('/api/actions/:id/block', async (req, res) => {
   const action = actionStore.find(a => a.id === req.params.id);
   if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
-  action.riskStatus = 'HIGH_RISK_BLOCKED';
+  const previous = String(action.riskStatus || '').toUpperCase();
+  if (previous.includes('MEDIUM')) action.riskStatus = 'MEDIUM_RISK_BLOCKED';
+  else if (previous.includes('HIGH')) action.riskStatus = 'HIGH_RISK_BLOCKED';
+  else action.riskStatus = 'BLOCKED';
   await clearPendingAssistantState(action.id);
   broadcastToClients({ type: 'action_updated', action });
   return res.json({ ok: true, action });
@@ -803,6 +835,48 @@ app.post('/api/agent/chat', async (req, res) => {
         });
       }
 
+      // Fast-path medium/high workflow stores runId first and resolves tool_call_id on approval.
+      if (!pending.toolCallId) {
+        const readyRun = await pollRunUntilStable(FIXED_THREAD_ID, pending.runId, {
+          maxAttempts: 120,
+          intervalMs: 500,
+        });
+        if (readyRun.status === 'requires_action') {
+          const toolCalls = readyRun.required_action?.submit_tool_outputs?.tool_calls || [];
+          const toolCall = toolCalls.find((call) => call?.function?.name === 'propose_file_edit');
+          if (!toolCall?.id) {
+            return res.status(502).json({
+              ok: false,
+              error: 'Assistant requested an unsupported tool. Expected propose_file_edit.',
+            });
+          }
+          pending.toolCallId = toolCall.id;
+        } else if (readyRun.status === 'completed') {
+          const { finalText, downloadFile } = await buildFinalAssistantPayload(
+            FIXED_THREAD_ID,
+            'Approval acknowledged. Final output generated.',
+            pending.runId
+          );
+          const summaryText = downloadFile
+            ? buildConciseExecutionSummary(action?.proposedAction || userInput)
+            : finalText;
+          pendingAssistantApprovals.delete(actionId);
+          await deleteUploadedFileSafe(pending.fileId);
+          return res.json({
+            ok: true,
+            type: 'text',
+            message: summaryText,
+            downloadFile,
+            threadId: FIXED_THREAD_ID,
+          });
+        } else {
+          return res.status(502).json({
+            ok: false,
+            error: `Assistant run is not ready for approval handshake (status: ${readyRun.status})`,
+          });
+        }
+      }
+
       console.log(`[DEBUG] Using Fixed Thread: ${FIXED_THREAD_ID}`);
       console.log(`[HANDSHAKE]: Resuming Run ${pending.runId} with Tool Output.`);
       try {
@@ -942,6 +1016,40 @@ app.post('/api/agent/chat', async (req, res) => {
     };
     const run = await openai.beta.threads.runs.create(activeThreadId, runCreateParams);
     console.log(`[DEBUG] Run Created: ${run.id} on Thread: ${activeThreadId}`);
+
+    if (!isLowRiskDirectExecute) {
+      const actionData = {
+        agent_name: agent || 'OpenAI-Agent',
+        proposed_action: userInput,
+        action_type: 'CONFIG_CHANGE',
+        environment: 'STAGING',
+        description: userInput,
+        context: {
+          targetEnvironment: 'staging',
+          openai_thread_id: activeThreadId,
+          openai_run_id: run.id,
+          openai_file_id: uploadedFileId,
+          fast_path_pending: true,
+        },
+        user: 'Anonymous User',
+      };
+      const record = await processAction(actionData, { mlResult: preMlAssessment });
+      console.log(`[ML RISK]: ${riskBandFromStatus(record?.riskStatus)} detected.`);
+      pendingAssistantApprovals.set(record.id, {
+        threadId: activeThreadId,
+        runId: run.id,
+        toolCallId: null,
+        fileId: uploadedFileId,
+      });
+      return res.json({
+        ok: true,
+        type: 'tool_call',
+        actionId: record.id,
+        threadId: activeThreadId,
+        message: `Action proposed: "${record.proposedAction}". Risk: ${record.riskScore}% (${record.riskStatus}). Awaiting Sentinel governance decision.`,
+      });
+    }
+
     const settledRun = await pollRunUntilStable(activeThreadId, run.id);
 
     if (settledRun.status === 'requires_action') {
@@ -1024,7 +1132,7 @@ app.post('/api/agent/chat', async (req, res) => {
         user: 'Anonymous User',
       };
 
-      const record = await processAction(actionData);
+      const record = await processAction(actionData, { mlResult: preMlAssessment });
       console.log(`[ML RISK]: ${riskBandFromStatus(record?.riskStatus)} detected.`);
 
       pendingAssistantApprovals.set(record.id, {

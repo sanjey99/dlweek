@@ -391,7 +391,7 @@ Previously proposed change: ${prior}`;
       } catch {
         // Keep polling; transient fetch failures should not crash terminal state.
       }
-    }, 3000);
+    }, 500);
 
     return () => clearInterval(intervalId);
   }, [currentActionId]);

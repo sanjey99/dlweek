@@ -3,8 +3,10 @@ export type Environment = 'PROD' | 'STAGING';
 export type RiskStatus =
   | 'HIGH_RISK_PENDING'
   | 'HIGH_RISK_BLOCKED'
+  | 'MEDIUM_RISK_BLOCKED'
   | 'MEDIUM_RISK_PENDING'
   | 'LOW_RISK'
+  | 'BLOCKED'
   | 'APPROVED'
   | 'ESCALATED';
 
@@ -18,6 +20,7 @@ export interface ActionItem {
   proposedAction: string;
   environment: Environment;
   riskStatus: RiskStatus;
+  initialRiskLevel?: 'HIGH' | 'MEDIUM' | 'LOW';
   riskScore: number;
   flagReasons: string[];
   /** Attribution: which ML model / pipeline produced this score */

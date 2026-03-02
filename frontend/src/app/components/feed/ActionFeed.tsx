@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, AlertOctagon, AlertTriangle, CheckCircle2, Clock, ShieldOff, Database, Wifi, WifiOff } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ActionItem, RiskStatus, Environment, Theme, PanelState } from '../../types';
+import { ActionItem, RiskStatus, Theme, PanelState } from '../../types';
 import { COLORS } from '../../utils/theme';
 
 interface ActionFeedProps {
@@ -38,6 +38,13 @@ const STATUS_CONFIG: Record<
     icon: <AlertTriangle size={11} />,
     dotColor: COLORS.amber,
   },
+  MEDIUM_RISK_BLOCKED: {
+    label: 'BLOCKED',
+    color: COLORS.amber,
+    bg: COLORS.amberMuted,
+    icon: <ShieldOff size={11} />,
+    dotColor: COLORS.amber,
+  },
   LOW_RISK: {
     label: 'LOW RISK',
     color: COLORS.green,
@@ -58,6 +65,13 @@ const STATUS_CONFIG: Record<
     bg: COLORS.amberMuted,
     icon: <AlertTriangle size={11} />,
     dotColor: COLORS.amber,
+  },
+  BLOCKED: {
+    label: 'BLOCKED',
+    color: COLORS.red,
+    bg: COLORS.redMuted,
+    icon: <ShieldOff size={11} />,
+    dotColor: COLORS.red,
   },
 };
 
@@ -86,8 +100,10 @@ function StatusBadge({ status }: { status: RiskStatus }) {
   );
 }
 
-function EnvBadge({ env, isDark }: { env: Environment; isDark: boolean }) {
-  const isProd = env === 'PROD';
+function EnvBadge({ label, isDark }: { label: string; isDark: boolean }) {
+  const normalized = String(label || '').toUpperCase();
+  const isHigh = normalized === 'HIGH';
+  const isMedium = normalized === 'MEDIUM';
   return (
     <div
       style={{
@@ -95,22 +111,37 @@ function EnvBadge({ env, isDark }: { env: Environment; isDark: boolean }) {
         alignItems: 'center',
         padding: '2px 7px',
         borderRadius: 4,
-        background: isProd
+        background: isHigh
           ? 'rgba(229, 72, 77, 0.08)'
+          : isMedium
+          ? 'rgba(245,165,36,0.12)'
           : isDark
           ? 'rgba(255,255,255,0.06)'
           : 'rgba(0,0,0,0.05)',
-        color: isProd ? '#E5484D' : isDark ? '#8A8A8A' : '#5A5A5A',
+        color: isHigh ? '#E5484D' : isMedium ? '#F5A524' : isDark ? '#8A8A8A' : '#5A5A5A',
         fontSize: 10,
         fontWeight: 700,
         letterSpacing: '0.06em',
         fontFamily: 'Inter, sans-serif',
-        border: isProd ? '1px solid rgba(229,72,77,0.2)' : `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+        border: isHigh
+          ? '1px solid rgba(229,72,77,0.2)'
+          : isMedium
+          ? '1px solid rgba(245,165,36,0.25)'
+          : `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
       }}
     >
-      {env}
+      {normalized || 'LOW'}
     </div>
   );
+}
+
+function getRiskLevelForDisplay(action: ActionItem): 'HIGH' | 'MEDIUM' | 'LOW' {
+  const fixed = (action as any).initialRiskLevel;
+  if (fixed === 'HIGH' || fixed === 'MEDIUM' || fixed === 'LOW') return fixed;
+  const status = String(action.riskStatus || '').toUpperCase();
+  if (status.includes('HIGH')) return 'HIGH';
+  if (status.includes('MEDIUM')) return 'MEDIUM';
+  return 'LOW';
 }
 
 export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction, isMobile }: ActionFeedProps) {
@@ -140,7 +171,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
   /** Reason text shown for non-clickable rows */
   const getDisabledReason = (status: RiskStatus): string | null => {
     if (status === 'APPROVED') return 'Already approved — no action needed';
-    if (status === 'HIGH_RISK_BLOCKED') return 'Blocked — auto-policy enforced';
+    if (status === 'HIGH_RISK_BLOCKED' || status === 'MEDIUM_RISK_BLOCKED' || status === 'BLOCKED') return 'Blocked — action prevented';
     if (status === 'LOW_RISK') return 'Low risk — auto-approved by policy';
     return null;
   };
@@ -295,6 +326,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
           const isHovered = action.id === hoveredId;
           const isPending = isClickable(action.riskStatus);
           const isHighRiskPending = action.riskStatus === 'HIGH_RISK_PENDING';
+          const riskLevelLabel = getRiskLevelForDisplay(action);
 
           let rowBg = 'transparent';
           if (isSelected) {
@@ -348,7 +380,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
                     {(action as any).agent || (action as any).agent_name || action.agentName}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                    <EnvBadge env={action.environment} isDark={isDark} />
+                    <EnvBadge label={riskLevelLabel} isDark={isDark} />
                     {isPending && <ChevronRight size={13} color={theme.textTertiary} />}
                   </div>
                 </div>
@@ -485,7 +517,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
 
               {/* Environment */}
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <EnvBadge env={action.environment} isDark={isDark} />
+                <EnvBadge label={riskLevelLabel} isDark={isDark} />
               </div>
 
               {/* Status */}
