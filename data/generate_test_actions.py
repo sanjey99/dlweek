@@ -317,7 +317,7 @@ for i, t in enumerate(demo_templates):
         "context": ctx,
     })
 
-demo_path = "/home/ieucd/Desktop/code/dlweek/data/demo_actions.json"
+demo_path = "./data/demo_actions.json"
 with open(demo_path, "w") as f:
     json.dump({"version": "1.0", "description": "Sentinel demo — 15 curated AI agent actions for live demo upload", "total": len(demo_entries), "actions": demo_entries}, f, indent=2)
 print(f"Generated {demo_path} with {len(demo_entries)} entries")
