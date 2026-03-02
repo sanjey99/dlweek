@@ -47,29 +47,80 @@ docker compose ps
 - ML health: `http://localhost:8000/health`
 - Realtime WS: `ws://localhost:4000/ws/signals`
 
-## Local Development
+## Environment Setup (Required After Pull)
+
+Create your local env file every time you clone/pull to a fresh machine:
+
+```bash
+cp .env.example .env
+```
+
+Then update values in `.env` as needed for your machine.
+
+Minimum variables used by this repo:
+
+```env
+OPENAI_API_KEY=your_key_here
+```
+
+## Local Development (macOS vs non-macOS)
+
+### macOS (Apple Silicon / Intel)
+- Use Python `3.10` or `3.11` for the ML service.
+- CUDA packages are skipped automatically on macOS by environment markers in `requirements.txt`.
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+### Linux / non-macOS
+- CPU-only: same commands as macOS.
+- NVIDIA GPU/CUDA on Linux: install from the same `requirements.txt`; CUDA packages (`nvidia-*`, `triton`) are Linux-only and will install there.
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+### Run All Services (recommended)
+
+From repo root:
+
+```bash
+bash start.sh
+```
+
+On Windows:
+
+```bat
+start.bat
+```
+
+### Run Services Manually
 
 ### 1) ML Service
 ```bash
 cd ml_service
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app:app --host 0.0.0.0 --port 8000
+../.venv/bin/python -m uvicorn app:app --host 0.0.0.0 --port 8000
 ```
 
 ### 2) Backend
 ```bash
 cd backend
 npm install
-ML_URL=http://localhost:8000 npm run dev
+npm run dev
 ```
 
 ### 3) Frontend
 ```bash
 cd frontend
 npm install
-VITE_API_URL=http://localhost:4000 npm run dev
+npm run dev
 ```
 
 ## Core API Surface
