@@ -25,6 +25,9 @@ app.use(express.json({ limit: '10mb' }));
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
+const ASSISTANT_ID = process.env.ASSISTANT_ID || process.env.OPENAI_ASSISTANT_ID || 'asst_dCeVoEBIjpnEq304LlbwIpTH';
+const FIXED_THREAD_ID = 'thread_tydqeuvG3pSrYaxEIRDIFAOW';
+const EXECUTION_OUTPUT_POLICY = 'Always use Code Interpreter for explicit file edit requests. Produce a downloadable output file when possible. If file output fails once, retry once, then return the full modified content inline in a single fenced code block. Keep responses concise and action-focused; do not include troubleshooting narration (for example, do not say "persistent issue with writing out the file"). If User asks a clarification or general question (not an explicit edit request), answer directly in text and do not call propose_file_edit.';
 
 // ─── OpenAI client for agent chat ────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
