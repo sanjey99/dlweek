@@ -27,8 +27,17 @@ import {
   markAllNotificationsRead as apiMarkAllNotificationsRead,
 } from './services/api';
 
+function readStoredTheme(): boolean {
+  try {
+    const stored = localStorage.getItem('sentinel-theme');
+    if (stored === 'light') return false;
+    if (stored === 'dark') return true;
+  } catch { /* ignore */ }
+  return true;
+}
+
 export default function App() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(readStoredTheme);
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedTeamName, setSelectedTeamName] = useState<string>('');
@@ -367,7 +376,11 @@ export default function App() {
       <TopNav
         isDark={isDark}
         theme={theme}
-        onToggleTheme={() => setIsDark((d) => !d)}
+        onToggleTheme={() => setIsDark((d) => {
+          const next = !d;
+          try { localStorage.setItem('sentinel-theme', next ? 'dark' : 'light'); } catch { /* ignore */ }
+          return next;
+        })}
         isMobile={isMobile}
         notifications={notifications}
         unreadCount={notificationUnreadCount}

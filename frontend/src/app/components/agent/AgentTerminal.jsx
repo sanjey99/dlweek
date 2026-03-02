@@ -21,7 +21,14 @@ export default function AgentTerminal() {
   const proposalByActionIdRef = useRef({});
   const isExecutingRef = useRef(false);
   const activeContextRef = useRef({ action: '', content: '', fileName: '', fileType: '' });
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const stored = localStorage.getItem('sentinel-theme');
+      if (stored === 'light') return false;
+      if (stored === 'dark') return true;
+    } catch { /* ignore */ }
+    return true;
+  });
   const [input, setInput] = useState('');
   const [pendingFile, setPendingFile] = useState(null);
   const [pollingStatus, setPollingStatus] = useState('IDLE');
@@ -442,7 +449,11 @@ Approved Action ID: ${actionId}`;
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
-              onClick={() => setIsDark((v) => !v)}
+              onClick={() => setIsDark((v) => {
+                const next = !v;
+                try { localStorage.setItem('sentinel-theme', next ? 'dark' : 'light'); } catch { /* ignore */ }
+                return next;
+              })}
               style={{
                 border: `1px solid ${theme.border}`,
                 background: theme.surface,
