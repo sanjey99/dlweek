@@ -515,6 +515,58 @@ export default function App() {
               })}
             />
           </>
+        ) : activePage === 'all-audits' ? (
+          <>
+            {/* Back button + breadcrumb */}
+            <div style={{ padding: isMobile ? '14px 0 4px' : '20px 0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => setActivePage('organisation')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#30A46C',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                >
+                  <ArrowLeft size={14} />
+                  Organisation
+                </button>
+                <span style={{ color: theme.textTertiary, fontSize: 12 }}>/</span>
+                <span style={{ color: theme.textSecondary, fontSize: 12, fontWeight: 500 }}>
+                  All Audits
+                </span>
+              </div>
+              <h1
+                style={{
+                  color: theme.textPrimary,
+                  marginTop: 4,
+                  fontSize: isMobile ? 17 : 20,
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.3,
+                }}
+              >
+                All Teams — Audit Trail
+              </h1>
+              <p style={{ color: theme.textSecondary, fontSize: 13, marginTop: 3 }}>
+                Consolidated audit trail across all teams and agents.
+              </p>
+            </div>
+            <AuditTrail
+              theme={theme}
+              isDark={isDark}
+              isMobile={isMobile}
+              actions={actions}
+            />
+          </>
         ) : activePage === 'organisation' ? (
           <OrganisationPage
             theme={theme}
@@ -525,6 +577,7 @@ export default function App() {
               setSelectedTeamName(teamName);
               setActivePage('audit-trail');
             }}
+            onViewAllAudits={() => setActivePage('all-audits')}
           />
         ) : (
           <>
