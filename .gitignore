@@ -2,12 +2,13 @@ backend/node_modules/
 node_modules/
 node_modules
 
-
 .venv/
 .venv311/
 venv/
 venv311/
 env/
+.env
+backend/
 .env
 
 __pycache__/
