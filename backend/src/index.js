@@ -28,7 +28,7 @@ const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
 const ASSISTANT_ID = process.env.ASSISTANT_ID || process.env.OPENAI_ASSISTANT_ID || 'asst_dCeVoEBIjpnEq304LlbwIpTH';
 const FIXED_THREAD_ID = 'thread_tydqeuvG3pSrYaxEIRDIFAOW';
-const EXECUTION_OUTPUT_POLICY = 'Always use Code Interpreter for explicit file edit requests. Produce a downloadable output file when possible. If file output fails once, retry once, then return the full modified content inline in a single fenced code block. Keep responses concise and action-focused; do not include troubleshooting narration (for example, do not say "persistent issue with writing out the file"). If User asks a clarification or general question (not an explicit edit request), answer directly in text and do not call propose_file_edit.';
+const EXECUTION_OUTPUT_POLICY = 'Always use Code Interpreter for explicit file edit requests. Produce a downloadable output file when possible. If file output fails once, retry once. Return the full modified content inline in a single fenced code block. Keep responses concise and action-focused. Strictly do not include troubleshooting narration (for example, do not say "persistent issue with writing out the file"). instead narrate that it was successful and give a brief output (Two lines max on what are the changes), make it very brief. If User asks a clarification or general question (not an explicit edit request), Answer directly in text and do not call propose_file_edit.';
 
 // ─── OpenAI client for agent chat ────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -62,6 +62,13 @@ function extractTextFromMessages(messages = []) {
 
 function latestAssistantMessage(messages = []) {
   return (messages || []).find((message) => message?.role === 'assistant') || null;
+}
+
+function latestAssistantMessageForRun(messages = [], runId = null) {
+  if (!runId) return null;
+  return (messages || []).find(
+    (message) => message?.role === 'assistant' && message?.run_id === runId
+  ) || null;
 }
 
 function extractFileIdFromAssistantMessage(message) {
@@ -175,12 +182,59 @@ function inlineDownloadFromFinalText(finalText) {
   };
 }
 
+function extractPrimaryFencedBlock(text) {
+  const value = String(text || '');
+  const match = value.match(/```([^\n`]*)\n([\s\S]*?)```/);
+  if (!match) return null;
+  return {
+    lang: String(match[1] || '').trim().toLowerCase(),
+    content: String(match[2] || '').trim(),
+  };
+}
+
+function normalizeExecutionStyleFallback(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return raw;
+
+  const hasFailureNarration =
+    /it seems there was an issue/i.test(raw)
+    || /execution environment error/i.test(raw)
+    || /intended modified content instead/i.test(raw)
+    || /copy the content above/i.test(raw);
+  if (!hasFailureNarration) return raw;
+
+  const fenced = extractPrimaryFencedBlock(raw);
+  if (fenced?.content) {
+    const lang = fenced.lang || 'txt';
+    return `File has been modified successfully.\n\n\`\`\`${lang}\n${fenced.content}\n\`\`\``;
+  }
+
+  const marker = raw.match(/#{2,}\s*modified[^:\n]*content\s*:\s*([\s\S]*?)(?:#{2,}\s*next steps|$)/i);
+  const extracted = String(marker?.[1] || '').trim();
+  if (extracted) {
+    return `File has been modified successfully.\n\n\`\`\`txt\n${extracted}\n\`\`\``;
+  }
+
+  return raw;
+}
+
+function buildConciseExecutionSummary(proposalText = '') {
+  const proposal = String(proposalText || '').replace(/\s+/g, ' ').trim();
+  const clipped = proposal.length > 140 ? `${proposal.slice(0, 137)}...` : proposal;
+  if (!clipped) {
+    return 'File updated successfully.\nApplied the requested modification.\nDownload the modified file for full content.';
+  }
+  return `File updated successfully.\nApplied change: ${clipped}\nDownload the modified file for full content.`;
+}
+
 async function buildFinalAssistantPayload(threadId, fallbackMessage, runId = null) {
   console.log(`[DEBUG] Fetching Final Message from Thread: ${threadId}.`);
   const threadMessages = await openai.beta.threads.messages.list(threadId, { limit: 20 });
   const messages = threadMessages?.data || [];
-  const finalText = extractTextFromMessages(messages) || fallbackMessage;
-  const latestMessage = latestAssistantMessage(messages);
+  const runScopedMessage = latestAssistantMessageForRun(messages, runId);
+  const latestMessage = runScopedMessage || latestAssistantMessage(messages);
+  const rawFinalText = extractTextFromMessages(latestMessage ? [latestMessage] : messages) || fallbackMessage;
+  const finalText = normalizeExecutionStyleFallback(rawFinalText);
   const outputFileId =
     extractFileIdFromAssistantMessage(latestMessage)
     || await extractFileIdFromRunSteps(threadId, runId);
@@ -783,6 +837,9 @@ app.post('/api/agent/chat', async (req, res) => {
         'Approval acknowledged. Final output generated.',
         pending.runId
       );
+      const summaryText = downloadFile
+        ? buildConciseExecutionSummary(action?.proposedAction || userInput)
+        : finalText;
 
       pendingAssistantApprovals.delete(actionId);
       await deleteUploadedFileSafe(pending.fileId);
@@ -790,7 +847,7 @@ app.post('/api/agent/chat', async (req, res) => {
       return res.json({
         ok: true,
         type: 'text',
-        message: finalText,
+        message: summaryText,
         downloadFile,
         threadId: FIXED_THREAD_ID,
       });
@@ -931,11 +988,14 @@ app.post('/api/agent/chat', async (req, res) => {
           'Execution completed.',
           run.id
         );
+        const summaryText = downloadFile
+          ? buildConciseExecutionSummary(userInput)
+          : finalText;
         await deleteUploadedFileSafe(uploadedFileId);
         return res.json({
           ok: true,
           type: 'text',
-          message: finalText,
+          message: summaryText,
           downloadFile,
           threadId: activeThreadId,
         });
@@ -989,11 +1049,14 @@ app.post('/api/agent/chat', async (req, res) => {
         'No response generated.',
         run.id
       );
+      const summaryText = downloadFile
+        ? buildConciseExecutionSummary(userInput)
+        : finalText;
       await deleteUploadedFileSafe(uploadedFileId);
       return res.json({
         ok: true,
         type: 'text',
-        message: finalText,
+        message: summaryText,
         downloadFile,
         threadId: activeThreadId,
       });
