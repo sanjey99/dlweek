@@ -13,7 +13,8 @@ import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
-import { teamsData } from './data/organisationData';
+import { TeamData } from './data/organisationData';
+import type { ParsedAuditEvent } from './utils/csvParser';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
 import { useWebSocket, WSMessage } from './hooks/useWebSocket';
@@ -48,6 +49,11 @@ export default function App() {
   const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
   const [notifications, setNotifications] = useState<TopNavNotificationItem[]>([]);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+  // CSV-imported organisation data
+  const [importedTeams, setImportedTeams] = useState<TeamData[]>([]);
+  const [importedAuditActions, setImportedAuditActions] = useState<ActionItem[]>([]);
+  const [importedAuditEventsRaw, setImportedAuditEventsRaw] = useState<ParsedAuditEvent[]>([]);
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
@@ -367,6 +373,7 @@ export default function App() {
       <Toaster
         theme={isDark ? 'dark' : 'light'}
         position="top-right"
+        closeButton
         toastOptions={{
           style: { fontFamily: 'Inter, sans-serif', fontSize: 13 },
         }}
@@ -495,24 +502,32 @@ export default function App() {
               theme={theme}
               isDark={isDark}
               isMobile={isMobile}
-              actions={actions.filter((a) => {
-                const actionUser = (a.user || '').toLowerCase().trim();
-                if (!actionUser) return true; // no user field → show everywhere
+              actions={(() => {
+                // Use only CSV-imported teams — no demo/fallback data
+                const allTeamsData = importedTeams;
 
-                // Check if this user belongs to the selected team
-                const selectedTeam = teamsData.find((t) => t.id === selectedTeamId);
-                const isInSelectedTeam = selectedTeam?.members.some(
-                  (m) => m.name.toLowerCase() === actionUser
-                );
-                if (isInSelectedTeam) return true;
+                const backendFiltered = actions.filter((a) => {
+                  const actionUser = (a.user || '').toLowerCase().trim();
+                  if (!actionUser) return true;
+                  const selectedTeam = allTeamsData.find((t) => t.id === selectedTeamId);
+                  const isInSelectedTeam = selectedTeam?.members.some(
+                    (m) => m.name.toLowerCase() === actionUser
+                  );
+                  if (isInSelectedTeam) return true;
+                  const isInAnyTeam = allTeamsData.some((t) =>
+                    t.members.some((m) => m.name.toLowerCase() === actionUser)
+                  );
+                  return !isInAnyTeam;
+                });
 
-                // Check if this user belongs to ANY team
-                const isInAnyTeam = teamsData.some((t) =>
-                  t.members.some((m) => m.name.toLowerCase() === actionUser)
-                );
-                // If not in any team (system/third-party), show under all teams
-                return !isInAnyTeam;
-              })}
+                // Also include imported audit events that belong to this team
+                const importedForTeam = importedAuditActions.filter((a) => {
+                  const evt = importedAuditEventsRaw.find((e) => e.id === a.id);
+                  return evt?.teamId === selectedTeamId;
+                });
+
+                return [...importedForTeam, ...backendFiltered];
+              })()}
             />
           </>
         ) : activePage === 'all-audits' ? (
@@ -564,7 +579,7 @@ export default function App() {
               theme={theme}
               isDark={isDark}
               isMobile={isMobile}
-              actions={actions}
+              actions={[...importedAuditActions, ...actions]}
             />
           </>
         ) : activePage === 'organisation' ? (
@@ -572,6 +587,16 @@ export default function App() {
             theme={theme}
             isDark={isDark}
             isMobile={isMobile}
+            importedTeams={importedTeams}
+            onImportComplete={(teams, auditActions, auditEventsRaw) => {
+              setImportedTeams(teams);
+              setImportedAuditActions(auditActions);
+              setImportedAuditEventsRaw(auditEventsRaw);
+              toast.success('Organisation data imported', {
+                description: `${teams.length} teams and ${auditActions.length} audit events loaded.`,
+                duration: 4000,
+              });
+            }}
             onViewTeamAudit={(teamId, teamName) => {
               setSelectedTeamId(teamId);
               setSelectedTeamName(teamName);

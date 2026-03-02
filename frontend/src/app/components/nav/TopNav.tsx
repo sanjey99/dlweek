@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Sun, Moon, ShieldCheck, AlertTriangle, Ban, Clock3, X, Check, User, Settings, Shield, KeyRound, LogOut, ChevronRight, Activity, FileText, Building2 } from 'lucide-react';
 import { Theme } from '../../types';
 
@@ -44,7 +44,23 @@ function timeAgoLabel(iso: string): string {
 export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, unreadCount, onMarkAllRead, onMarkRead, onOpenAction, activePage = 'dashboard', onPageChange }: TopNavProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
   const notificationRows = useMemo(() => notifications, [notifications]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (isNotificationsOpen && notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+      if (isAccountOpen && accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setIsAccountOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isNotificationsOpen, isAccountOpen]);
 
   const getLevelStyles = (level: NotificationItem['level']) => {
     if (level === 'critical') {
@@ -208,7 +224,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
           </button>
 
           {/* Notification bell + popover */}
-          <div style={{ position: 'relative' }}>
+          <div ref={notificationsRef} style={{ position: 'relative' }}>
             <button
               title="Notifications"
               onClick={() => {
@@ -442,7 +458,7 @@ export function TopNav({ isDark, theme, onToggleTheme, isMobile, notifications, 
           {!isMobile && <div style={{ width: 1, height: 20, background: theme.border, margin: '0 8px' }} />}
 
           {/* User Avatar + account popup */}
-          <div style={{ position: 'relative' }}>
+          <div ref={accountRef} style={{ position: 'relative' }}>
             <button
               onClick={() => {
                 setIsAccountOpen((v) => !v);
