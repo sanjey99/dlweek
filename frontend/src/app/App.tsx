@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Toaster, toast } from 'sonner';
 import { Eye, Building2, ArrowLeft } from 'lucide-react';
 import { TopNav } from './components/nav/TopNav';
@@ -38,6 +38,8 @@ function readStoredTheme(): boolean {
 }
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isDark, setIsDark] = useState(readStoredTheme);
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -49,6 +51,10 @@ export default function App() {
   const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
   const [notifications, setNotifications] = useState<TopNavNotificationItem[]>([]);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+  const [openNotificationsKey, setOpenNotificationsKey] = useState(0);
+  const prevUnreadCountRef = useRef(0);
+  const hasNotificationBaselineRef = useRef(false);
+  const suppressNextNotificationToastRef = useRef(false);
 
   // CSV-imported organisation data
   const [importedTeams, setImportedTeams] = useState<TeamData[]>([]);
@@ -110,6 +116,42 @@ export default function App() {
     return () => clearInterval(timer);
   }, [refreshNotifications]);
 
+  useEffect(() => {
+    if (!hasNotificationBaselineRef.current) {
+      prevUnreadCountRef.current = notificationUnreadCount;
+      hasNotificationBaselineRef.current = true;
+      return;
+    }
+
+    const prev = prevUnreadCountRef.current;
+    const next = notificationUnreadCount;
+    if (suppressNextNotificationToastRef.current) {
+      suppressNextNotificationToastRef.current = false;
+      prevUnreadCountRef.current = next;
+      return;
+    }
+    if (next > prev) {
+      toast('New notifications!', {
+        duration: 5000,
+        action: {
+          label: 'View',
+          onClick: () => setOpenNotificationsKey((k) => k + 1),
+        },
+      });
+    }
+    prevUnreadCountRef.current = next;
+  }, [notificationUnreadCount]);
+
+  useEffect(() => {
+    const state = (location.state || {}) as { openNotifications?: boolean };
+    if (state.openNotifications === true) {
+      suppressNextNotificationToastRef.current = true;
+      setActivePage('dashboard');
+      setOpenNotificationsKey((k) => k + 1);
+      navigate('/', { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
+
   const handleMarkNotificationRead = useCallback(async (id: string) => {
     try {
       const data = await apiMarkNotificationRead(id);
@@ -151,6 +193,7 @@ export default function App() {
   }, []);
 
   const handleOpenAction = useCallback(async (actionId: string) => {
+    setActivePage('dashboard');
     let target = actions.find((a) => a.id === actionId);
 
     if (!target && backendConnected) {
@@ -372,7 +415,7 @@ export default function App() {
     >
       <Toaster
         theme={isDark ? 'dark' : 'light'}
-        position="top-right"
+        position="top-center"
         closeButton
         toastOptions={{
           style: { fontFamily: 'Inter, sans-serif', fontSize: 13 },
@@ -394,6 +437,8 @@ export default function App() {
         onMarkAllRead={handleMarkAllNotificationsRead}
         onMarkRead={handleMarkNotificationRead}
         onOpenAction={handleOpenAction}
+        onOpenActivityLogs={() => setActivePage('all-audits')}
+        forceOpenNotificationsKey={openNotificationsKey}
         activePage={activePage}
         onPageChange={setActivePage}
       />

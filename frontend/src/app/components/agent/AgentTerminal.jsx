@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { TerminalSquare, Send, Bot, User, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 import { getTheme } from '../../utils/theme';
 import { useIsMobile } from '../../utils/useIsMobile';
 
@@ -15,12 +16,15 @@ async function parseJsonResponse(response) {
 }
 
 export default function AgentTerminal() {
+  const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const executedActionIdsRef = useRef(new Set());
   const proposalByActionIdRef = useRef({});
   const isExecutingRef = useRef(false);
   const activeContextRef = useRef({ action: '', content: '', fileName: '', fileType: '' });
+  const prevUnreadCountRef = useRef(0);
+  const hasNotificationBaselineRef = useRef(false);
   const [isDark, setIsDark] = useState(() => {
     try {
       const stored = localStorage.getItem('sentinel-theme');
@@ -276,6 +280,46 @@ Approved Action ID: ${actionId}`;
     return () => clearInterval(intervalId);
   }, [currentActionId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshNotificationCount() {
+      try {
+        const response = await fetch('http://localhost:4000/api/notifications?limit=1');
+        if (!response.ok) return;
+        const data = await parseJsonResponse(response);
+        const next = Number(data?.unreadCount || 0);
+
+        if (!hasNotificationBaselineRef.current) {
+          prevUnreadCountRef.current = next;
+          hasNotificationBaselineRef.current = true;
+          return;
+        }
+
+        const prev = prevUnreadCountRef.current;
+        if (!cancelled && next > prev) {
+          toast('New notifications!', {
+            duration: 5000,
+            action: {
+              label: 'View',
+              onClick: () => navigate('/', { state: { openNotifications: true } }),
+            },
+          });
+        }
+        prevUnreadCountRef.current = next;
+      } catch {
+        // Ignore transient notification polling errors.
+      }
+    }
+
+    refreshNotificationCount();
+    const timer = setInterval(refreshNotificationCount, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [navigate]);
+
   async function handleSend() {
     if (!canSend) return;
     const text = input.trim();
@@ -404,6 +448,13 @@ Approved Action ID: ${actionId}`;
         transition: 'background 0.2s, color 0.2s',
       }}
     >
+      <Toaster
+        theme={isDark ? 'dark' : 'light'}
+        position="top-center"
+        closeButton
+        toastOptions={{ style: { fontFamily: 'Inter, sans-serif', fontSize: 13 } }}
+      />
+
       <header
         style={{
           position: 'sticky',
