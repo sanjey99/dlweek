@@ -33,20 +33,6 @@ dlweek/
 └── docker-compose.yml
 ```
 
-## Quick Start (Docker)
-
-```bash
-docker compose down
-docker compose up --build -d
-docker compose ps
-```
-
-### Service URLs
-- Frontend: `http://localhost:5173`
-- Backend health: `http://localhost:4000/health`
-- ML health: `http://localhost:8000/health`
-- Realtime WS: `ws://localhost:4000/ws/signals`
-
 ## Environment Setup (Required After Pull)
 
 Create your local env file every time you clone/pull to a fresh machine:
@@ -62,6 +48,21 @@ Minimum variables used by this repo:
 ```env
 OPENAI_API_KEY=your_key_here
 ```
+
+### Choose either 1. Quick Start (Docker) or 2. Local Development
+## 1. Quick Start (Docker)
+Ensure that Docker Desktop is already running before entering the following commands (avoids ["error during connect"](#error-during-connect) error).
+```bash
+docker compose down
+docker compose up --build -d
+docker compose ps
+```
+
+### Service URLs
+- Frontend: `http://localhost:5173`
+- Backend health: `http://localhost:4000/health`
+- ML health: `http://localhost:8000/health`
+- Realtime WS: `ws://localhost:4000/ws/signals`
 
 ## Local Development (macOS vs non-macOS)
 
@@ -128,7 +129,6 @@ npm run dev
 ### Governance
 - `POST /api/governance/policy-gate` — legacy policy gate
 - `POST /api/governance/fusion` — fusion evaluator (primary)
-- `POST /api/governance/fusion/finance` — legacy finance adapter → fusion *(deprecated)*
 - `POST /api/governance/actions/propose` — propose action for review
 - `GET /api/governance/actions/:actionId` — action lifecycle detail
 - `POST /api/action/approve` — human approve
@@ -144,11 +144,9 @@ npm run dev
 - `GET /health`
 - `GET /api/demo-cases`
 - `GET /api/model-info`
-- `GET /api/markets/snapshot` — live market data
 - `POST /api/infer` — ML inference proxy
 - `POST /api/ensemble` — ensemble risk scoring
 - `POST /api/scenario/run` — stress-test scenario runner
-- `WS /ws/signals` — realtime integrity feed
 
 ## MVP Decision Scope
 
@@ -170,3 +168,15 @@ Escalation is intentionally excluded from MVP interaction controls.
 - Some compatibility routes remain from migration packets.
 - Audit persistence may be in-memory depending on branch state.
 - Auth/RBAC and enterprise hardening are partial for hackathon scope.
+
+## Common Errors
+#### Error during connect
+When running [docker set up commands](#1-quick-start-docker), if terminal response shows the below, it means Docker is not responding. 
+``` bash
+error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.51/containers/json?all=1&filters=%7B%22label%22%3A%7B%22com.docker.compose.config-hash%22%3Atrue%2C%22com.docker.compose.oneoff%3DFalse%22%3Atrue%2C%22com.docker.compose.project%3Ddlweek%22%3Atrue%7D%7D": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+```
+To resolve:
+1. Open Docker Desktop.
+2. Wait for Docker to fully initialise.
+3. Run the setup commands again.
+If the issue persists after starting Docker Desktop, try restarting your machine and Docker.
