@@ -38,6 +38,13 @@ const STATUS_CONFIG: Record<
     icon: <AlertTriangle size={11} />,
     dotColor: COLORS.amber,
   },
+  MEDIUM_RISK_BLOCKED: {
+    label: 'MEDIUM · BLOCKED',
+    color: COLORS.amber,
+    bg: COLORS.amberMuted,
+    icon: <ShieldOff size={11} />,
+    dotColor: COLORS.amber,
+  },
   LOW_RISK: {
     label: 'LOW RISK',
     color: COLORS.green,
@@ -141,6 +148,7 @@ export function ActionFeed({ theme, isDark, actions, selectedId, onSelectAction,
   const getDisabledReason = (status: RiskStatus): string | null => {
     if (status === 'APPROVED') return 'Already approved — no action needed';
     if (status === 'HIGH_RISK_BLOCKED') return 'Blocked — auto-policy enforced';
+    if (status === 'MEDIUM_RISK_BLOCKED') return 'Blocked — medium risk policy enforced';
     if (status === 'LOW_RISK') return 'Low risk — auto-approved by policy';
     return null;
   };

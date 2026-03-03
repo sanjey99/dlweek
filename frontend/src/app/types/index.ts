@@ -4,6 +4,7 @@ export type RiskStatus =
   | 'HIGH_RISK_PENDING'
   | 'HIGH_RISK_BLOCKED'
   | 'MEDIUM_RISK_PENDING'
+  | 'MEDIUM_RISK_BLOCKED'
   | 'LOW_RISK'
   | 'APPROVED'
   | 'ESCALATED';

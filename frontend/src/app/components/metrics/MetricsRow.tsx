@@ -146,11 +146,11 @@ export function MetricsRow({ theme, isDark, isMobile, actions }: MetricsRowProps
     const highRisk = actions.filter(
       (a) =>
         a.riskScore >= 80 &&
-        (a.riskStatus === 'APPROVED' || a.riskStatus === 'HIGH_RISK_BLOCKED')
+        (a.riskStatus === 'APPROVED' || a.riskStatus === 'HIGH_RISK_BLOCKED' || a.riskStatus === 'MEDIUM_RISK_BLOCKED')
     ).length;
 
     const blocked = actions.filter(
-      (a) => a.riskStatus === 'HIGH_RISK_BLOCKED'
+      (a) => a.riskStatus === 'HIGH_RISK_BLOCKED' || a.riskStatus === 'MEDIUM_RISK_BLOCKED'
     ).length;
 
     const approved = actions.filter(

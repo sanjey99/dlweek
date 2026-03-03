@@ -260,10 +260,12 @@ function riskBandFromCategory(riskCategory = '') {
 async function pollRunUntilStable(threadId, runId, {
   maxAttempts = 90,
   intervalMs = 1000,
+  onProgress = null,
 } = {}) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const run = await openai.beta.threads.runs.retrieve(runId, { thread_id: threadId });
     console.log(`[POLLING]: Run Status: ${run.status}`);
+    if (onProgress) onProgress({ phase: 'polling', attempt: attempt + 1, status: run.status });
     if (['completed', 'requires_action', 'failed', 'cancelled', 'expired', 'incomplete'].includes(run.status)) {
       return run;
     }
@@ -338,8 +340,11 @@ function broadcastToClients(message) {
 
 // ─── Map ML risk category to frontend risk status ────────────────────────────
 function mapToRiskStatus(riskCategory, recommendation) {
-  if (riskCategory === 'high' || recommendation === 'block') {
-    return recommendation === 'block' ? 'HIGH_RISK_BLOCKED' : 'HIGH_RISK_PENDING';
+  if (recommendation === 'block') {
+    return riskCategory === 'high' ? 'HIGH_RISK_BLOCKED' : 'MEDIUM_RISK_BLOCKED';
+  }
+  if (riskCategory === 'high') {
+    return 'HIGH_RISK_PENDING';
   }
   if (riskCategory === 'medium' || recommendation === 'review') {
     return 'MEDIUM_RISK_PENDING';
@@ -609,7 +614,7 @@ app.post('/api/actions/:id/approve', (req, res) => {
 app.post('/api/actions/:id/block', async (req, res) => {
   const action = actionStore.find(a => a.id === req.params.id);
   if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
-  action.riskStatus = 'HIGH_RISK_BLOCKED';
+  action.riskStatus = action.riskScore >= 70 ? 'HIGH_RISK_BLOCKED' : 'MEDIUM_RISK_BLOCKED';
   await clearPendingAssistantState(action.id);
   broadcastToClients({ type: 'action_updated', action });
   return res.json({ ok: true, action });
@@ -824,7 +829,10 @@ app.post('/api/agent/chat', async (req, res) => {
         });
       }
 
-      const resumedRun = await pollRunUntilStable(FIXED_THREAD_ID, pending.runId);
+      const emitExecProgress = (message) => broadcastToClients({ type: 'agent_progress', message });
+      const execPollProgress = (info) => emitExecProgress(`Executing... (${info.status})`);
+      emitExecProgress('Approved. Generating final output...');
+      const resumedRun = await pollRunUntilStable(FIXED_THREAD_ID, pending.runId, { onProgress: execPollProgress });
       if (resumedRun.status !== 'completed') {
         return res.status(502).json({
           ok: false,
@@ -832,6 +840,7 @@ app.post('/api/agent/chat', async (req, res) => {
         });
       }
 
+      emitExecProgress('Building final response...');
       const { finalText, downloadFile } = await buildFinalAssistantPayload(
         FIXED_THREAD_ID,
         'Approval acknowledged. Final output generated.',
@@ -856,6 +865,12 @@ app.post('/api/agent/chat', async (req, res) => {
     if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
       return res.status(400).json({ ok: false, error: 'userInput is required' });
     }
+
+    // ── Progress broadcaster for agent terminal streaming ───────────────────
+    const emitProgress = (message) => broadcastToClients({ type: 'agent_progress', message });
+    const pollProgress = (info) => emitProgress(`Processing... (${info.status})`);
+
+    emitProgress('Classifying risk level...');
     const preMlAssessment = await classifyAction({
       description: userInput,
       proposed_action: userInput,
@@ -864,6 +879,7 @@ app.post('/api/agent/chat', async (req, res) => {
     const preMlRiskCategory = String(preMlAssessment?.risk_category || '').toLowerCase();
     const isLowRiskDirectExecute = preMlRiskCategory === 'low';
     console.log(`[ML RISK]: ${riskBandFromCategory(preMlRiskCategory)} detected.`);
+    emitProgress(`Risk analyzed (${riskBandFromCategory(preMlRiskCategory)}). Preparing assistant...`);
 
     let uploadedFileId = null;
     if (typeof file?.content === 'string' && file.content.length > 0) {
@@ -880,6 +896,7 @@ app.post('/api/agent/chat', async (req, res) => {
         uploadedFileId = upload.id;
         console.log(`[DEBUG] OpenAI Upload Success: ${JSON.stringify({ file_id: uploadedFileId })}`);
         console.log(`[FILE UPLOAD]: File ID received: ${uploadedFileId}`);
+        emitProgress('File uploaded to assistant.');
       } catch (uploadErr) {
         console.error('[agent/chat] file upload failed:', uploadErr?.message || uploadErr);
         return res.status(500).json({
@@ -895,6 +912,7 @@ app.post('/api/agent/chat', async (req, res) => {
     console.log(`[DEBUG] Using Fixed Thread: ${FIXED_THREAD_ID}`);
     console.log(`[DEBUG] Incoming Prompt: ${userInput.slice(0, 200)}`);
     await cancelActiveRunsForThread(activeThreadId);
+    emitProgress('Preparing assistant thread...');
 
     try {
       const hasUploadedFileContent = typeof file?.content === 'string' && file.content.length > 0;
@@ -942,7 +960,8 @@ app.post('/api/agent/chat', async (req, res) => {
     };
     const run = await openai.beta.threads.runs.create(activeThreadId, runCreateParams);
     console.log(`[DEBUG] Run Created: ${run.id} on Thread: ${activeThreadId}`);
-    const settledRun = await pollRunUntilStable(activeThreadId, run.id);
+    emitProgress('Assistant run created. Processing request...');
+    const settledRun = await pollRunUntilStable(activeThreadId, run.id, { onProgress: pollProgress });
 
     if (settledRun.status === 'requires_action') {
       const toolCalls = settledRun.required_action?.submit_tool_outputs?.tool_calls || [];
@@ -975,7 +994,8 @@ app.post('/api/agent/chat', async (req, res) => {
             error: `submitToolOutputs failed: ${String(submitErr?.message || submitErr)}`,
           });
         }
-        const completedRun = await pollRunUntilStable(activeThreadId, run.id);
+        emitProgress('Low-risk action approved. Executing...');
+        const completedRun = await pollRunUntilStable(activeThreadId, run.id, { onProgress: pollProgress });
         if (completedRun.status !== 'completed') {
           await deleteUploadedFileSafe(uploadedFileId);
           return res.status(502).json({
@@ -1044,6 +1064,7 @@ app.post('/api/agent/chat', async (req, res) => {
     }
 
     if (settledRun.status === 'completed') {
+      emitProgress('Generating response...');
       const { finalText, downloadFile } = await buildFinalAssistantPayload(
         FIXED_THREAD_ID,
         'No response generated.',

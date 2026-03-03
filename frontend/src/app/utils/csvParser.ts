@@ -153,7 +153,7 @@ export interface ParsedAuditEvent {
 
 const VALID_STATUSES: TeamStatus[] = ['Operational', 'Elevated Risk', 'Under Review', 'Active Incident'];
 const VALID_RISK_STATUSES: RiskStatus[] = [
-  'HIGH_RISK_PENDING', 'HIGH_RISK_BLOCKED', 'MEDIUM_RISK_PENDING',
+  'HIGH_RISK_PENDING', 'HIGH_RISK_BLOCKED', 'MEDIUM_RISK_PENDING', 'MEDIUM_RISK_BLOCKED',
   'LOW_RISK', 'APPROVED', 'ESCALATED',
 ];
 
@@ -344,7 +344,7 @@ export function assembleTeamsFromCsv(result: OrgCsvParseResult): TeamData[] {
     const approved = teamEvents.filter((e) => e.riskStatus === 'APPROVED').length;
     const autoApproved = teamEvents.filter((e) => e.riskStatus === 'LOW_RISK').length;
     const blocked = teamEvents.filter(
-      (e) => e.riskStatus === 'HIGH_RISK_BLOCKED' || e.riskStatus === 'ESCALATED'
+      (e) => e.riskStatus === 'HIGH_RISK_BLOCKED' || e.riskStatus === 'MEDIUM_RISK_BLOCKED' || e.riskStatus === 'ESCALATED'
     ).length;
     const pending = teamEvents.filter(
       (e) => e.riskStatus === 'HIGH_RISK_PENDING' || e.riskStatus === 'MEDIUM_RISK_PENDING'

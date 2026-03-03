@@ -29,6 +29,9 @@ export default function AgentTerminal() {
   const proposalByActionIdRef = useRef({});
   const isExecutingRef = useRef(false);
   const activeContextRef = useRef({ action: '', content: '', fileName: '', fileType: '' });
+  const currentActionIdRef = useRef(null);
+  const processActionStatusRef = useRef(null);
+  const progressMsgIdRef = useRef(null);
   const prevUnreadCountRef = useRef(0);
   const hasNotificationBaselineRef = useRef(false);
   const [isDark, setIsDark] = useState(() => {
@@ -101,7 +104,7 @@ export default function AgentTerminal() {
     []
   );
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
   async function fetchFinalTurn(actionId, promptText) {
@@ -166,11 +169,14 @@ Previously proposed change: ${prior}`;
   }, [history]);
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem('agentMessages', JSON.stringify(history));
-    } catch {
-      // Ignore storage write failures.
-    }
+    const debounceTimer = setTimeout(() => {
+      try {
+        sessionStorage.setItem('agentMessages', JSON.stringify(history));
+      } catch {
+        // Ignore storage write failures.
+      }
+    }, 1500);
+    return () => clearTimeout(debounceTimer);
   }, [history]);
 
   useEffect(() => {
@@ -197,204 +203,247 @@ Previously proposed change: ${prior}`;
     }
   }, [currentThreadId]);
 
+  // ── Keep ref in sync with currentActionId for WebSocket handler ────────────
+  useEffect(() => { currentActionIdRef.current = currentActionId; }, [currentActionId]);
   useEffect(() => {
-    if (!currentActionId) return undefined;
-    if (isExecutingRef.current) return undefined;
-    setPollingStatus('PENDING');
-
-    const intervalId = setInterval(async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:4000/api/actions?limit=200');
-        const data = await parseJsonResponse(response);
-        console.log('🔄 Polling Status Update:', data);
-        if (!response.ok) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-poll-error`,
-              role: 'system',
-              text: '❌ Error: Lost connection to Sentinel or action not found (404).',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-          return;
-        }
-
-        const matchedAction = Array.isArray(data?.actions)
-          ? data.actions.find((action) => action?.id === currentActionId)
-          : null;
-        const currentStatus = String(
-          data?.status
-            || data?.action?.status
-            || data?.action?.riskStatus
-            || matchedAction?.status
-            || matchedAction?.riskStatus
-            || ''
-        );
-        const normalizedStatus = currentStatus.toUpperCase();
-
-        if (normalizedStatus.includes('PENDING')) {
-          if (!activeContextRef.current.action && matchedAction?.proposedAction) {
-            activeContextRef.current.action = String(matchedAction.proposedAction);
-          }
-          return;
-        }
-
-        if (normalizedStatus.includes('APPROVE')) {
-          if (isExecutingRef.current) {
-            return;
-          }
-          if (executedActionIdsRef.current.has(currentActionId)) {
-            return;
-          }
-          const approvedActionId = currentActionId;
-          executedActionIdsRef.current.add(currentActionId);
-          isExecutingRef.current = true;
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-approved-exec`,
-              role: 'system',
-              text: 'Sentinel Approved. Executing action...',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          try {
-            const previousProposal = proposalByActionIdRef.current[approvedActionId];
-            const finalResult = await requestFinalOutput(approvedActionId, previousProposal);
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-approved-final`,
-                role: 'system',
-                text: finalResult?.text || 'Action approved and executed.',
-                downloadFile: finalResult?.downloadFile || null,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } catch (finalErr) {
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-approved-final-error`,
-                role: 'system',
-                text: `Sentinel Approved, but final output failed: ${String(finalErr?.message || finalErr)}`,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } finally {
-            isExecutingRef.current = false;
-          }
-          delete proposalByActionIdRef.current[approvedActionId];
-          executedActionIdsRef.current.delete(approvedActionId);
-          setPendingFile(null);
-          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
-          setPollingStatus('IDLE');
-          setInput('');
-          return;
-        }
-
-        if (normalizedStatus.includes('BLOCK') || normalizedStatus.includes('REJECT')) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-blocked`,
-              role: 'system',
-              text: `Sentinel Blocked. Action prevented. (Status: ${currentStatus})`,
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-          setPendingFile(null);
-          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
-          setPollingStatus('IDLE');
-          return;
-        }
-
-        if (normalizedStatus.includes('ESCALAT')) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-escalated`,
-              role: 'system',
-              text: 'Sentinel Escalated. Action has been escalated for further review.',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-          setPendingFile(null);
-          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
-          setPollingStatus('IDLE');
-          return;
-        }
-
-        // LOW_RISK = auto-allowed by Sentinel, treat as approved and execute
-        if (normalizedStatus.includes('LOW_RISK') || normalizedStatus === 'LOW') {
-          if (isExecutingRef.current) return;
-          if (executedActionIdsRef.current.has(currentActionId)) return;
-          const autoApprovedId = currentActionId;
-          executedActionIdsRef.current.add(currentActionId);
-          isExecutingRef.current = true;
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-low-risk-exec`,
-              role: 'system',
-              text: `Sentinel Auto-Approved (Low Risk). Executing action...`,
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          try {
-            const previousProposal = proposalByActionIdRef.current[autoApprovedId];
-            const finalResult = await requestFinalOutput(autoApprovedId, previousProposal);
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-low-risk-final`,
-                role: 'system',
-                text: finalResult?.text || 'Action auto-approved and executed.',
-                downloadFile: finalResult?.downloadFile || null,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } catch (finalErr) {
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-low-risk-final-error`,
-                role: 'system',
-                text: `Sentinel Auto-Approved (Low Risk), but final output failed: ${String(finalErr?.message || finalErr)}`,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } finally {
-            isExecutingRef.current = false;
-          }
-          delete proposalByActionIdRef.current[autoApprovedId];
-          executedActionIdsRef.current.delete(autoApprovedId);
-          setPendingFile(null);
-          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
-          setPollingStatus('IDLE');
-          setInput('');
-          return;
-        }
-      } catch {
-        // Keep polling; transient fetch failures should not crash terminal state.
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
+    if (currentActionId && !isExecutingRef.current) setPollingStatus('PENDING');
   }, [currentActionId]);
+
+  // ── Action status handler (assigned to ref so WS callback always has fresh closures) ──
+  processActionStatusRef.current = async function processActionStatus(matchedAction) {
+    const trackingId = currentActionIdRef.current;
+    if (!trackingId) return;
+    if (isExecutingRef.current) return;
+
+    const currentStatus = String(matchedAction?.riskStatus || matchedAction?.status || '');
+    const normalizedStatus = currentStatus.toUpperCase();
+
+    if (normalizedStatus.includes('PENDING')) {
+      if (!activeContextRef.current.action && matchedAction?.proposedAction) {
+        activeContextRef.current.action = String(matchedAction.proposedAction);
+      }
+      return;
+    }
+
+    if (normalizedStatus.includes('APPROVE')) {
+      if (executedActionIdsRef.current.has(trackingId)) return;
+      executedActionIdsRef.current.add(trackingId);
+      isExecutingRef.current = true;
+      currentActionIdRef.current = null;
+      setCurrentActionId(null);
+
+      const execProgressId = `s-${Date.now()}-approved-exec`;
+      progressMsgIdRef.current = execProgressId;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: execProgressId,
+          role: 'system',
+          text: 'Sentinel Approved. Executing action...',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      try {
+        const previousProposal = proposalByActionIdRef.current[trackingId];
+        const finalResult = await requestFinalOutput(trackingId, previousProposal);
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== execProgressId),
+          {
+            id: `s-${Date.now()}-approved-final`,
+            role: 'system',
+            text: finalResult?.text || 'Action approved and executed.',
+            downloadFile: finalResult?.downloadFile || null,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } catch (finalErr) {
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== execProgressId),
+          {
+            id: `s-${Date.now()}-approved-final-error`,
+            role: 'system',
+            text: `Sentinel Approved, but final output failed: ${String(finalErr?.message || finalErr)}`,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } finally {
+        isExecutingRef.current = false;
+      }
+      delete proposalByActionIdRef.current[trackingId];
+      executedActionIdsRef.current.delete(trackingId);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      setInput('');
+      return;
+    }
+
+    if (normalizedStatus.includes('BLOCK') || normalizedStatus.includes('REJECT')) {
+      currentActionIdRef.current = null;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: `s-${Date.now()}-blocked`,
+          role: 'system',
+          text: `Sentinel Blocked. Action prevented. (Status: ${currentStatus})`,
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setCurrentActionId(null);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      return;
+    }
+
+    if (normalizedStatus.includes('ESCALAT')) {
+      currentActionIdRef.current = null;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: `s-${Date.now()}-escalated`,
+          role: 'system',
+          text: 'Sentinel Escalated. Action has been escalated for further review.',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setCurrentActionId(null);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      return;
+    }
+
+    // LOW_RISK = auto-allowed by Sentinel, treat as approved and execute
+    if (normalizedStatus.includes('LOW_RISK') || normalizedStatus === 'LOW') {
+      if (executedActionIdsRef.current.has(trackingId)) return;
+      executedActionIdsRef.current.add(trackingId);
+      isExecutingRef.current = true;
+      currentActionIdRef.current = null;
+      setCurrentActionId(null);
+
+      const lowRiskProgressId = `s-${Date.now()}-low-risk-exec`;
+      progressMsgIdRef.current = lowRiskProgressId;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: lowRiskProgressId,
+          role: 'system',
+          text: 'Sentinel Auto-Approved (Low Risk). Executing action...',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      try {
+        const previousProposal = proposalByActionIdRef.current[trackingId];
+        const finalResult = await requestFinalOutput(trackingId, previousProposal);
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== lowRiskProgressId),
+          {
+            id: `s-${Date.now()}-low-risk-final`,
+            role: 'system',
+            text: finalResult?.text || 'Action auto-approved and executed.',
+            downloadFile: finalResult?.downloadFile || null,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } catch (finalErr) {
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== lowRiskProgressId),
+          {
+            id: `s-${Date.now()}-low-risk-final-error`,
+            role: 'system',
+            text: `Sentinel Auto-Approved (Low Risk), but final output failed: ${String(finalErr?.message || finalErr)}`,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } finally {
+        isExecutingRef.current = false;
+      }
+      delete proposalByActionIdRef.current[trackingId];
+      executedActionIdsRef.current.delete(trackingId);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      setInput('');
+      return;
+    }
+  };
+
+  // ── WebSocket for real-time action status (replaces 3s HTTP polling) ───────
+  useEffect(() => {
+    const wsUrl = (import.meta.env?.VITE_WS_URL || 'ws://localhost:4000') + '/ws';
+    let ws = null;
+    let reconnectTimer = null;
+    let closed = false;
+
+    function connect() {
+      if (closed) return;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      ws.onopen = () => {
+        console.log('[AgentTerminal WS] Connected');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+
+          // Live progress updates from /api/agent/chat processing
+          if (msg.type === 'agent_progress' && progressMsgIdRef.current) {
+            const pId = progressMsgIdRef.current;
+            setHistory((prev) => prev.map((m) =>
+              m.id === pId
+                ? { ...m, text: msg.message || 'Processing...', ts: new Date().toLocaleTimeString() }
+                : m
+            ));
+            return;
+          }
+
+          // On initial connect, check if tracked action already has a resolved status
+          if (msg.type === 'init' && currentActionIdRef.current) {
+            const actions = Array.isArray(msg.actions) ? msg.actions : [];
+            const matched = actions.find((a) => a?.id === currentActionIdRef.current);
+            if (matched) processActionStatusRef.current?.(matched);
+            return;
+          }
+
+          if (msg.type !== 'action_updated' && msg.type !== 'new_action') return;
+          if (!msg.action || !currentActionIdRef.current) return;
+          if (msg.action.id !== currentActionIdRef.current) return;
+
+          processActionStatusRef.current?.(msg.action);
+        } catch {
+          // Ignore parse failures.
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('[AgentTerminal WS] Disconnected — reconnecting in 3s');
+        if (!closed) reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -453,6 +502,14 @@ Previously proposed change: ${prior}`;
     };
     setInput('');
 
+    // Show live progress indicator immediately
+    const progressId = `s-${Date.now()}-progress`;
+    progressMsgIdRef.current = progressId;
+    setHistory((prev) => [
+      ...prev,
+      { id: progressId, role: 'system', text: 'Sending to Sentinel...', ts: new Date().toLocaleTimeString() },
+    ]);
+
     try {
       const payload = {
         userInput: text,
@@ -484,8 +541,10 @@ Previously proposed change: ${prior}`;
       }
 
       if (data?.type === 'text') {
+        const pId = progressMsgIdRef.current;
+        progressMsgIdRef.current = null;
         setHistory((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== pId),
           {
             id: `s-${Date.now()}-text`,
             role: 'system',
@@ -507,8 +566,10 @@ Previously proposed change: ${prior}`;
         }
         proposalByActionIdRef.current[data.actionId] = text;
         activeContextRef.current.action = text;
+        const pId = progressMsgIdRef.current;
+        progressMsgIdRef.current = null;
         setHistory((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== pId),
           {
             id: `s-${Date.now()}-tool-call`,
             role: 'system',
@@ -530,8 +591,10 @@ Previously proposed change: ${prior}`;
         ? `Agent: ${rawMessage}`
         : `Sentinel proposal failed: ${rawMessage}`;
 
+      const pId = progressMsgIdRef.current;
+      progressMsgIdRef.current = null;
       setHistory((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== pId),
         {
           id: `s-${Date.now()}-error`,
           role: 'system',

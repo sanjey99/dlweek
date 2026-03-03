@@ -40,6 +40,7 @@ function decisionLabel(s: RiskStatus): string {
     case 'LOW_RISK':
       return 'Auto-Approved';
     case 'HIGH_RISK_BLOCKED':
+    case 'MEDIUM_RISK_BLOCKED':
       return 'Blocked';
     case 'HIGH_RISK_PENDING':
     case 'MEDIUM_RISK_PENDING':
@@ -58,6 +59,7 @@ function decisionColor(s: RiskStatus): { text: string; bg: string } {
     case 'LOW_RISK':
       return { text: '#3B82F6', bg: 'rgba(59,130,246,0.12)' };
     case 'HIGH_RISK_BLOCKED':
+    case 'MEDIUM_RISK_BLOCKED':
     case 'ESCALATED':
       return { text: COLORS.red, bg: COLORS.redMuted };
     case 'HIGH_RISK_PENDING':
@@ -217,7 +219,7 @@ export function AuditTrail({ theme, isDark, isMobile, actions }: AuditTrailProps
     const total = actions.length;
     const approved = actions.filter((a) => a.riskStatus === 'APPROVED').length;
     const autoApproved = actions.filter((a) => a.riskStatus === 'LOW_RISK').length;
-    const blocked = actions.filter((a) => a.riskStatus === 'HIGH_RISK_BLOCKED' || a.riskStatus === 'ESCALATED').length;
+    const blocked = actions.filter((a) => a.riskStatus === 'HIGH_RISK_BLOCKED' || a.riskStatus === 'MEDIUM_RISK_BLOCKED' || a.riskStatus === 'ESCALATED').length;
     const pending = actions.filter((a) => a.riskStatus === 'HIGH_RISK_PENDING' || a.riskStatus === 'MEDIUM_RISK_PENDING').length;
     const avgRisk = total > 0 ? Math.round(actions.reduce((s, a) => s + a.riskScore, 0) / total) : 0;
     const highRisk = actions.filter((a) => a.riskScore >= 70).length;

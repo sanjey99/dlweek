@@ -91,7 +91,10 @@ export async function resolveGovernanceAction({
 
 export function mapBackendStatusToUiRiskStatus(status, currentRiskStatus) {
   if (status === 'approved_by_human' || status === 'approved_auto') return 'APPROVED';
-  if (status === 'blocked_by_human' || status === 'blocked') return 'HIGH_RISK_BLOCKED';
+  if (status === 'blocked_by_human' || status === 'blocked') {
+    if (currentRiskStatus === 'MEDIUM_RISK_PENDING') return 'MEDIUM_RISK_BLOCKED';
+    return 'HIGH_RISK_BLOCKED';
+  }
   if (status === 'pending_review' || status === 'escalated') return 'MEDIUM_RISK_PENDING';
   return currentRiskStatus;
 }
