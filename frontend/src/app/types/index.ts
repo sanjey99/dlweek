@@ -4,6 +4,7 @@ export type RiskStatus =
   | 'HIGH_RISK_PENDING'
   | 'HIGH_RISK_BLOCKED'
   | 'MEDIUM_RISK_PENDING'
+  | 'MEDIUM_RISK_BLOCKED'
   | 'LOW_RISK'
   | 'APPROVED'
   | 'ESCALATED';
@@ -24,6 +25,10 @@ export interface ActionItem {
   source?: string;
   /** The user/person who requested the agent action */
   user?: string;
+  /** Reviewer name (System for auto-approved, team lead name for manual) */
+  reviewer?: string;
+  /** How long the review took */
+  duration?: string;
 }
 
 export interface Theme {

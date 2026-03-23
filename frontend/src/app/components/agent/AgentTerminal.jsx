@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
-import { TerminalSquare, Send, Bot, User, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { TerminalSquare, Send, Bot, User, ShieldCheck, Sun, Moon } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 import { getTheme } from '../../utils/theme';
 import { useIsMobile } from '../../utils/useIsMobile';
 
@@ -14,13 +15,25 @@ async function parseJsonResponse(response) {
   }
 }
 
+function buildDataDownloadHref(downloadFile) {
+  if (!downloadFile?.base64) return '';
+  const mime = downloadFile?.mimeType || 'application/octet-stream';
+  return `data:${mime};base64,${downloadFile.base64}`;
+}
+
 export default function AgentTerminal() {
+  const navigate = useNavigate();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const executedActionIdsRef = useRef(new Set());
   const proposalByActionIdRef = useRef({});
   const isExecutingRef = useRef(false);
   const activeContextRef = useRef({ action: '', content: '', fileName: '', fileType: '' });
+  const currentActionIdRef = useRef(null);
+  const processActionStatusRef = useRef(null);
+  const progressMsgIdRef = useRef(null);
+  const prevUnreadCountRef = useRef(0);
+  const hasNotificationBaselineRef = useRef(false);
   const [isDark, setIsDark] = useState(() => {
     try {
       const stored = localStorage.getItem('sentinel-theme');
@@ -32,6 +45,13 @@ export default function AgentTerminal() {
   const [input, setInput] = useState('');
   const [pendingFile, setPendingFile] = useState(null);
   const [pollingStatus, setPollingStatus] = useState('IDLE');
+  const [currentThreadId, setCurrentThreadId] = useState(() => {
+    try {
+      return sessionStorage.getItem('agentThreadId') || null;
+    } catch {
+      return null;
+    }
+  });
   const [currentActionId, setCurrentActionId] = useState(() => {
     try {
       return sessionStorage.getItem('agentActionId') || null;
@@ -84,14 +104,17 @@ export default function AgentTerminal() {
     []
   );
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
-  async function fetchFinalTurn(promptText) {
+  async function fetchFinalTurn(actionId, promptText) {
     const response = await fetch('http://localhost:4000/api/agent/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        actionId,
+        sentinel_status: 'APPROVED',
+        threadId: currentThreadId || undefined,
         userInput: promptText,
         agent: 'OpenAI',
         isExecutionTurn: true,
@@ -108,25 +131,37 @@ export default function AgentTerminal() {
   }
 
   async function requestFinalOutput(actionId, previousProposal) {
-    const followupPrompt = `HUMAN APPROVAL GRANTED. You previously proposed: "${previousProposal || activeContextRef.current.action || 'No proposal text available.'}". Using the provided file content, execute this change NOW. Return ONLY the updated code block or a completion summary. CRITICAL: Do not call any tools. Do not propose new actions. STOP after this response.
-Approved Action ID: ${actionId}`;
-    const response = await fetchFinalTurn(followupPrompt);
+    const prior = previousProposal || activeContextRef.current.action || 'No proposal text available.';
+    const followupPrompt = `The human has approved this. Use Code Interpreter to finalize the edit and return only the updated code block.
+Approved Action ID: ${actionId}
+Previously proposed change: ${prior}`;
+    const response = await fetchFinalTurn(actionId, followupPrompt);
     if (!response.ok) {
       throw new Error(`Final output request failed with HTTP ${response.status}`);
     }
     const data = await parseJsonResponse(response);
-    if (data?.type === 'text' && data?.message) return String(data.message);
+    if (data?.threadId) {
+      setCurrentThreadId(String(data.threadId));
+    }
+    if (data?.type === 'text' && data?.message) {
+      return { text: String(data.message), downloadFile: data?.downloadFile || null };
+    }
     if (data?.type === 'tool_call') {
-      const retryPrompt = `SYSTEM INSTRUCTION: Finalization retry. Do not propose any actions or tool calls. Return only the final updated file content (or a concise completion summary if no file edit is needed).`;
-      const retryResponse = await fetchFinalTurn(retryPrompt);
+      const retryPrompt = 'The human has approved this. Use Code Interpreter to finalize the edit and return only the updated code block.';
+      const retryResponse = await fetchFinalTurn(actionId, retryPrompt);
       if (!retryResponse.ok) {
         throw new Error(`Final retry failed with HTTP ${retryResponse.status}`);
       }
       const retryData = await parseJsonResponse(retryResponse);
-      if (retryData?.type === 'text' && retryData?.message) return String(retryData.message);
+      if (retryData?.threadId) {
+        setCurrentThreadId(String(retryData.threadId));
+      }
+      if (retryData?.type === 'text' && retryData?.message) {
+        return { text: String(retryData.message), downloadFile: retryData?.downloadFile || null };
+      }
     }
-    if (data?.message) return String(data.message);
-    return 'Action approved and executed.';
+    if (data?.message) return { text: String(data.message), downloadFile: data?.downloadFile || null };
+    return { text: 'Action approved and executed.', downloadFile: null };
   }
 
   useEffect(() => {
@@ -134,11 +169,14 @@ Approved Action ID: ${actionId}`;
   }, [history]);
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem('agentMessages', JSON.stringify(history));
-    } catch {
-      // Ignore storage write failures.
-    }
+    const debounceTimer = setTimeout(() => {
+      try {
+        sessionStorage.setItem('agentMessages', JSON.stringify(history));
+      } catch {
+        // Ignore storage write failures.
+      }
+    }, 1500);
+    return () => clearTimeout(debounceTimer);
   }, [history]);
 
   useEffect(() => {
@@ -154,127 +192,298 @@ Approved Action ID: ${actionId}`;
   }, [currentActionId]);
 
   useEffect(() => {
-    if (!currentActionId) return undefined;
-    if (isExecutingRef.current) return undefined;
-    setPollingStatus('PENDING');
-
-    const intervalId = setInterval(async () => {
-      try {
-        const response = await fetch('http://127.0.0.1:4000/api/actions?limit=200');
-        const data = await parseJsonResponse(response);
-        console.log('🔄 Polling Status Update:', data);
-        if (!response.ok) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-poll-error`,
-              role: 'system',
-              text: '❌ Error: Lost connection to Sentinel or action not found (404).',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-          return;
-        }
-
-        const matchedAction = Array.isArray(data?.actions)
-          ? data.actions.find((action) => action?.id === currentActionId)
-          : null;
-        const currentStatus = String(
-          data?.status
-            || data?.action?.status
-            || data?.action?.riskStatus
-            || matchedAction?.status
-            || matchedAction?.riskStatus
-            || ''
-        );
-        const normalizedStatus = currentStatus.toUpperCase();
-
-        if (normalizedStatus.includes('PENDING')) {
-          if (!activeContextRef.current.action && matchedAction?.proposedAction) {
-            activeContextRef.current.action = String(matchedAction.proposedAction);
-          }
-          return;
-        }
-
-        if (normalizedStatus.includes('APPROVE')) {
-          if (isExecutingRef.current) {
-            return;
-          }
-          if (executedActionIdsRef.current.has(currentActionId)) {
-            return;
-          }
-          const approvedActionId = currentActionId;
-          executedActionIdsRef.current.add(currentActionId);
-          isExecutingRef.current = true;
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-approved-exec`,
-              role: 'system',
-              text: 'Sentinel Approved. Executing action...',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          try {
-            const previousProposal = proposalByActionIdRef.current[approvedActionId];
-            const finalText = await requestFinalOutput(approvedActionId, previousProposal);
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-approved-final`,
-                role: 'system',
-                text: finalText,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } catch (finalErr) {
-            setHistory((prev) => [
-              ...prev,
-              {
-                id: `s-${Date.now()}-approved-final-error`,
-                role: 'system',
-                text: `Sentinel Approved, but final output failed: ${String(finalErr?.message || finalErr)}`,
-                ts: new Date().toLocaleTimeString(),
-              },
-            ]);
-          } finally {
-            isExecutingRef.current = false;
-          }
-          delete proposalByActionIdRef.current[approvedActionId];
-          executedActionIdsRef.current.delete(approvedActionId);
-          setPendingFile(null);
-          activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
-          setPollingStatus('IDLE');
-          setInput('');
-          return;
-        }
-
-        if (normalizedStatus.includes('BLOCK') || normalizedStatus.includes('REJECT')) {
-          setHistory((prev) => [
-            ...prev,
-            {
-              id: `s-${Date.now()}-blocked`,
-              role: 'system',
-              text: 'Sentinel Blocked. Action prevented.',
-              ts: new Date().toLocaleTimeString(),
-            },
-          ]);
-          clearInterval(intervalId);
-          setCurrentActionId(null);
-          setPollingStatus('IDLE');
-        }
-      } catch {
-        // Keep polling; transient fetch failures should not crash terminal state.
+    try {
+      if (currentThreadId) {
+        sessionStorage.setItem('agentThreadId', currentThreadId);
+      } else {
+        sessionStorage.removeItem('agentThreadId');
       }
-    }, 3000);
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [currentThreadId]);
 
-    return () => clearInterval(intervalId);
+  // ── Keep ref in sync with currentActionId for WebSocket handler ────────────
+  useEffect(() => { currentActionIdRef.current = currentActionId; }, [currentActionId]);
+  useEffect(() => {
+    if (currentActionId && !isExecutingRef.current) setPollingStatus('PENDING');
   }, [currentActionId]);
+
+  // ── Action status handler (assigned to ref so WS callback always has fresh closures) ──
+  processActionStatusRef.current = async function processActionStatus(matchedAction) {
+    const trackingId = currentActionIdRef.current;
+    if (!trackingId) return;
+    if (isExecutingRef.current) return;
+
+    const currentStatus = String(matchedAction?.riskStatus || matchedAction?.status || '');
+    const normalizedStatus = currentStatus.toUpperCase();
+
+    if (normalizedStatus.includes('PENDING')) {
+      if (!activeContextRef.current.action && matchedAction?.proposedAction) {
+        activeContextRef.current.action = String(matchedAction.proposedAction);
+      }
+      return;
+    }
+
+    if (normalizedStatus.includes('APPROVE')) {
+      if (executedActionIdsRef.current.has(trackingId)) return;
+      executedActionIdsRef.current.add(trackingId);
+      isExecutingRef.current = true;
+      currentActionIdRef.current = null;
+      setCurrentActionId(null);
+
+      const execProgressId = `s-${Date.now()}-approved-exec`;
+      progressMsgIdRef.current = execProgressId;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: execProgressId,
+          role: 'system',
+          text: 'Sentinel Approved. Executing action...',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      try {
+        const previousProposal = proposalByActionIdRef.current[trackingId];
+        const finalResult = await requestFinalOutput(trackingId, previousProposal);
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== execProgressId),
+          {
+            id: `s-${Date.now()}-approved-final`,
+            role: 'system',
+            text: finalResult?.text || 'Action approved and executed.',
+            downloadFile: finalResult?.downloadFile || null,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } catch (finalErr) {
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== execProgressId),
+          {
+            id: `s-${Date.now()}-approved-final-error`,
+            role: 'system',
+            text: `Sentinel Approved, but final output failed: ${String(finalErr?.message || finalErr)}`,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } finally {
+        isExecutingRef.current = false;
+      }
+      delete proposalByActionIdRef.current[trackingId];
+      executedActionIdsRef.current.delete(trackingId);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      setInput('');
+      return;
+    }
+
+    if (normalizedStatus.includes('BLOCK') || normalizedStatus.includes('REJECT')) {
+      currentActionIdRef.current = null;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: `s-${Date.now()}-blocked`,
+          role: 'system',
+          text: `Sentinel Blocked. Action prevented. (Status: ${currentStatus})`,
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setCurrentActionId(null);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      return;
+    }
+
+    if (normalizedStatus.includes('ESCALAT')) {
+      currentActionIdRef.current = null;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: `s-${Date.now()}-escalated`,
+          role: 'system',
+          text: 'Sentinel Escalated. Action has been escalated for further review.',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      setCurrentActionId(null);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      return;
+    }
+
+    // LOW_RISK = auto-allowed by Sentinel, treat as approved and execute
+    if (normalizedStatus.includes('LOW_RISK') || normalizedStatus === 'LOW') {
+      if (executedActionIdsRef.current.has(trackingId)) return;
+      executedActionIdsRef.current.add(trackingId);
+      isExecutingRef.current = true;
+      currentActionIdRef.current = null;
+      setCurrentActionId(null);
+
+      const lowRiskProgressId = `s-${Date.now()}-low-risk-exec`;
+      progressMsgIdRef.current = lowRiskProgressId;
+      setHistory((prev) => [
+        ...prev,
+        {
+          id: lowRiskProgressId,
+          role: 'system',
+          text: 'Sentinel Auto-Approved (Low Risk). Executing action...',
+          ts: new Date().toLocaleTimeString(),
+        },
+      ]);
+      try {
+        const previousProposal = proposalByActionIdRef.current[trackingId];
+        const finalResult = await requestFinalOutput(trackingId, previousProposal);
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== lowRiskProgressId),
+          {
+            id: `s-${Date.now()}-low-risk-final`,
+            role: 'system',
+            text: finalResult?.text || 'Action auto-approved and executed.',
+            downloadFile: finalResult?.downloadFile || null,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } catch (finalErr) {
+        progressMsgIdRef.current = null;
+        setHistory((prev) => [
+          ...prev.filter((m) => m.id !== lowRiskProgressId),
+          {
+            id: `s-${Date.now()}-low-risk-final-error`,
+            role: 'system',
+            text: `Sentinel Auto-Approved (Low Risk), but final output failed: ${String(finalErr?.message || finalErr)}`,
+            ts: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } finally {
+        isExecutingRef.current = false;
+      }
+      delete proposalByActionIdRef.current[trackingId];
+      executedActionIdsRef.current.delete(trackingId);
+      setPendingFile(null);
+      activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
+      setPollingStatus('IDLE');
+      setInput('');
+      return;
+    }
+  };
+
+  // ── WebSocket for real-time action status (replaces 3s HTTP polling) ───────
+  useEffect(() => {
+    const wsUrl = (import.meta.env?.VITE_WS_URL || 'ws://localhost:4000') + '/ws';
+    let ws = null;
+    let reconnectTimer = null;
+    let closed = false;
+
+    function connect() {
+      if (closed) return;
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch {
+        reconnectTimer = setTimeout(connect, 3000);
+        return;
+      }
+
+      ws.onopen = () => {
+        console.log('[AgentTerminal WS] Connected');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+
+          // Live progress updates from /api/agent/chat processing
+          if (msg.type === 'agent_progress' && progressMsgIdRef.current) {
+            const pId = progressMsgIdRef.current;
+            setHistory((prev) => prev.map((m) =>
+              m.id === pId
+                ? { ...m, text: msg.message || 'Processing...', ts: new Date().toLocaleTimeString() }
+                : m
+            ));
+            return;
+          }
+
+          // On initial connect, check if tracked action already has a resolved status
+          if (msg.type === 'init' && currentActionIdRef.current) {
+            const actions = Array.isArray(msg.actions) ? msg.actions : [];
+            const matched = actions.find((a) => a?.id === currentActionIdRef.current);
+            if (matched) processActionStatusRef.current?.(matched);
+            return;
+          }
+
+          if (msg.type !== 'action_updated' && msg.type !== 'new_action') return;
+          if (!msg.action || !currentActionIdRef.current) return;
+          if (msg.action.id !== currentActionIdRef.current) return;
+
+          processActionStatusRef.current?.(msg.action);
+        } catch {
+          // Ignore parse failures.
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('[AgentTerminal WS] Disconnected — reconnecting in 3s');
+        if (!closed) reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshNotificationCount() {
+      try {
+        const response = await fetch('http://localhost:4000/api/notifications?limit=1');
+        if (!response.ok) return;
+        const data = await parseJsonResponse(response);
+        const next = Number(data?.unreadCount || 0);
+
+        if (!hasNotificationBaselineRef.current) {
+          prevUnreadCountRef.current = next;
+          hasNotificationBaselineRef.current = true;
+          return;
+        }
+
+        const prev = prevUnreadCountRef.current;
+        if (!cancelled && next > prev) {
+          toast('New notifications!', {
+            duration: 5000,
+            action: {
+              label: 'View',
+              onClick: () => navigate('/', { state: { openNotifications: true } }),
+            },
+          });
+        }
+        prevUnreadCountRef.current = next;
+      } catch {
+        // Ignore transient notification polling errors.
+      }
+    }
+
+    refreshNotificationCount();
+    const timer = setInterval(refreshNotificationCount, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [navigate]);
 
   async function handleSend() {
     if (!canSend) return;
@@ -293,8 +502,21 @@ Approved Action ID: ${actionId}`;
     };
     setInput('');
 
+    // Show live progress indicator immediately
+    const progressId = `s-${Date.now()}-progress`;
+    progressMsgIdRef.current = progressId;
+    setHistory((prev) => [
+      ...prev,
+      { id: progressId, role: 'system', text: 'Sending to Sentinel...', ts: new Date().toLocaleTimeString() },
+    ]);
+
     try {
-      const payload = { userInput: text, agent: 'OpenAI', file: pendingFile || undefined };
+      const payload = {
+        userInput: text,
+        agent: 'OpenAI',
+        threadId: currentThreadId || undefined,
+        file: pendingFile || undefined,
+      };
       console.log('JSON Payload sent to Sentinel:', JSON.stringify(payload, null, 2));
 
       const response = await fetch('http://localhost:4000/api/agent/chat', {
@@ -314,17 +536,27 @@ Approved Action ID: ${actionId}`;
         throw new Error(`Backend connection failed - ${backendError}`);
       }
       const data = await parseJsonResponse(response);
+      if (data?.threadId) {
+        setCurrentThreadId(String(data.threadId));
+      }
 
       if (data?.type === 'text') {
+        const pId = progressMsgIdRef.current;
+        progressMsgIdRef.current = null;
         setHistory((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== pId),
           {
             id: `s-${Date.now()}-text`,
             role: 'system',
             text: String(data?.message || ''),
+            downloadFile: data?.downloadFile || null,
             ts: new Date().toLocaleTimeString(),
           },
         ]);
+        setPendingFile(null);
+        setPollingStatus('IDLE');
+        setCurrentActionId(null);
+        activeContextRef.current = { action: '', content: '', fileName: '', fileType: '' };
         return;
       }
 
@@ -334,8 +566,10 @@ Approved Action ID: ${actionId}`;
         }
         proposalByActionIdRef.current[data.actionId] = text;
         activeContextRef.current.action = text;
+        const pId = progressMsgIdRef.current;
+        progressMsgIdRef.current = null;
         setHistory((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== pId),
           {
             id: `s-${Date.now()}-tool-call`,
             role: 'system',
@@ -357,8 +591,10 @@ Approved Action ID: ${actionId}`;
         ? `Agent: ${rawMessage}`
         : `Sentinel proposal failed: ${rawMessage}`;
 
+      const pId = progressMsgIdRef.current;
+      progressMsgIdRef.current = null;
       setHistory((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== pId),
         {
           id: `s-${Date.now()}-error`,
           role: 'system',
@@ -379,6 +615,18 @@ Approved Action ID: ${actionId}`;
   function handleFileChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+    const lowerName = String(file.name || '').toLowerCase();
+    const allowedExt = ['.html', '.css', '.js', '.txt'];
+    const allowed = allowedExt.some((ext) => lowerName.endsWith(ext));
+    if (!allowed) {
+      if (lowerName.endsWith('.pdf') || file.type === 'application/pdf') {
+        alert('Currently supporting only .html, .css, .js, and .txt.');
+      } else {
+        alert('Unsupported file type. Please choose .html, .css, .js, or .txt.');
+      }
+      event.target.value = '';
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -404,6 +652,13 @@ Approved Action ID: ${actionId}`;
         transition: 'background 0.2s, color 0.2s',
       }}
     >
+      <Toaster
+        theme={isDark ? 'dark' : 'light'}
+        position="top-center"
+        closeButton
+        toastOptions={{ style: { fontFamily: 'Inter, sans-serif', fontSize: 13 } }}
+      />
+
       <header
         style={{
           position: 'sticky',
@@ -464,7 +719,7 @@ Approved Action ID: ${actionId}`;
                 cursor: 'pointer',
               }}
             >
-              {isDark ? 'Light' : 'Dark'}
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <Link
               to="/"
@@ -565,6 +820,17 @@ Approved Action ID: ${actionId}`;
                     </span>
                   </div>
                   <div>{msg.text}</div>
+                  {msg?.downloadFile?.base64 ? (
+                    <div style={{ marginTop: 8 }}>
+                      <a
+                        href={buildDataDownloadHref(msg.downloadFile)}
+                        download={msg?.downloadFile?.fileName || 'modified-file'}
+                        style={{ color: '#30A46C', textDecoration: 'underline' }}
+                      >
+                        [Download Modified File]
+                      </a>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -577,14 +843,15 @@ Approved Action ID: ${actionId}`;
                 ref={fileInputRef}
                 id="agent-file-input"
                 type="file"
-                accept=".js,.ts,.jsx,.tsx,.html,.css,.py,.json,.txt,.md"
+                accept=".html,.css,.js,.txt,text/plain,text/css,text/html,text/javascript,application/javascript"
                 onChange={handleFileChange}
                 style={{ display: 'none' }}
               />
               {!pendingFile ? (
                 <>
-                  <label
-                    htmlFor="agent-file-input"
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
                     style={{
                       border: `1px solid ${theme.border}`,
                       background: theme.surface,
@@ -596,7 +863,7 @@ Approved Action ID: ${actionId}`;
                     }}
                   >
                     Choose file
-                  </label>
+                  </button>
                   <span style={{ color: theme.textTertiary, fontSize: 11 }}>No file chosen</span>
                 </>
               ) : (

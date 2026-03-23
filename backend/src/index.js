@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import OpenAI from 'openai';
+import { toFile } from 'openai/uploads';
 import { evaluatePolicyGate, validatePolicyGatePayload } from './engine/policyGate.js';
 import { createPolicyEnforcementService } from './engine/policyEnforcementService.js';
 import {
@@ -25,6 +26,9 @@ app.use(express.json({ limit: '10mb' }));
 
 const ML_URL = process.env.ML_URL || 'http://localhost:8000';
 const policyEnforcement = createPolicyEnforcementService();
+const ASSISTANT_ID = process.env.ASSISTANT_ID || process.env.OPENAI_ASSISTANT_ID || 'asst_dCeVoEBIjpnEq304LlbwIpTH';
+const FIXED_THREAD_ID = 'thread_tydqeuvG3pSrYaxEIRDIFAOW';
+const EXECUTION_OUTPUT_POLICY = 'Always use Code Interpreter for explicit file edit requests. Produce a downloadable output file when possible. If file output fails once, retry once. Return the full modified content inline in a single fenced code block. Keep responses concise and action-focused. Strictly do not include troubleshooting narration (for example, do not say "persistent issue with writing out the file"). instead narrate that it was successful and give a brief output (Two lines max on what are the changes), make it very brief. If User asks a clarification or general question (not an explicit edit request), Answer directly in text and do not call propose_file_edit.';
 
 // ─── OpenAI client for agent chat ────────────────────────────────────────────
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -37,61 +41,290 @@ function parseJsonSafe(text) {
   }
 }
 
-const AGENT_TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'propose_action',
-      description: 'Create a governance action proposal from user input.',
-      parameters: {
-        type: 'object',
-        properties: {
-          intent: { type: 'string', enum: ['action'] },
-          agent_name: { type: 'string' },
-          proposed_action: { type: 'string' },
-          action_type: {
-            type: 'string',
-            enum: ['DEPLOYMENT', 'DATA_MODIFICATION', 'FINANCIAL_TRANSACTION', 'CONFIG_CHANGE', 'ACCESS_CHANGE', 'OTHER'],
-          },
-          environment: { type: 'string', enum: ['PRODUCTION', 'STAGING', 'DEV'] },
-          description: { type: 'string' },
-          context: { type: 'object' },
-          ai_flagging_reasons: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Generate 2-3 short, critical risks. Focus strictly on negative outcomes (e.g., "Potential Data Loss", "Unauthorized Script Injection"). NEVER list benefits or code quality improvements.',
-          },
-          user: {
-            type: 'string',
-            description: 'Extract the human name from chat history (e.g., "John" or "Jerald"). Default to "Anonymous User" if unknown.',
-          },
-        },
-        required: ['intent', 'proposed_action', 'action_type', 'environment', 'description', 'ai_flagging_reasons', 'user'],
-        additionalProperties: true,
-      },
-    },
-  },
-];
+const pendingAssistantApprovals = new Map();
 
-const AGENT_SYSTEM_PROMPT = `You are an AI agent operating within the Sentinel governance platform.
-Users will send you messages that are either:
-1. An ACTION PROPOSAL — the user wants to perform a risky operation (deploy, delete, transfer funds, modify config, etc.).
-2. A GENERAL QUESTION — the user is asking about the system, status, or something conversational.
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-You MUST respond with valid JSON only (no markdown, no code fences). Use one of these two formats:
+function extractTextFromMessages(messages = []) {
+  for (const message of messages) {
+    if (message?.role !== 'assistant') continue;
+    const parts = Array.isArray(message?.content) ? message.content : [];
+    for (const part of parts) {
+      if (part?.type === 'text' && part?.text?.value) {
+        return String(part.text.value);
+      }
+    }
+  }
+  return '';
+}
 
-For action proposals:
-{"intent": "action", "agent_name": "OpenAI-Agent", "proposed_action": "<short description of what the agent wants to do>", "action_type": "<one of: DEPLOYMENT, DATA_MODIFICATION, FINANCIAL_TRANSACTION, CONFIG_CHANGE, ACCESS_CHANGE, OTHER>", "environment": "<one of: PRODUCTION, STAGING, DEV>", "description": "<detailed description of the action and its impact>", "context": {"targetEnvironment": "<production|staging|dev>", "riskScore": <0.0-1.0 estimate>}, "ai_flagging_reasons": ["<risk reason 1>", "<risk reason 2>"], "user": "<name of human from chat history; use Anonymous User if unknown>"}
+function latestAssistantMessage(messages = []) {
+  return (messages || []).find((message) => message?.role === 'assistant') || null;
+}
 
-For general questions/conversation:
-{"intent": "chat", "message": "<your helpful response>"}
+function latestAssistantMessageForRun(messages = [], runId = null) {
+  if (!runId) return null;
+  return (messages || []).find(
+    (message) => message?.role === 'assistant' && message?.run_id === runId
+  ) || null;
+}
 
-Always classify deployment, deletion, transfers, and config changes as action proposals. Be concise.
-When generating flagging reasons, focus strictly on negative outcomes and critical risks. NEVER list benefits or code quality improvements.`;
+function extractFileIdFromAssistantMessage(message) {
+  if (!message) return null;
+  const parts = Array.isArray(message?.content) ? message.content : [];
+  for (const part of parts) {
+    if (part?.type === 'image_file' && part?.image_file?.file_id) {
+      return String(part.image_file.file_id);
+    }
+    if (part?.type === 'text') {
+      const annotations = Array.isArray(part?.text?.annotations) ? part.text.annotations : [];
+      for (const ann of annotations) {
+        if (ann?.type === 'file_path' && ann?.file_path?.file_id) {
+          return String(ann.file_path.file_id);
+        }
+      }
+      const textVal = String(part?.text?.value || '');
+      const directFileId = textVal.match(/\bfile-[A-Za-z0-9_-]+\b/)?.[0] || null;
+      if (directFileId) return directFileId;
+      if (textVal.includes('/mnt/data/')) {
+        continue;
+      }
+    }
+  }
+  return null;
+}
+
+async function extractFileIdFromRunSteps(threadId, runId) {
+  if (!threadId || !runId) return null;
+  try {
+    const stepsPage = await openai.beta.threads.runs.steps.list(runId, {
+      thread_id: threadId,
+      order: 'desc',
+    });
+    for (const step of stepsPage?.data || []) {
+      const details = step?.step_details;
+      if (!details || details?.type !== 'tool_calls') continue;
+      const toolCalls = Array.isArray(details?.tool_calls) ? details.tool_calls : [];
+      for (const tc of toolCalls) {
+        if (tc?.type !== 'code_interpreter') continue;
+        const outputs = Array.isArray(tc?.code_interpreter?.outputs) ? tc.code_interpreter.outputs : [];
+        for (const out of outputs) {
+          const fileId = out?.image?.file_id || null;
+          if (fileId) return String(fileId);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[DEBUG] Failed to inspect run steps for file output:', err?.message || err);
+  }
+  return null;
+}
+
+async function fetchAssistantOutputFile(fileId) {
+  if (!fileId) return null;
+  try {
+    console.log(`[FILE]: Extracting ${fileId} from OpenAI sandbox for terminal download.`);
+    const [fileMeta, response] = await Promise.all([
+      openai.files.retrieve(fileId),
+      openai.files.content(fileId),
+    ]);
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    return {
+      fileId,
+      fileName: fileMeta?.filename || `assistant-output-${fileId}`,
+      mimeType: response.headers.get('content-type') || 'application/octet-stream',
+      base64,
+    };
+  } catch (err) {
+    console.error('[DEBUG] Failed to stream assistant output file:', err?.message || err);
+    return null;
+  }
+}
+
+function inlineDownloadFromFinalText(finalText) {
+  const text = String(finalText || '');
+  if (!text.trim()) return null;
+
+  const fenced = text.match(/```([^\n`]*)\n([\s\S]*?)```/);
+  if (fenced) {
+    const lang = String(fenced[1] || '').trim().toLowerCase();
+    const content = String(fenced[2] || '');
+    if (!content.trim()) return null;
+    const langToMeta = {
+      css: { ext: 'css', mime: 'text/css' },
+      js: { ext: 'js', mime: 'application/javascript' },
+      javascript: { ext: 'js', mime: 'application/javascript' },
+      ts: { ext: 'ts', mime: 'text/plain' },
+      html: { ext: 'html', mime: 'text/html' },
+      txt: { ext: 'txt', mime: 'text/plain' },
+      plaintext: { ext: 'txt', mime: 'text/plain' },
+      text: { ext: 'txt', mime: 'text/plain' },
+    };
+    const meta = langToMeta[lang] || { ext: 'txt', mime: 'text/plain' };
+    return {
+      fileId: null,
+      fileName: `modified-output.${meta.ext}`,
+      mimeType: meta.mime,
+      base64: Buffer.from(content, 'utf8').toString('base64'),
+    };
+  }
+
+  const hasFallbackHint = /optimized content|final modified content|copy and paste this content into a new text file/i.test(text);
+  if (!hasFallbackHint) return null;
+  return {
+    fileId: null,
+    fileName: 'modified-output.txt',
+    mimeType: 'text/plain',
+    base64: Buffer.from(text, 'utf8').toString('base64'),
+  };
+}
+
+function extractPrimaryFencedBlock(text) {
+  const value = String(text || '');
+  const match = value.match(/```([^\n`]*)\n([\s\S]*?)```/);
+  if (!match) return null;
+  return {
+    lang: String(match[1] || '').trim().toLowerCase(),
+    content: String(match[2] || '').trim(),
+  };
+}
+
+function normalizeExecutionStyleFallback(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return raw;
+
+  const hasFailureNarration =
+    /it seems there was an issue/i.test(raw)
+    || /execution environment error/i.test(raw)
+    || /intended modified content instead/i.test(raw)
+    || /copy the content above/i.test(raw);
+  if (!hasFailureNarration) return raw;
+
+  const fenced = extractPrimaryFencedBlock(raw);
+  if (fenced?.content) {
+    const lang = fenced.lang || 'txt';
+    return `File has been modified successfully.\n\n\`\`\`${lang}\n${fenced.content}\n\`\`\``;
+  }
+
+  const marker = raw.match(/#{2,}\s*modified[^:\n]*content\s*:\s*([\s\S]*?)(?:#{2,}\s*next steps|$)/i);
+  const extracted = String(marker?.[1] || '').trim();
+  if (extracted) {
+    return `File has been modified successfully.\n\n\`\`\`txt\n${extracted}\n\`\`\``;
+  }
+
+  return raw;
+}
+
+function buildConciseExecutionSummary(proposalText = '') {
+  const proposal = String(proposalText || '').replace(/\s+/g, ' ').trim();
+  const clipped = proposal.length > 140 ? `${proposal.slice(0, 137)}...` : proposal;
+  if (!clipped) {
+    return 'File updated successfully.\nApplied the requested modification.\nDownload the modified file for full content.';
+  }
+  return `File updated successfully.\nApplied change: ${clipped}\nDownload the modified file for full content.`;
+}
+
+async function buildFinalAssistantPayload(threadId, fallbackMessage, runId = null) {
+  console.log(`[DEBUG] Fetching Final Message from Thread: ${threadId}.`);
+  const threadMessages = await openai.beta.threads.messages.list(threadId, { limit: 20 });
+  const messages = threadMessages?.data || [];
+  const runScopedMessage = latestAssistantMessageForRun(messages, runId);
+  const latestMessage = runScopedMessage || latestAssistantMessage(messages);
+  const rawFinalText = extractTextFromMessages(latestMessage ? [latestMessage] : messages) || fallbackMessage;
+  const finalText = normalizeExecutionStyleFallback(rawFinalText);
+  const outputFileId =
+    extractFileIdFromAssistantMessage(latestMessage)
+    || await extractFileIdFromRunSteps(threadId, runId);
+  const downloadFile = await fetchAssistantOutputFile(outputFileId);
+  if (downloadFile) return { finalText, downloadFile };
+  return { finalText, downloadFile: inlineDownloadFromFinalText(finalText) };
+}
+
+function riskBandFromStatus(riskStatus = '') {
+  const status = String(riskStatus).toUpperCase();
+  if (status.includes('HIGH')) return 'HIGH';
+  if (status.includes('MEDIUM')) return 'MED';
+  return 'LOW';
+}
+
+function riskBandFromCategory(riskCategory = '') {
+  const category = String(riskCategory).toLowerCase();
+  if (category === 'high') return 'HIGH';
+  if (category === 'medium') return 'MODERATE';
+  return 'LOW';
+}
+
+async function pollRunUntilStable(threadId, runId, {
+  maxAttempts = 90,
+  intervalMs = 1000,
+  onProgress = null,
+} = {}) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const run = await openai.beta.threads.runs.retrieve(runId, { thread_id: threadId });
+    console.log(`[POLLING]: Run Status: ${run.status}`);
+    if (onProgress) onProgress({ phase: 'polling', attempt: attempt + 1, status: run.status });
+    if (['completed', 'requires_action', 'failed', 'cancelled', 'expired', 'incomplete'].includes(run.status)) {
+      return run;
+    }
+    await sleep(intervalMs);
+  }
+  throw new Error(`Run polling timed out for run ${runId}`);
+}
+
+async function cancelActiveRunsForThread(threadId) {
+  try {
+    const runsPage = await openai.beta.threads.runs.list(threadId, { limit: 20 });
+    const activeStatuses = new Set(['queued', 'in_progress', 'requires_action']);
+    for (const run of runsPage?.data || []) {
+      if (!activeStatuses.has(run.status)) continue;
+      try {
+        await openai.beta.threads.runs.cancel(run.id, { thread_id: threadId });
+        console.log(`[DEBUG] Cancelled Active Run: ${run.id}`);
+      } catch (cancelErr) {
+        console.error(`[DEBUG] Failed to cancel run ${run.id}:`, cancelErr?.message || cancelErr);
+      }
+    }
+  } catch (listErr) {
+    console.error('[DEBUG] Failed to list active runs:', listErr?.message || listErr);
+  }
+}
+
+async function deleteUploadedFileSafe(fileId) {
+  if (!fileId) return;
+  try {
+    await openai.files.del(fileId);
+  } catch (err) {
+    console.warn('[assistant] failed to delete uploaded file:', err?.message || err);
+  }
+}
+
+async function clearPendingAssistantState(actionId) {
+  const pending = pendingAssistantApprovals.get(actionId);
+  if (!pending) return;
+  pendingAssistantApprovals.delete(actionId);
+  await deleteUploadedFileSafe(pending.fileId);
+}
 
 // ─── In-memory action store for real-time dashboard ──────────────────────────
 const actionStore = [];
 let actionIdCounter = 0;
+const OVERDUE_REVIEW_MS = 30 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const FINAL_WARNING_MS = 24 * ONE_HOUR_MS;
+const overdueReminderState = new Map();
+
+function getOverdueMilestonesMs() {
+  const milestones = [OVERDUE_REVIEW_MS];
+  for (let h = 1; h <= 24; h += 1) {
+    milestones.push(h * ONE_HOUR_MS);
+  }
+  return milestones;
+}
+
+const OVERDUE_MILESTONES_MS = getOverdueMilestonesMs();
 
 // ─── WebSocket client tracking ───────────────────────────────────────────────
 const wsClients = new Set();
@@ -107,8 +340,11 @@ function broadcastToClients(message) {
 
 // ─── Map ML risk category to frontend risk status ────────────────────────────
 function mapToRiskStatus(riskCategory, recommendation) {
-  if (riskCategory === 'high' || recommendation === 'block') {
-    return recommendation === 'block' ? 'HIGH_RISK_BLOCKED' : 'HIGH_RISK_PENDING';
+  if (recommendation === 'block') {
+    return riskCategory === 'high' ? 'HIGH_RISK_BLOCKED' : 'MEDIUM_RISK_BLOCKED';
+  }
+  if (riskCategory === 'high') {
+    return 'HIGH_RISK_PENDING';
   }
   if (riskCategory === 'medium' || recommendation === 'review') {
     return 'MEDIUM_RISK_PENDING';
@@ -212,6 +448,17 @@ async function processAction(actionData) {
       detail: `${actionRecord.agentName}: ${actionRecord.proposedAction}`,
       actionId: actionRecord.id,
       severity: actionRecord.riskStatus === 'HIGH_RISK_PENDING' ? 'critical' : 'warning',
+    });
+  }
+
+  // Notify when the action is auto-blocked by policy/ML fusion.
+  if (actionRecord.riskStatus === 'HIGH_RISK_BLOCKED') {
+    createNotification({
+      type: 'auto_blocked',
+      title: 'Action auto-blocked',
+      detail: `${actionRecord.agentName}: ${actionRecord.proposedAction}`,
+      actionId: actionRecord.id,
+      severity: 'critical',
     });
   }
 
@@ -364,18 +611,20 @@ app.post('/api/actions/:id/approve', (req, res) => {
   return res.json({ ok: true, action });
 });
 
-app.post('/api/actions/:id/block', (req, res) => {
+app.post('/api/actions/:id/block', async (req, res) => {
   const action = actionStore.find(a => a.id === req.params.id);
   if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
-  action.riskStatus = 'HIGH_RISK_BLOCKED';
+  action.riskStatus = action.riskScore >= 70 ? 'HIGH_RISK_BLOCKED' : 'MEDIUM_RISK_BLOCKED';
+  await clearPendingAssistantState(action.id);
   broadcastToClients({ type: 'action_updated', action });
   return res.json({ ok: true, action });
 });
 
-app.post('/api/actions/:id/escalate', (req, res) => {
+app.post('/api/actions/:id/escalate', async (req, res) => {
   const action = actionStore.find(a => a.id === req.params.id);
   if (!action) return res.status(404).json({ ok: false, error: 'action not found' });
   action.riskStatus = 'ESCALATED';
+  await clearPendingAssistantState(action.id);
   broadcastToClients({ type: 'action_updated', action });
   return res.json({ ok: true, action });
 });
@@ -487,115 +736,357 @@ app.get('/api/governance/fusion/health', (_req, res) => {
   });
 });
 
-// ─── Agent chat (LLM-powered) ────────────────────────────────────────────────
+// ─── Agent chat (Assistants API flow) ────────────────────────────────────────
 app.post('/api/agent/chat', async (req, res) => {
   try {
-    const { userInput, agent, isExecutionTurn } = req.body;
+    const {
+      userInput,
+      agent,
+      isExecutionTurn,
+      actionId,
+      file,
+      threadId,
+      sentinel_status,
+    } = req.body || {};
+
+    if (isExecutionTurn === true) {
+      if (!actionId || typeof actionId !== 'string') {
+        return res.status(400).json({ ok: false, error: 'actionId is required for execution turn' });
+      }
+
+      const pending = pendingAssistantApprovals.get(actionId);
+      if (!pending) {
+        return res.status(404).json({ ok: false, error: `No pending assistant run found for action ${actionId}` });
+      }
+
+      const action = actionStore.find((a) => a.id === actionId);
+      const status = String(action?.riskStatus || '').toUpperCase();
+      const sentinelStatus = String(sentinel_status || '').toUpperCase();
+      const isRejectedByStatus = sentinelStatus === 'REJECTED'
+        || sentinelStatus === 'REJECT'
+        || status.includes('BLOCK')
+        || status.includes('REJECT');
+      const isApprovedByStatus = status.includes('APPROVE') || sentinelStatus === 'APPROVED';
+      if (isRejectedByStatus) {
+        console.log(`[HANDSHAKE]: Resuming Run ${pending.runId} with Tool Output.`);
+        try {
+          console.log(`[DEBUG] Submitting output for Tool Call: ${pending.toolCallId}`);
+          await openai.beta.threads.runs.submitToolOutputs(pending.runId, {
+            thread_id: FIXED_THREAD_ID,
+            tool_outputs: [
+              {
+                tool_call_id: pending.toolCallId,
+                output: 'Rejected',
+              },
+            ],
+          });
+        } catch (submitErr) {
+          console.error('[DEBUG] submitToolOutputs failed:', submitErr?.message || submitErr);
+          return res.status(500).json({
+            ok: false,
+            error: `submitToolOutputs failed: ${String(submitErr?.message || submitErr)}`,
+          });
+        }
+        try {
+          await openai.beta.threads.runs.cancel(pending.runId, { thread_id: FIXED_THREAD_ID });
+        } catch {
+          // no-op: run may already be terminal
+        }
+        pendingAssistantApprovals.delete(actionId);
+        await deleteUploadedFileSafe(pending.fileId);
+        return res.json({
+          ok: true,
+          type: 'text',
+          message: 'Sentinel rejected the proposal. Run terminated.',
+          threadId: FIXED_THREAD_ID,
+        });
+      }
+      if (!isApprovedByStatus) {
+        return res.status(409).json({
+          ok: false,
+          error: `Action ${actionId} is not approved yet (current status: ${action?.riskStatus || sentinel_status || 'UNKNOWN'})`,
+        });
+      }
+
+      console.log(`[DEBUG] Using Fixed Thread: ${FIXED_THREAD_ID}`);
+      console.log(`[HANDSHAKE]: Resuming Run ${pending.runId} with Tool Output.`);
+      try {
+        console.log(`[DEBUG] Submitting output for Tool Call: ${pending.toolCallId}`);
+        await openai.beta.threads.runs.submitToolOutputs(pending.runId, {
+          thread_id: FIXED_THREAD_ID,
+          tool_outputs: [
+            {
+              tool_call_id: pending.toolCallId,
+              output: `Approved. ${EXECUTION_OUTPUT_POLICY}`,
+            },
+          ],
+        });
+      } catch (submitErr) {
+        console.error('[DEBUG] submitToolOutputs failed:', submitErr?.message || submitErr);
+        return res.status(500).json({
+          ok: false,
+          error: `submitToolOutputs failed: ${String(submitErr?.message || submitErr)}`,
+        });
+      }
+
+      const emitExecProgress = (message) => broadcastToClients({ type: 'agent_progress', message });
+      const execPollProgress = (info) => emitExecProgress(`Executing... (${info.status})`);
+      emitExecProgress('Approved. Generating final output...');
+      const resumedRun = await pollRunUntilStable(FIXED_THREAD_ID, pending.runId, { onProgress: execPollProgress });
+      if (resumedRun.status !== 'completed') {
+        return res.status(502).json({
+          ok: false,
+          error: `Assistant run did not complete after approval (status: ${resumedRun.status})`,
+        });
+      }
+
+      emitExecProgress('Building final response...');
+      const { finalText, downloadFile } = await buildFinalAssistantPayload(
+        FIXED_THREAD_ID,
+        'Approval acknowledged. Final output generated.',
+        pending.runId
+      );
+      const summaryText = downloadFile
+        ? buildConciseExecutionSummary(action?.proposedAction || userInput)
+        : finalText;
+
+      pendingAssistantApprovals.delete(actionId);
+      await deleteUploadedFileSafe(pending.fileId);
+
+      return res.json({
+        ok: true,
+        type: 'text',
+        message: summaryText,
+        downloadFile,
+        threadId: FIXED_THREAD_ID,
+      });
+    }
+
     if (!userInput || typeof userInput !== 'string' || !userInput.trim()) {
       return res.status(400).json({ ok: false, error: 'userInput is required' });
     }
 
-    // 1. Call OpenAI to interpret the user message
-    let llmParsed;
-    try {
-      const messages = [{ role: 'system', content: AGENT_SYSTEM_PROMPT }];
-      if (typeof req.body?.file?.content === 'string' && req.body.file.content.length > 0) {
-        messages.push({
-          role: 'system',
-          content: `FILE ATTACHED: ${req.body.file.name}. CONTENT: \n\n ${req.body.file.content}`,
+    // ── Progress broadcaster for agent terminal streaming ───────────────────
+    const emitProgress = (message) => broadcastToClients({ type: 'agent_progress', message });
+    const pollProgress = (info) => emitProgress(`Processing... (${info.status})`);
+
+    emitProgress('Classifying risk level...');
+    const preMlAssessment = await classifyAction({
+      description: userInput,
+      proposed_action: userInput,
+      context: { targetEnvironment: 'staging' },
+    });
+    const preMlRiskCategory = String(preMlAssessment?.risk_category || '').toLowerCase();
+    const isLowRiskDirectExecute = preMlRiskCategory === 'low';
+    console.log(`[ML RISK]: ${riskBandFromCategory(preMlRiskCategory)} detected.`);
+    emitProgress(`Risk analyzed (${riskBandFromCategory(preMlRiskCategory)}). Preparing assistant...`);
+
+    let uploadedFileId = null;
+    if (typeof file?.content === 'string' && file.content.length > 0) {
+      console.log(`[DEBUG] File Object Picked: ${JSON.stringify({ name: file.name || 'attached-context.txt', size: Buffer.byteLength(file.content, 'utf8') })}`);
+      try {
+        const upload = await openai.files.create({
+          file: await toFile(
+            Buffer.from(file.content, 'utf8'),
+            file.name || 'attached-context.txt',
+            { type: file.type || 'text/plain' }
+          ),
+          purpose: 'assistants',
+        });
+        uploadedFileId = upload.id;
+        console.log(`[DEBUG] OpenAI Upload Success: ${JSON.stringify({ file_id: uploadedFileId })}`);
+        console.log(`[FILE UPLOAD]: File ID received: ${uploadedFileId}`);
+        emitProgress('File uploaded to assistant.');
+      } catch (uploadErr) {
+        console.error('[agent/chat] file upload failed:', uploadErr?.message || uploadErr);
+        return res.status(500).json({
+          ok: false,
+          error: `File upload to OpenAI failed: ${String(uploadErr?.message || uploadErr)}`,
         });
       }
-      messages.push({ role: 'user', content: userInput });
+    }
 
-      if (isExecutionTurn === true) {
-        const executionCompletion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          temperature: 0.2,
-          max_tokens: 1200,
-          messages,
+    const activeThreadId = FIXED_THREAD_ID;
+    void threadId; // Explicitly ignored by design.
+    console.log('[DEBUG] Active Thread ID:', activeThreadId);
+    console.log(`[DEBUG] Using Fixed Thread: ${FIXED_THREAD_ID}`);
+    console.log(`[DEBUG] Incoming Prompt: ${userInput.slice(0, 200)}`);
+    await cancelActiveRunsForThread(activeThreadId);
+    emitProgress('Preparing assistant thread...');
+
+    try {
+      const hasUploadedFileContent = typeof file?.content === 'string' && file.content.length > 0;
+      const uploadContextMessage = hasUploadedFileContent
+        ? `User has uploaded ${file.name || 'attached-context.txt'}. The file is attached for Code Interpreter access.\n\nUser request: ${userInput}`
+        : `User says: ${userInput}`;
+
+      await openai.beta.threads.messages.create(activeThreadId, {
+        role: 'user',
+        content: uploadContextMessage,
+        ...(uploadedFileId
+          ? {
+              attachments: [
+                {
+                  file_id: uploadedFileId,
+                  tools: [{ type: 'code_interpreter' }],
+                },
+              ],
+            }
+          : {}),
+      });
+      if (uploadedFileId) {
+        console.log(`[DEBUG] Thread Updated: ${JSON.stringify({ thread_id: activeThreadId })}`);
+        console.log(`[THREAD]: Attached to Thread ID: ${activeThreadId}`);
+      }
+    } catch (threadMsgErr) {
+      await deleteUploadedFileSafe(uploadedFileId);
+      return res.status(400).json({
+        ok: false,
+        error: `Failed to append message to thread ${activeThreadId}: ${String(threadMsgErr?.message || threadMsgErr)}`,
+      });
+    }
+
+    console.log('[DEBUG] Target Assistant:', process.env.ASSISTANT_ID);
+    const runCreateParams = {
+      assistant_id: ASSISTANT_ID,
+      ...(isLowRiskDirectExecute
+        ? {
+            additional_instructions: `ML interceptor marked this request LOW risk. Execute immediately only if this is an explicit edit request. If this is a clarification/general question, respond with text only and do not call propose_file_edit. ${EXECUTION_OUTPUT_POLICY}`,
+          }
+        : {
+            tool_choice: { type: 'function', function: { name: 'propose_file_edit' } },
+            additional_instructions: `ML interceptor marked this request MODERATE/HIGH risk. If and only if the user explicitly requests a file modification, call propose_file_edit before execution. If the user is asking a clarification/general question, respond in text and do not call propose_file_edit. ${EXECUTION_OUTPUT_POLICY}`,
+          }),
+    };
+    const run = await openai.beta.threads.runs.create(activeThreadId, runCreateParams);
+    console.log(`[DEBUG] Run Created: ${run.id} on Thread: ${activeThreadId}`);
+    emitProgress('Assistant run created. Processing request...');
+    const settledRun = await pollRunUntilStable(activeThreadId, run.id, { onProgress: pollProgress });
+
+    if (settledRun.status === 'requires_action') {
+      const toolCalls = settledRun.required_action?.submit_tool_outputs?.tool_calls || [];
+      const toolCall = toolCalls.find((call) => call?.function?.name === 'propose_file_edit');
+      if (!toolCall) {
+        await deleteUploadedFileSafe(uploadedFileId);
+        return res.status(502).json({
+          ok: false,
+          error: 'Assistant requested an unsupported tool. Expected propose_file_edit.',
         });
-        const executionText = executionCompletion.choices?.[0]?.message?.content?.trim() || 'Execution completed.';
+      }
+      if (isLowRiskDirectExecute) {
+        console.log(`[HANDSHAKE]: Resuming Run ${run.id} with Tool Output.`);
+        try {
+          console.log(`[DEBUG] Submitting output for Tool Call: ${toolCall.id}`);
+          await openai.beta.threads.runs.submitToolOutputs(run.id, {
+            thread_id: activeThreadId,
+            tool_outputs: [
+              {
+                tool_call_id: toolCall.id,
+                output: `Approved. ${EXECUTION_OUTPUT_POLICY}`,
+              },
+            ],
+          });
+        } catch (submitErr) {
+          console.error('[DEBUG] submitToolOutputs failed:', submitErr?.message || submitErr);
+          await deleteUploadedFileSafe(uploadedFileId);
+          return res.status(500).json({
+            ok: false,
+            error: `submitToolOutputs failed: ${String(submitErr?.message || submitErr)}`,
+          });
+        }
+        emitProgress('Low-risk action approved. Executing...');
+        const completedRun = await pollRunUntilStable(activeThreadId, run.id, { onProgress: pollProgress });
+        if (completedRun.status !== 'completed') {
+          await deleteUploadedFileSafe(uploadedFileId);
+          return res.status(502).json({
+            ok: false,
+            error: `Assistant run did not complete after low-risk approval (status: ${completedRun.status})`,
+          });
+        }
+        const { finalText, downloadFile } = await buildFinalAssistantPayload(
+          FIXED_THREAD_ID,
+          'Execution completed.',
+          run.id
+        );
+        const summaryText = downloadFile
+          ? buildConciseExecutionSummary(userInput)
+          : finalText;
+        await deleteUploadedFileSafe(uploadedFileId);
         return res.json({
           ok: true,
           type: 'text',
-          message: executionText,
+          message: summaryText,
+          downloadFile,
+          threadId: activeThreadId,
         });
       }
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        temperature: 0.3,
-        max_tokens: 512,
-        tools: AGENT_TOOLS,
-        messages,
-      });
+      const parsedArguments = parseJsonSafe(toolCall.function?.arguments || '{}');
+      const proposedAction = parsedArguments?.proposed_action || userInput;
+      const env = parsedArguments?.env || 'STAGING';
+      const aiFlaggingReasons = Array.isArray(parsedArguments?.ai_flagging_reasons)
+        ? parsedArguments.ai_flagging_reasons
+        : [];
 
-      const choiceMessage = completion.choices?.[0]?.message;
-      const toolCall = choiceMessage?.tool_calls?.find((call) => call?.function?.name === 'propose_action');
-      if (toolCall) {
-        const toolArgsRaw = toolCall.function.arguments || '{}';
-        const parsedArguments = parseJsonSafe(toolArgsRaw);
-        const userName = parsedArguments.user; // No hardcoded fallback
-        const forwardedPayload = { ...parsedArguments, user: userName };
-        console.log('[agent/chat] userName extracted from tool call:', userName);
-        llmParsed = { intent: 'action', ...forwardedPayload };
-      } else {
-        const raw = choiceMessage?.content || '';
-        // Strip any accidental markdown fences
-        const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        llmParsed = JSON.parse(cleaned);
-      }
-    } catch (llmErr) {
-      console.error('[agent/chat] LLM error:', llmErr.message);
-      return res.json({
-        ok: true,
-        type: 'text',
-        message: 'Sorry, I was unable to process your request. The AI service may be temporarily unavailable.',
-      });
-    }
-
-    // 2. Route based on intent
-    if (llmParsed.intent === 'chat') {
-      return res.json({
-        ok: true,
-        type: 'text',
-        message: llmParsed.message || 'No response generated.',
-      });
-    }
-
-    if (llmParsed.intent === 'action') {
-      const toolArgsRaw = JSON.stringify(llmParsed);
-      const parsedArguments = parseJsonSafe(toolArgsRaw);
-      const userName = parsedArguments.user; // No hardcoded fallback
-      const forwardedPayload = { ...parsedArguments, user: userName };
-      console.log('[agent/chat] userName forwarded to governance:', userName);
-
-      // Pipe through the governance pipeline
       const actionData = {
-        agent_name: forwardedPayload.agent_name || agent || 'OpenAI-Agent',
-        proposed_action: forwardedPayload.proposed_action || userInput,
-        action_type: forwardedPayload.action_type || 'OTHER',
-        environment: forwardedPayload.environment || 'STAGING',
-        description: forwardedPayload.description || userInput,
-        context: forwardedPayload.context || {},
-        user: forwardedPayload.user || 'Anonymous User',
+        agent_name: agent || 'OpenAI-Agent',
+        proposed_action: proposedAction,
+        action_type: 'CONFIG_CHANGE',
+        environment: env,
+        description: parsedArguments?.file_context?.change_summary || proposedAction,
+        context: {
+          ...(parsedArguments?.file_context || {}),
+          ai_flagging_reasons: aiFlaggingReasons,
+          openai_thread_id: activeThreadId,
+          openai_run_id: run.id,
+          openai_file_id: uploadedFileId,
+        },
+        user: 'Anonymous User',
       };
 
       const record = await processAction(actionData);
+      console.log(`[ML RISK]: ${riskBandFromStatus(record?.riskStatus)} detected.`);
+
+      pendingAssistantApprovals.set(record.id, {
+        threadId: activeThreadId,
+        runId: run.id,
+        toolCallId: toolCall.id,
+        fileId: uploadedFileId,
+      });
 
       return res.json({
         ok: true,
         type: 'tool_call',
         actionId: record.id,
+        threadId: activeThreadId,
         message: `Action proposed: "${record.proposedAction}". Risk: ${record.riskScore}% (${record.riskStatus}). Awaiting Sentinel governance decision.`,
       });
     }
 
-    // Fallback: treat unknown intents as text
-    return res.json({
-      ok: true,
-      type: 'text',
-      message: llmParsed.message || JSON.stringify(llmParsed),
+    if (settledRun.status === 'completed') {
+      emitProgress('Generating response...');
+      const { finalText, downloadFile } = await buildFinalAssistantPayload(
+        FIXED_THREAD_ID,
+        'No response generated.',
+        run.id
+      );
+      const summaryText = downloadFile
+        ? buildConciseExecutionSummary(userInput)
+        : finalText;
+      await deleteUploadedFileSafe(uploadedFileId);
+      return res.json({
+        ok: true,
+        type: 'text',
+        message: summaryText,
+        downloadFile,
+        threadId: activeThreadId,
+      });
+    }
+
+    await deleteUploadedFileSafe(uploadedFileId);
+    return res.status(502).json({
+      ok: false,
+      error: `Assistant run failed with status: ${settledRun.status}`,
     });
   } catch (e) {
     console.error('[agent/chat] Error:', e);
@@ -686,7 +1177,59 @@ function markAllNotificationsRead() {
   return changed;
 }
 
-app.get('/api/notifications', (_req, res) => res.json({ notifications: [], total: 0 }));
+function emitOverdueReviewNotifications() {
+  const nowMs = Date.now();
+  for (const action of actionStore) {
+    const isPending = action.riskStatus === 'HIGH_RISK_PENDING' || action.riskStatus === 'MEDIUM_RISK_PENDING';
+    if (!isPending) {
+      overdueReminderState.delete(action.id);
+      continue;
+    }
+
+    const createdAtMs = new Date(action.timestampISO).getTime();
+    if (!Number.isFinite(createdAtMs)) continue;
+    const elapsedMs = nowMs - createdAtMs;
+    if (elapsedMs < OVERDUE_REVIEW_MS) continue;
+
+    let sentMilestones = overdueReminderState.get(action.id);
+    if (!sentMilestones) {
+      sentMilestones = new Set();
+      overdueReminderState.set(action.id, sentMilestones);
+    }
+
+    for (const milestoneMs of OVERDUE_MILESTONES_MS) {
+      if (elapsedMs < milestoneMs || sentMilestones.has(milestoneMs)) {
+        continue;
+      }
+
+      const hours = Math.floor(milestoneMs / ONE_HOUR_MS);
+      const isFinalWarning = milestoneMs === FINAL_WARNING_MS;
+      const title = isFinalWarning
+        ? 'Final warning: pending review for 24h'
+        : 'Overdue review, pls review asap';
+      const detail = milestoneMs < ONE_HOUR_MS
+        ? `${action.agentName}: ${action.proposedAction}`
+        : `${action.agentName}: ${action.proposedAction} (still pending for ${hours}h)`;
+
+      createNotification({
+        type: isFinalWarning ? 'overdue_review_final' : 'overdue_review',
+        title,
+        detail,
+        actionId: action.id,
+        severity: action.riskStatus === 'HIGH_RISK_PENDING' || isFinalWarning ? 'critical' : 'warning',
+      });
+      sentMilestones.add(milestoneMs);
+      break;
+    }
+  }
+}
+
+setInterval(emitOverdueReviewNotifications, 5 * 1000);
+
+app.get('/api/notifications', (req, res) => {
+  const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 50));
+  return res.json({ ok: true, ...listNotifications(limit) });
+});
 
 app.post('/api/notifications/read', (req, res) => {
   const id = req.body?.id;

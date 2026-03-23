@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
   Users, Bot, TrendingUp, Ban, AlertTriangle, ChevronDown, ChevronUp, ChevronRight,
-  Search, Building2, Zap, ShieldCheck,
+  Search, Building2, Zap, ShieldCheck, FileSpreadsheet,
 } from 'lucide-react';
-import { Theme } from '../../types';
-import { teamsData, orgSummary, TeamData, TeamStatus } from '../../data/organisationData';
+import { Theme, ActionItem } from '../../types';
+import { TeamData, TeamStatus } from '../../data/organisationData';
+import { CsvImportModal } from './CsvImportModal';
+import type { ParsedAuditEvent } from '../../utils/csvParser';
 
 interface OrganisationPageProps {
   theme: Theme;
@@ -12,6 +14,8 @@ interface OrganisationPageProps {
   isMobile: boolean;
   onViewTeamAudit?: (teamId: string, teamName: string) => void;
   onViewAllAudits?: () => void;
+  importedTeams?: TeamData[];
+  onImportComplete?: (teams: TeamData[], auditActions: ActionItem[], auditEventsRaw: ParsedAuditEvent[]) => void;
 }
 
 /* ─── Status badge colours ─────────────────────────── */
@@ -268,24 +272,46 @@ function ExpandedTeamDetails({ team, theme, isMobile }: { team: TeamData; theme:
 }
 
 /* ═══ MAIN COMPONENT ═══════════════════════════════ */
-export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onViewAllAudits }: OrganisationPageProps) {
+export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onViewAllAudits, importedTeams, onImportComplete }: OrganisationPageProps) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState('All departments');
   const [statusFilter, setStatusFilter] = useState('All statuses');
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Use only CSV-imported teams — page starts empty until import
+  const allTeams = useMemo(() => {
+    return importedTeams && importedTeams.length > 0 ? importedTeams : [];
+  }, [importedTeams]);
+
+  const hasData = allTeams.length > 0;
+
+  // Recompute org summary from combined teams
+  const orgSummary = useMemo(() => {
+    const teams = allTeams;
+    return {
+      totalTeams: teams.length,
+      totalMembers: teams.reduce((s, t) => s + (t.members.length || t.memberCount), 0),
+      aiAgentsGoverned: teams.reduce((s, t) => s + t.agentCount, 0),
+      reviews30d: teams.reduce((s, t) => s + t.reviews30d, 0),
+      actionsBlocked: teams.reduce((s, t) => s + t.blocked, 0),
+      policyViolations: teams.reduce((s, t) => s + t.violations, 0),
+      activeIncidents: teams.filter((t) => t.status === 'Active Incident').length,
+    };
+  }, [allTeams]);
 
   const departments = useMemo(() => {
-    const deps = Array.from(new Set(teamsData.map((t) => t.department)));
+    const deps = Array.from(new Set(allTeams.map((t) => t.department)));
     return ['All departments', ...deps];
-  }, []);
+  }, [allTeams]);
 
   const statuses = useMemo(() => {
-    const sts = Array.from(new Set(teamsData.map((t) => t.status)));
+    const sts = Array.from(new Set(allTeams.map((t) => t.status)));
     return ['All statuses', ...sts];
-  }, []);
+  }, [allTeams]);
 
   const filteredTeams = useMemo(() => {
-    return teamsData.filter((t) => {
+    return allTeams.filter((t) => {
       const matchesSearch =
         !searchQuery ||
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -295,7 +321,7 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
       const matchesStatus = statusFilter === 'All statuses' || t.status === statusFilter;
       return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [searchQuery, deptFilter, statusFilter]);
+  }, [allTeams, searchQuery, deptFilter, statusFilter]);
 
   const toggleExpand = (id: string) => setExpandedTeam((prev) => (prev === id ? null : id));
 
@@ -331,8 +357,39 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
               </p>
             )}
           </div>
-          {/* Active incident badge */}
+          {/* Action buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {/* Import CSV button */}
+            {onImportComplete && (
+              <button
+                onClick={() => setImportModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: `1px solid ${isDark ? 'rgba(245,165,36,0.3)' : 'rgba(245,165,36,0.4)'}`,
+                  background: isDark ? 'rgba(245,165,36,0.1)' : 'rgba(245,165,36,0.08)',
+                  color: '#F5A524',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'Inter, sans-serif',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(245,165,36,0.2)' : 'rgba(245,165,36,0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isDark ? 'rgba(245,165,36,0.1)' : 'rgba(245,165,36,0.08)';
+                }}
+              >
+                <FileSpreadsheet size={14} />
+                Import CSV
+              </button>
+            )}
             {onViewAllAudits && (
               <button
                 onClick={onViewAllAudits}
@@ -397,12 +454,12 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
           marginTop: 12,
         }}
       >
-        <SummaryCard icon={<Building2 size={18} color="#3B82F6" />} value={orgSummary.totalTeams} label="Total Teams" sub="Across all departments" color="#3B82F6" theme={theme} />
-        <SummaryCard icon={<Users size={18} color="#30A46C" />} value={orgSummary.totalMembers} label="Total Members" sub="Active reviewers" color="#30A46C" theme={theme} />
-        <SummaryCard icon={<Bot size={18} color="#30A46C" />} value={orgSummary.aiAgentsGoverned} label="AI Agents Governed" sub="Across all teams" color="#30A46C" theme={theme} />
-        <SummaryCard icon={<TrendingUp size={18} color="#3B82F6" />} value={orgSummary.reviews30d} label="Reviews (30d)" sub="Human decisions made" color="#3B82F6" theme={theme} />
-        <SummaryCard icon={<Ban size={18} color="#E5484D" />} value={orgSummary.actionsBlocked} label="Actions Blocked" sub="Catastrophes prevented" color="#E5484D" theme={theme} />
-        <SummaryCard icon={<AlertTriangle size={18} color="#E5484D" />} value={orgSummary.policyViolations} label="Policy Violations" sub="This month" color="#E5484D" theme={theme} />
+        <SummaryCard icon={<Building2 size={18} color="#3B82F6" />} value={orgSummary.totalTeams} label="Total Teams" sub={hasData ? 'Across all departments' : 'Import CSV to populate'} color="#3B82F6" theme={theme} />
+        <SummaryCard icon={<Users size={18} color="#30A46C" />} value={orgSummary.totalMembers} label="Total Members" sub={hasData ? 'Active reviewers' : '—'} color="#30A46C" theme={theme} />
+        <SummaryCard icon={<Bot size={18} color="#30A46C" />} value={orgSummary.aiAgentsGoverned} label="AI Agents Governed" sub={hasData ? 'Across all teams' : '—'} color="#30A46C" theme={theme} />
+        <SummaryCard icon={<TrendingUp size={18} color="#3B82F6" />} value={orgSummary.reviews30d} label="Reviews (30d)" sub={hasData ? 'Human decisions made' : '—'} color="#3B82F6" theme={theme} />
+        <SummaryCard icon={<Ban size={18} color="#E5484D" />} value={orgSummary.actionsBlocked} label="Actions Blocked" sub={hasData ? 'Catastrophes prevented' : '—'} color="#E5484D" theme={theme} />
+        <SummaryCard icon={<AlertTriangle size={18} color="#E5484D" />} value={orgSummary.policyViolations} label="Policy Violations" sub={hasData ? 'This month' : '—'} color="#E5484D" theme={theme} />
       </div>
 
       {/* ── Search + filters ───────────────────── */}
@@ -574,6 +631,66 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
           >
             <span style={{ color: theme.textTertiary, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>TEAM</span>
             <span style={{ color: theme.textTertiary, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'right' }}>SUPERVISOR</span>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {filteredTeams.length === 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '48px 24px',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 14,
+                background: isDark ? 'rgba(245,165,36,0.08)' : 'rgba(245,165,36,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <FileSpreadsheet size={26} color="#F5A524" />
+            </div>
+            <h3 style={{ color: theme.textPrimary, fontSize: 16, fontWeight: 700, margin: 0 }}>
+              No organisation data yet
+            </h3>
+            <p style={{ color: theme.textTertiary, fontSize: 13, margin: 0, textAlign: 'center', maxWidth: 340 }}>
+              Import a CSV file to populate teams, members, agents, and audit trails.
+            </p>
+            {onImportComplete && (
+              <button
+                onClick={() => setImportModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 8,
+                  padding: '10px 20px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#F5A524',
+                  color: '#000',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: 'Inter, sans-serif',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <FileSpreadsheet size={15} />
+                Import Organisation CSV
+              </button>
+            )}
           </div>
         )}
 
@@ -942,11 +1059,23 @@ export function OrganisationPage({ theme, isDark, isMobile, onViewTeamAudit, onV
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Zap size={13} color="#F5A524" />
-          <span style={{ color: '#E5484D', fontSize: 12, fontWeight: 600 }}>
-            {orgSummary.actionsBlocked} catastrophic actions blocked across all teams
+          <span style={{ color: hasData ? '#E5484D' : theme.textTertiary, fontSize: 12, fontWeight: 600 }}>
+            {hasData ? `${orgSummary.actionsBlocked} catastrophic actions blocked across all teams` : 'Awaiting organisation data import'}
           </span>
         </div>
       </div>
+
+      {/* CSV Import Modal */}
+      {onImportComplete && (
+        <CsvImportModal
+          theme={theme}
+          isDark={isDark}
+          isMobile={isMobile}
+          isOpen={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          onImportComplete={onImportComplete}
+        />
+      )}
     </div>
   );
 }

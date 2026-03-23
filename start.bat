@@ -40,8 +40,64 @@ if %ERRORLEVEL% neq 0 (
 )
 
 for /f "tokens=*" %%v in ('node -v') do set NODE_VER=%%v
-for /f "tokens=2" %%v in ('python --version 2^>^&1') do set PY_VER=%%v
-echo [  OK]  node %NODE_VER%  ^|  python %PY_VER%  ^|  curl installed
+echo [  OK]  node %NODE_VER%  ^|  curl installed
+
+REM ── Python version resolution (requires 3.10 – 3.12) ─────
+set "PYTHON_CMD="
+
+REM 1) Check default python
+where python >nul 2>&1
+if !ERRORLEVEL! equ 0 (
+    for /f "tokens=2" %%v in ('python --version 2^>^&1') do set "_PV=%%v"
+    for /f "tokens=1,2 delims=." %%a in ("!_PV!") do (
+        if %%a equ 3 if %%b geq 10 if %%b leq 12 set "PYTHON_CMD=python"
+    )
+)
+
+REM 2) Try the Windows Python Launcher (py -3.12, py -3.11, py -3.10)
+if "!PYTHON_CMD!"=="" (
+    where py >nul 2>&1
+    if !ERRORLEVEL! equ 0 (
+        for %%m in (12 11 10) do (
+            if "!PYTHON_CMD!"=="" (
+                py -3.%%m --version >nul 2>&1
+                if !ERRORLEVEL! equ 0 set "PYTHON_CMD=py -3.%%m"
+            )
+        )
+    )
+)
+
+REM 3) Auto-install via winget if nothing found
+if "!PYTHON_CMD!"=="" (
+    echo [WARN]  No Python 3.10 – 3.12 found. Attempting to install Python 3.12...
+    where winget >nul 2>&1
+    if !ERRORLEVEL! equ 0 (
+        echo [INFO]  Installing Python 3.12 via winget...
+        winget install -e --id Python.Python.3.12 --accept-source-agreements --accept-package-agreements
+        if !ERRORLEVEL! equ 0 (
+            REM Refresh PATH so the new install is visible
+            set "PATH=%LOCALAPPDATA%\Programs\Python\Python312;%LOCALAPPDATA%\Programs\Python\Python312\Scripts;!PATH!"
+            where py >nul 2>&1
+            if !ERRORLEVEL! equ 0 (
+                set "PYTHON_CMD=py -3.12"
+            ) else (
+                where python >nul 2>&1
+                if !ERRORLEVEL! equ 0 set "PYTHON_CMD=python"
+            )
+        )
+    )
+)
+
+if "!PYTHON_CMD!"=="" (
+    echo [FAIL]  Could not find or install Python 3.10 – 3.12.
+    echo         Please install Python 3.10, 3.11, or 3.12 from https://python.org
+    echo         Make sure to check "Add Python to PATH" during installation.
+    pause
+    exit /b 1
+)
+
+for /f "tokens=2" %%v in ('!PYTHON_CMD! --version 2^>^&1') do set PY_VER=%%v
+echo [  OK]  Python %PY_VER% (!PYTHON_CMD!) — supported range (3.10 – 3.12).
 echo.
 
 REM ── 1. Free ports ─────────────────────────────────────────
@@ -58,9 +114,22 @@ echo.
 REM ── 2. Install dependencies ───────────────────────────────
 
 REM Python venv + deps (single venv in project root)
+REM If existing venv uses wrong Python version, recreate it
+if exist "%ROOT%.venv\Scripts\python.exe" (
+    set "_VENV_OK=0"
+    for /f "tokens=2" %%v in ('"%ROOT%.venv\Scripts\python.exe" --version 2^>^&1') do (
+        for /f "tokens=1,2 delims=." %%a in ("%%v") do (
+            if %%a equ 3 if %%b geq 10 if %%b leq 12 set "_VENV_OK=1"
+        )
+    )
+    if "!_VENV_OK!"=="0" (
+        echo [WARN]  Existing venv uses incompatible Python. Recreating...
+        rmdir /s /q "%ROOT%.venv"
+    )
+)
 if not exist "%ROOT%.venv" (
-    echo [INFO]  Creating Python virtual environment...
-    python -m venv "%ROOT%.venv"
+    echo [INFO]  Creating Python virtual environment with !PYTHON_CMD!...
+    !PYTHON_CMD! -m venv "%ROOT%.venv"
 )
 if exist "%ROOT%requirements.txt" (
     echo [INFO]  Installing Python dependencies...

@@ -18,7 +18,8 @@
         "touchesCriticalPaths": true,
         "testsPassing": true,
         "hasHumanApproval": false
-      }
+      },
+      "user": "Alex Kim"
     },
     {
       "id": "demo-002",
@@ -35,7 +36,8 @@
         "rollbackPlanPresent": false,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Dan Osei"
     },
     {
       "id": "demo-003",
@@ -52,7 +54,8 @@
         "touchesCriticalPaths": true,
         "hasHumanApproval": false,
         "testsPassing": true
-      }
+      },
+      "user": "Yuki Tanaka"
     },
     {
       "id": "demo-004",
@@ -69,7 +72,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
-      }
+      },
+      "user": "Lena Braun"
     },
     {
       "id": "demo-005",
@@ -86,7 +90,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
-      }
+      },
+      "user": "Ravi Mehta"
     },
     {
       "id": "demo-006",
@@ -103,7 +108,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Chloe Martin"
     },
     {
       "id": "demo-007",
@@ -120,7 +126,8 @@
         "rollbackPlanPresent": true,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Marcus Chen"
     },
     {
       "id": "demo-008",
@@ -137,7 +144,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Amara Diallo"
     },
     {
       "id": "demo-009",
@@ -154,7 +162,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Tomas Novak"
     },
     {
       "id": "demo-010",
@@ -171,7 +180,8 @@
         "testsPassing": true,
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Preethi Sharma"
     },
     {
       "id": "demo-011",
@@ -188,7 +198,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Priya Patel"
     },
     {
       "id": "demo-012",
@@ -205,7 +216,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "James Okonjo"
     },
     {
       "id": "demo-013",
@@ -222,7 +234,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Nina Kowalski"
     },
     {
       "id": "demo-014",
@@ -239,7 +252,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Sam Torres"
     },
     {
       "id": "demo-015",
@@ -256,7 +270,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
-      }
+      },
+      "user": "Kai Nakamura"
     }
   ]
 }

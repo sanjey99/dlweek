@@ -39,9 +39,83 @@ check_cmd() {
 
 info "Running pre-flight checks..."
 check_cmd node
-check_cmd python3
 check_cmd curl
-ok "node $(node -v)  |  python3 $(python3 --version 2>&1 | awk '{print $2}')  |  curl installed"
+ok "node $(node -v)  |  curl installed"
+
+# ── Python version resolution (requires 3.10 – 3.12) ────────
+# Checks if a python binary is in the supported range
+py_version_ok() {
+  local bin="$1"
+  local ver major minor
+  ver=$("$bin" --version 2>&1 | awk '{print $2}') || return 1
+  major=$(echo "$ver" | cut -d. -f1)
+  minor=$(echo "$ver" | cut -d. -f2)
+  [[ "$major" -eq 3 && "$minor" -ge 10 && "$minor" -le 12 ]]
+}
+
+PYTHON=""
+
+# 1) Check default python3
+if command -v python3 &>/dev/null && py_version_ok python3; then
+  PYTHON="python3"
+fi
+
+# 2) Search for specific versioned binaries
+if [ -z "$PYTHON" ]; then
+  for minor in 12 11 10; do
+    for candidate in "python3.$minor" "/usr/bin/python3.$minor" "/usr/local/bin/python3.$minor"; do
+      if command -v "$candidate" &>/dev/null 2>&1 && py_version_ok "$candidate"; then
+        PYTHON="$candidate"
+        break 2
+      fi
+    done
+  done
+fi
+
+# 3) Auto-install if nothing found
+if [ -z "$PYTHON" ]; then
+  warn "No Python 3.10 – 3.12 found. Attempting to install one..."
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # macOS — use Homebrew
+    if command -v brew &>/dev/null; then
+      info "Installing python@3.12 via Homebrew..."
+      brew install python@3.12
+      PYTHON="$(brew --prefix python@3.12)/bin/python3.12"
+    else
+      fail "Homebrew not found. Install Homebrew (https://brew.sh) or manually install Python 3.10 – 3.12."
+      exit 1
+    fi
+  else
+    # Linux — use apt (Debian/Ubuntu) or dnf (Fedora/RHEL)
+    if command -v apt-get &>/dev/null; then
+      info "Installing python3.12 via apt..."
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq python3.12 python3.12-venv python3.12-dev 2>/dev/null \
+        || { info "python3.12 not in default repos, trying deadsnakes PPA...";
+             sudo apt-get install -y -qq software-properties-common;
+             sudo add-apt-repository -y ppa:deadsnakes/ppa;
+             sudo apt-get update -qq;
+             sudo apt-get install -y -qq python3.12 python3.12-venv python3.12-dev; }
+      PYTHON="python3.12"
+    elif command -v dnf &>/dev/null; then
+      info "Installing python3.12 via dnf..."
+      sudo dnf install -y python3.12
+      PYTHON="python3.12"
+    else
+      fail "Could not auto-install Python. Please manually install Python 3.10 – 3.12."
+      exit 1
+    fi
+  fi
+
+  # Verify the install actually worked
+  if [ -z "$PYTHON" ] || ! command -v "$PYTHON" &>/dev/null || ! py_version_ok "$PYTHON"; then
+    fail "Auto-install failed. Please manually install Python 3.10 – 3.12."
+    exit 1
+  fi
+fi
+
+PY_RESOLVED_VER=$("$PYTHON" --version 2>&1 | awk '{print $2}')
+ok "Python $PY_RESOLVED_VER ($PYTHON) — supported range (3.10 – 3.12)."
 
 # ── 1. Free ports ────────────────────────────────────────────
 info "Freeing ports 8000, 4000, 5173..."
@@ -52,9 +126,17 @@ ok "Ports cleared."
 # ── 2. Install dependencies (if needed) ─────────────────────
 
 # Python venv + deps (single venv in project root)
+# If existing venv uses a different Python, recreate it
+if [ -d "$ROOT/.venv" ]; then
+  VENV_PY_VER=$("$ROOT/.venv/bin/python" --version 2>&1 | awk '{print $2}' 2>/dev/null || echo "0.0.0")
+  if ! py_version_ok "$ROOT/.venv/bin/python" 2>/dev/null; then
+    warn "Existing venv uses Python $VENV_PY_VER (out of range). Recreating..."
+    rm -rf "$ROOT/.venv"
+  fi
+fi
 if [ ! -d "$ROOT/.venv" ]; then
-  info "Creating Python virtual environment..."
-  python3 -m venv "$ROOT/.venv"
+  info "Creating Python virtual environment with $PYTHON..."
+  "$PYTHON" -m venv "$ROOT/.venv"
 fi
 if [ -f "$ROOT/requirements.txt" ]; then
   info "Installing Python dependencies..."

@@ -18,7 +18,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": false
       },
-      "id": "test-0001"
+      "id": "test-0001",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-infra",
@@ -35,7 +36,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0002"
+      "id": "test-0002",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -52,7 +54,8 @@
         "testsPassing": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0003"
+      "id": "test-0003",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-deploy",
@@ -69,7 +72,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0004"
+      "id": "test-0004",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-analytics",
@@ -86,7 +90,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0005"
+      "id": "test-0005",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-infra",
@@ -103,7 +108,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0006"
+      "id": "test-0006",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-db-ops",
@@ -120,7 +126,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0007"
+      "id": "test-0007",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-file-ops",
@@ -137,7 +144,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0008"
+      "id": "test-0008",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-db-ops",
@@ -154,7 +162,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0009"
+      "id": "test-0009",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-db-ops",
@@ -171,7 +180,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0010"
+      "id": "test-0010",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-db-ops",
@@ -188,7 +198,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0011"
+      "id": "test-0011",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -205,7 +216,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0012"
+      "id": "test-0012",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-email",
@@ -222,7 +234,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0013"
+      "id": "test-0013",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-analytics",
@@ -239,7 +252,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0014"
+      "id": "test-0014",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-db-ops",
@@ -256,7 +270,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0015"
+      "id": "test-0015",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-analytics",
@@ -273,7 +288,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0016"
+      "id": "test-0016",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-email",
@@ -290,7 +306,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0017"
+      "id": "test-0017",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -307,7 +324,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0018"
+      "id": "test-0018",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -324,7 +342,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0019"
+      "id": "test-0019",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-monitor",
@@ -341,7 +360,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0020"
+      "id": "test-0020",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-db-ops",
@@ -358,7 +378,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0021"
+      "id": "test-0021",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-email",
@@ -375,7 +396,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0022"
+      "id": "test-0022",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-deploy",
@@ -392,7 +414,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0023"
+      "id": "test-0023",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-db-ops",
@@ -409,7 +432,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0024"
+      "id": "test-0024",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-monitor",
@@ -426,7 +450,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0025"
+      "id": "test-0025",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-ops",
@@ -443,7 +468,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0026"
+      "id": "test-0026",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-monitor",
@@ -460,7 +486,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0027"
+      "id": "test-0027",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-db-ops",
@@ -477,7 +504,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0028"
+      "id": "test-0028",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-infra",
@@ -494,7 +522,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": true
       },
-      "id": "test-0029"
+      "id": "test-0029",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-analytics",
@@ -511,7 +540,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0030"
+      "id": "test-0030",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -528,7 +558,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0031"
+      "id": "test-0031",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-analytics",
@@ -545,7 +576,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0032"
+      "id": "test-0032",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-db-ops",
@@ -562,7 +594,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0033"
+      "id": "test-0033",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-infra",
@@ -579,7 +612,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0034"
+      "id": "test-0034",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-analytics",
@@ -596,7 +630,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0035"
+      "id": "test-0035",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-analytics",
@@ -613,7 +648,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0036"
+      "id": "test-0036",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -630,7 +666,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0037"
+      "id": "test-0037",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -647,7 +684,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0038"
+      "id": "test-0038",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-deploy",
@@ -664,7 +702,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0039"
+      "id": "test-0039",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-db-ops",
@@ -681,7 +720,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0040"
+      "id": "test-0040",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-db-ops",
@@ -698,7 +738,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0041"
+      "id": "test-0041",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-db-ops",
@@ -715,7 +756,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0042"
+      "id": "test-0042",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-deploy",
@@ -732,7 +774,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0043"
+      "id": "test-0043",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-deploy",
@@ -749,7 +792,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0044"
+      "id": "test-0044",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -766,7 +810,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0045"
+      "id": "test-0045",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -783,7 +828,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0046"
+      "id": "test-0046",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-infra",
@@ -800,7 +846,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0047"
+      "id": "test-0047",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -817,7 +864,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0048"
+      "id": "test-0048",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -834,7 +882,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0049"
+      "id": "test-0049",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-file-ops",
@@ -851,7 +900,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0050"
+      "id": "test-0050",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -868,7 +918,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0051"
+      "id": "test-0051",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-monitor",
@@ -885,7 +936,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0052"
+      "id": "test-0052",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-ops",
@@ -902,7 +954,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0053"
+      "id": "test-0053",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-monitor",
@@ -919,7 +972,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0054"
+      "id": "test-0054",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -936,7 +990,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0055"
+      "id": "test-0055",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-infra",
@@ -953,7 +1008,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0056"
+      "id": "test-0056",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ops",
@@ -970,7 +1026,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0057"
+      "id": "test-0057",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-ops",
@@ -987,7 +1044,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0058"
+      "id": "test-0058",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1004,7 +1062,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0059"
+      "id": "test-0059",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-data-sync",
@@ -1021,7 +1080,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0060"
+      "id": "test-0060",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-infra",
@@ -1038,7 +1098,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0061"
+      "id": "test-0061",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1055,7 +1116,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0062"
+      "id": "test-0062",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1072,7 +1134,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0063"
+      "id": "test-0063",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-monitor",
@@ -1089,7 +1152,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0064"
+      "id": "test-0064",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-deploy",
@@ -1106,7 +1170,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0065"
+      "id": "test-0065",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-file-ops",
@@ -1123,7 +1188,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0066"
+      "id": "test-0066",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-monitor",
@@ -1140,7 +1206,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0067"
+      "id": "test-0067",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -1157,7 +1224,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0068"
+      "id": "test-0068",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1174,7 +1242,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0069"
+      "id": "test-0069",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1191,7 +1260,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0070"
+      "id": "test-0070",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-analytics",
@@ -1208,7 +1278,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0071"
+      "id": "test-0071",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1225,7 +1296,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0072"
+      "id": "test-0072",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-analytics",
@@ -1242,7 +1314,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0073"
+      "id": "test-0073",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-analytics",
@@ -1259,7 +1332,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0074"
+      "id": "test-0074",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1276,7 +1350,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0075"
+      "id": "test-0075",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1293,7 +1368,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0076"
+      "id": "test-0076",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1310,7 +1386,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0077"
+      "id": "test-0077",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-analytics",
@@ -1327,7 +1404,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0078"
+      "id": "test-0078",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-ops",
@@ -1344,7 +1422,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0079"
+      "id": "test-0079",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-ops",
@@ -1361,7 +1440,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0080"
+      "id": "test-0080",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1378,7 +1458,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0081"
+      "id": "test-0081",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-monitor",
@@ -1395,7 +1476,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0082"
+      "id": "test-0082",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-file-ops",
@@ -1412,7 +1494,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0083"
+      "id": "test-0083",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1429,7 +1512,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0084"
+      "id": "test-0084",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-monitor",
@@ -1446,7 +1530,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0085"
+      "id": "test-0085",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1463,7 +1548,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0086"
+      "id": "test-0086",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-data-sync",
@@ -1480,7 +1566,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0087"
+      "id": "test-0087",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-data-sync",
@@ -1497,7 +1584,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0088"
+      "id": "test-0088",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-data-ops",
@@ -1514,7 +1602,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0089"
+      "id": "test-0089",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-analytics",
@@ -1531,7 +1620,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0090"
+      "id": "test-0090",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ops",
@@ -1548,7 +1638,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0091"
+      "id": "test-0091",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-data-sync",
@@ -1565,7 +1656,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0092"
+      "id": "test-0092",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1582,7 +1674,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0093"
+      "id": "test-0093",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1599,7 +1692,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0094"
+      "id": "test-0094",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1616,7 +1710,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0095"
+      "id": "test-0095",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1633,7 +1728,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0096"
+      "id": "test-0096",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -1650,7 +1746,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0097"
+      "id": "test-0097",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1667,7 +1764,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0098"
+      "id": "test-0098",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1684,7 +1782,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0099"
+      "id": "test-0099",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1701,7 +1800,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0100"
+      "id": "test-0100",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-analytics",
@@ -1718,7 +1818,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0101"
+      "id": "test-0101",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-infra",
@@ -1735,7 +1836,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0102"
+      "id": "test-0102",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-monitor",
@@ -1752,7 +1854,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0103"
+      "id": "test-0103",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1769,7 +1872,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0104"
+      "id": "test-0104",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1786,7 +1890,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0105"
+      "id": "test-0105",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-deploy",
@@ -1803,7 +1908,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0106"
+      "id": "test-0106",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-monitor",
@@ -1820,7 +1926,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0107"
+      "id": "test-0107",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-file-ops",
@@ -1837,7 +1944,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0108"
+      "id": "test-0108",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-monitor",
@@ -1854,7 +1962,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0109"
+      "id": "test-0109",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-ops",
@@ -1871,7 +1980,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0110"
+      "id": "test-0110",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1888,7 +1998,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0111"
+      "id": "test-0111",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -1905,7 +2016,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0112"
+      "id": "test-0112",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -1922,7 +2034,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0113"
+      "id": "test-0113",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -1939,7 +2052,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0114"
+      "id": "test-0114",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-deploy",
@@ -1956,7 +2070,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0115"
+      "id": "test-0115",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-monitor",
@@ -1973,7 +2088,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0116"
+      "id": "test-0116",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-deploy",
@@ -1990,7 +2106,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0117"
+      "id": "test-0117",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -2007,7 +2124,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0118"
+      "id": "test-0118",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ops",
@@ -2024,7 +2142,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0119"
+      "id": "test-0119",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-ops",
@@ -2041,7 +2160,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0120"
+      "id": "test-0120",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2058,7 +2178,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0121"
+      "id": "test-0121",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-infra",
@@ -2075,7 +2196,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0122"
+      "id": "test-0122",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2092,7 +2214,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0123"
+      "id": "test-0123",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-monitor",
@@ -2109,7 +2232,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0124"
+      "id": "test-0124",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2126,7 +2250,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0125"
+      "id": "test-0125",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2143,7 +2268,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0126"
+      "id": "test-0126",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2160,7 +2286,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0127"
+      "id": "test-0127",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-monitor",
@@ -2177,7 +2304,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0128"
+      "id": "test-0128",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2194,7 +2322,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0129"
+      "id": "test-0129",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2211,7 +2340,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0130"
+      "id": "test-0130",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-email",
@@ -2228,7 +2358,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0131"
+      "id": "test-0131",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-infra",
@@ -2245,7 +2376,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0132"
+      "id": "test-0132",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-monitor",
@@ -2262,7 +2394,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0133"
+      "id": "test-0133",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-deploy",
@@ -2279,7 +2412,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0134"
+      "id": "test-0134",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-data-ops",
@@ -2296,7 +2430,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0135"
+      "id": "test-0135",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-email",
@@ -2313,7 +2448,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0136"
+      "id": "test-0136",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-file-ops",
@@ -2330,7 +2466,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0137"
+      "id": "test-0137",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-email",
@@ -2347,7 +2484,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0138"
+      "id": "test-0138",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2364,7 +2502,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0139"
+      "id": "test-0139",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-infra",
@@ -2381,7 +2520,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0140"
+      "id": "test-0140",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ops",
@@ -2398,7 +2538,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0141"
+      "id": "test-0141",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2415,7 +2556,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0142"
+      "id": "test-0142",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2432,7 +2574,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0143"
+      "id": "test-0143",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-deploy",
@@ -2449,7 +2592,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0144"
+      "id": "test-0144",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-infra",
@@ -2466,7 +2610,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0145"
+      "id": "test-0145",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-deploy",
@@ -2483,7 +2628,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0146"
+      "id": "test-0146",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-email",
@@ -2500,7 +2646,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0147"
+      "id": "test-0147",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2517,7 +2664,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0148"
+      "id": "test-0148",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-email",
@@ -2534,7 +2682,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0149"
+      "id": "test-0149",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-analytics",
@@ -2551,7 +2700,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0150"
+      "id": "test-0150",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-file-ops",
@@ -2568,7 +2718,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0151"
+      "id": "test-0151",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-analytics",
@@ -2585,7 +2736,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0152"
+      "id": "test-0152",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-deploy",
@@ -2602,7 +2754,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0153"
+      "id": "test-0153",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2619,7 +2772,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0154"
+      "id": "test-0154",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2636,7 +2790,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0155"
+      "id": "test-0155",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-file-ops",
@@ -2653,7 +2808,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0156"
+      "id": "test-0156",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2670,7 +2826,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0157"
+      "id": "test-0157",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2687,7 +2844,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0158"
+      "id": "test-0158",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-file-ops",
@@ -2704,7 +2862,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0159"
+      "id": "test-0159",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-deploy",
@@ -2721,7 +2880,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0160"
+      "id": "test-0160",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-analytics",
@@ -2738,7 +2898,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0161"
+      "id": "test-0161",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-monitor",
@@ -2755,7 +2916,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0162"
+      "id": "test-0162",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-data-sync",
@@ -2772,7 +2934,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0163"
+      "id": "test-0163",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-infra",
@@ -2789,7 +2952,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0164"
+      "id": "test-0164",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-data-ops",
@@ -2806,7 +2970,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0165"
+      "id": "test-0165",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2823,7 +2988,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0166"
+      "id": "test-0166",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -2840,7 +3006,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0167"
+      "id": "test-0167",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-email",
@@ -2857,7 +3024,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0168"
+      "id": "test-0168",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ops",
@@ -2874,7 +3042,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0169"
+      "id": "test-0169",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-deploy",
@@ -2891,7 +3060,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0170"
+      "id": "test-0170",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-infra",
@@ -2908,7 +3078,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0171"
+      "id": "test-0171",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-monitor",
@@ -2925,7 +3096,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0172"
+      "id": "test-0172",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2942,7 +3114,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0173"
+      "id": "test-0173",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-db-ops",
@@ -2959,7 +3132,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0174"
+      "id": "test-0174",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-monitor",
@@ -2976,7 +3150,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0175"
+      "id": "test-0175",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-email",
@@ -2993,7 +3168,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0176"
+      "id": "test-0176",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3010,7 +3186,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0177"
+      "id": "test-0177",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-data-sync",
@@ -3027,7 +3204,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0178"
+      "id": "test-0178",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-ops",
@@ -3044,7 +3222,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0179"
+      "id": "test-0179",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-monitor",
@@ -3061,7 +3240,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0180"
+      "id": "test-0180",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-deploy",
@@ -3078,7 +3258,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0181"
+      "id": "test-0181",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-infra",
@@ -3095,7 +3276,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0182"
+      "id": "test-0182",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3112,7 +3294,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0183"
+      "id": "test-0183",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3129,7 +3312,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0184"
+      "id": "test-0184",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-analytics",
@@ -3146,7 +3330,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0185"
+      "id": "test-0185",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-ops",
@@ -3163,7 +3348,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0186"
+      "id": "test-0186",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -3180,7 +3366,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0187"
+      "id": "test-0187",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-monitor",
@@ -3197,7 +3384,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0188"
+      "id": "test-0188",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-analytics",
@@ -3214,7 +3402,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0189"
+      "id": "test-0189",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-infra",
@@ -3231,7 +3420,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0190"
+      "id": "test-0190",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-file-ops",
@@ -3248,7 +3438,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0191"
+      "id": "test-0191",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-ops",
@@ -3265,7 +3456,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0192"
+      "id": "test-0192",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ops",
@@ -3282,7 +3474,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0193"
+      "id": "test-0193",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-analytics",
@@ -3299,7 +3492,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0194"
+      "id": "test-0194",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-infra",
@@ -3316,7 +3510,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": false
       },
-      "id": "test-0195"
+      "id": "test-0195",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-ops",
@@ -3333,7 +3528,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0196"
+      "id": "test-0196",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-analytics",
@@ -3350,7 +3546,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0197"
+      "id": "test-0197",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-monitor",
@@ -3367,7 +3564,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0198"
+      "id": "test-0198",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-file-ops",
@@ -3384,7 +3582,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0199"
+      "id": "test-0199",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3401,7 +3600,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0200"
+      "id": "test-0200",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-infra",
@@ -3418,7 +3618,8 @@
         "testsPassing": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0201"
+      "id": "test-0201",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-ops",
@@ -3435,7 +3636,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0202"
+      "id": "test-0202",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -3452,7 +3654,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0203"
+      "id": "test-0203",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-ops",
@@ -3469,7 +3672,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0204"
+      "id": "test-0204",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-monitor",
@@ -3486,7 +3690,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0205"
+      "id": "test-0205",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -3503,7 +3708,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0206"
+      "id": "test-0206",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-infra",
@@ -3520,7 +3726,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0207"
+      "id": "test-0207",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-monitor",
@@ -3537,7 +3744,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0208"
+      "id": "test-0208",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-ops",
@@ -3554,7 +3762,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0209"
+      "id": "test-0209",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3571,7 +3780,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0210"
+      "id": "test-0210",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-analytics",
@@ -3588,7 +3798,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0211"
+      "id": "test-0211",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-email",
@@ -3605,7 +3816,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0212"
+      "id": "test-0212",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-analytics",
@@ -3622,7 +3834,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0213"
+      "id": "test-0213",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -3639,7 +3852,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0214"
+      "id": "test-0214",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-data-ops",
@@ -3656,7 +3870,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0215"
+      "id": "test-0215",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-infra",
@@ -3673,7 +3888,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0216"
+      "id": "test-0216",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-data-sync",
@@ -3690,7 +3906,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0217"
+      "id": "test-0217",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-analytics",
@@ -3707,7 +3924,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0218"
+      "id": "test-0218",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-monitor",
@@ -3724,7 +3942,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0219"
+      "id": "test-0219",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-infra",
@@ -3741,7 +3960,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": false
       },
-      "id": "test-0220"
+      "id": "test-0220",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -3758,7 +3978,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0221"
+      "id": "test-0221",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-monitor",
@@ -3775,7 +3996,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0222"
+      "id": "test-0222",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3792,7 +4014,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0223"
+      "id": "test-0223",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-monitor",
@@ -3809,7 +4032,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0224"
+      "id": "test-0224",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-monitor",
@@ -3826,7 +4050,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0225"
+      "id": "test-0225",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-file-ops",
@@ -3843,7 +4068,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0226"
+      "id": "test-0226",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-ops",
@@ -3860,7 +4086,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0227"
+      "id": "test-0227",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -3877,7 +4104,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0228"
+      "id": "test-0228",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-analytics",
@@ -3894,7 +4122,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0229"
+      "id": "test-0229",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-db-ops",
@@ -3911,7 +4140,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0230"
+      "id": "test-0230",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-monitor",
@@ -3928,7 +4158,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0231"
+      "id": "test-0231",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-monitor",
@@ -3945,7 +4176,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0232"
+      "id": "test-0232",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-infra",
@@ -3962,7 +4194,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0233"
+      "id": "test-0233",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-deploy",
@@ -3979,7 +4212,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0234"
+      "id": "test-0234",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-monitor",
@@ -3996,7 +4230,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0235"
+      "id": "test-0235",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-infra",
@@ -4013,7 +4248,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": true
       },
-      "id": "test-0236"
+      "id": "test-0236",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -4030,7 +4266,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0237"
+      "id": "test-0237",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4047,7 +4284,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0238"
+      "id": "test-0238",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-infra",
@@ -4064,7 +4302,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0239"
+      "id": "test-0239",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-deploy",
@@ -4081,7 +4320,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0240"
+      "id": "test-0240",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-analytics",
@@ -4098,7 +4338,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0241"
+      "id": "test-0241",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-infra",
@@ -4115,7 +4356,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0242"
+      "id": "test-0242",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4132,7 +4374,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0243"
+      "id": "test-0243",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-infra",
@@ -4149,7 +4392,8 @@
         "testsPassing": true,
         "rollbackPlanPresent": false
       },
-      "id": "test-0244"
+      "id": "test-0244",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4166,7 +4410,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0245"
+      "id": "test-0245",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-deploy",
@@ -4183,7 +4428,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0246"
+      "id": "test-0246",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-monitor",
@@ -4200,7 +4446,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0247"
+      "id": "test-0247",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4217,7 +4464,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0248"
+      "id": "test-0248",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-data-sync",
@@ -4234,7 +4482,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0249"
+      "id": "test-0249",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-infra",
@@ -4251,7 +4500,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0250"
+      "id": "test-0250",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4268,7 +4518,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0251"
+      "id": "test-0251",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-email",
@@ -4285,7 +4536,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0252"
+      "id": "test-0252",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-monitor",
@@ -4302,7 +4554,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0253"
+      "id": "test-0253",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-infra",
@@ -4319,7 +4572,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0254"
+      "id": "test-0254",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-ops",
@@ -4336,7 +4590,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0255"
+      "id": "test-0255",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4353,7 +4608,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0256"
+      "id": "test-0256",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-data-ops",
@@ -4370,7 +4626,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0257"
+      "id": "test-0257",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4387,7 +4644,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0258"
+      "id": "test-0258",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-infra",
@@ -4404,7 +4662,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0259"
+      "id": "test-0259",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-deploy",
@@ -4421,7 +4680,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0260"
+      "id": "test-0260",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4438,7 +4698,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0261"
+      "id": "test-0261",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-monitor",
@@ -4455,7 +4716,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0262"
+      "id": "test-0262",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4472,7 +4734,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0263"
+      "id": "test-0263",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -4489,7 +4752,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0264"
+      "id": "test-0264",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4506,7 +4770,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0265"
+      "id": "test-0265",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4523,7 +4788,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0266"
+      "id": "test-0266",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-analytics",
@@ -4540,7 +4806,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0267"
+      "id": "test-0267",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4557,7 +4824,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0268"
+      "id": "test-0268",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-email",
@@ -4574,7 +4842,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0269"
+      "id": "test-0269",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-infra",
@@ -4591,7 +4860,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0270"
+      "id": "test-0270",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-analytics",
@@ -4608,7 +4878,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0271"
+      "id": "test-0271",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4625,7 +4896,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0272"
+      "id": "test-0272",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-ops",
@@ -4642,7 +4914,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0273"
+      "id": "test-0273",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4659,7 +4932,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0274"
+      "id": "test-0274",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4676,7 +4950,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0275"
+      "id": "test-0275",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-data-sync",
@@ -4693,7 +4968,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0276"
+      "id": "test-0276",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-infra",
@@ -4710,7 +4986,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0277"
+      "id": "test-0277",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4727,7 +5004,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0278"
+      "id": "test-0278",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4744,7 +5022,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0279"
+      "id": "test-0279",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4761,7 +5040,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0280"
+      "id": "test-0280",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4778,7 +5058,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0281"
+      "id": "test-0281",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ops",
@@ -4795,7 +5076,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0282"
+      "id": "test-0282",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-analytics",
@@ -4812,7 +5094,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0283"
+      "id": "test-0283",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-analytics",
@@ -4829,7 +5112,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0284"
+      "id": "test-0284",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-ops",
@@ -4846,7 +5130,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0285"
+      "id": "test-0285",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-deploy",
@@ -4863,7 +5148,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0286"
+      "id": "test-0286",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4880,7 +5166,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0287"
+      "id": "test-0287",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -4897,7 +5184,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0288"
+      "id": "test-0288",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-analytics",
@@ -4914,7 +5202,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0289"
+      "id": "test-0289",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4931,7 +5220,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0290"
+      "id": "test-0290",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-file-ops",
@@ -4948,7 +5238,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0291"
+      "id": "test-0291",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-analytics",
@@ -4965,7 +5256,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0292"
+      "id": "test-0292",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -4982,7 +5274,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0293"
+      "id": "test-0293",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -4999,7 +5292,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0294"
+      "id": "test-0294",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5016,7 +5310,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0295"
+      "id": "test-0295",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-monitor",
@@ -5033,7 +5328,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0296"
+      "id": "test-0296",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-analytics",
@@ -5050,7 +5346,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0297"
+      "id": "test-0297",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-analytics",
@@ -5067,7 +5364,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0298"
+      "id": "test-0298",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-monitor",
@@ -5084,7 +5382,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0299"
+      "id": "test-0299",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -5101,7 +5400,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0300"
+      "id": "test-0300",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-infra",
@@ -5118,7 +5418,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0301"
+      "id": "test-0301",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -5135,7 +5436,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0302"
+      "id": "test-0302",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -5152,7 +5454,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0303"
+      "id": "test-0303",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-monitor",
@@ -5169,7 +5472,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0304"
+      "id": "test-0304",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-monitor",
@@ -5186,7 +5490,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0305"
+      "id": "test-0305",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5203,7 +5508,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0306"
+      "id": "test-0306",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-infra",
@@ -5220,7 +5526,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0307"
+      "id": "test-0307",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5237,7 +5544,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0308"
+      "id": "test-0308",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-analytics",
@@ -5254,7 +5562,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0309"
+      "id": "test-0309",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -5271,7 +5580,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0310"
+      "id": "test-0310",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-infra",
@@ -5288,7 +5598,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0311"
+      "id": "test-0311",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -5305,7 +5616,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0312"
+      "id": "test-0312",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5322,7 +5634,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0313"
+      "id": "test-0313",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5339,7 +5652,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0314"
+      "id": "test-0314",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-analytics",
@@ -5356,7 +5670,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0315"
+      "id": "test-0315",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5373,7 +5688,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0316"
+      "id": "test-0316",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-analytics",
@@ -5390,7 +5706,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0317"
+      "id": "test-0317",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -5407,7 +5724,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0318"
+      "id": "test-0318",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-analytics",
@@ -5424,7 +5742,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0319"
+      "id": "test-0319",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-infra",
@@ -5441,7 +5760,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0320"
+      "id": "test-0320",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-monitor",
@@ -5458,7 +5778,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0321"
+      "id": "test-0321",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-deploy",
@@ -5475,7 +5796,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0322"
+      "id": "test-0322",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-data-ops",
@@ -5492,7 +5814,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0323"
+      "id": "test-0323",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-infra",
@@ -5509,7 +5832,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0324"
+      "id": "test-0324",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5526,7 +5850,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0325"
+      "id": "test-0325",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5543,7 +5868,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0326"
+      "id": "test-0326",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-email",
@@ -5560,7 +5886,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0327"
+      "id": "test-0327",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -5577,7 +5904,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0328"
+      "id": "test-0328",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-monitor",
@@ -5594,7 +5922,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0329"
+      "id": "test-0329",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-deploy",
@@ -5611,7 +5940,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0330"
+      "id": "test-0330",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-monitor",
@@ -5628,7 +5958,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0331"
+      "id": "test-0331",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5645,7 +5976,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0332"
+      "id": "test-0332",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-data-sync",
@@ -5662,7 +5994,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0333"
+      "id": "test-0333",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -5679,7 +6012,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0334"
+      "id": "test-0334",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-monitor",
@@ -5696,7 +6030,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0335"
+      "id": "test-0335",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5713,7 +6048,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0336"
+      "id": "test-0336",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-analytics",
@@ -5730,7 +6066,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0337"
+      "id": "test-0337",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-analytics",
@@ -5747,7 +6084,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0338"
+      "id": "test-0338",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5764,7 +6102,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0339"
+      "id": "test-0339",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-analytics",
@@ -5781,7 +6120,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0340"
+      "id": "test-0340",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -5798,7 +6138,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0341"
+      "id": "test-0341",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5815,7 +6156,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0342"
+      "id": "test-0342",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-data-sync",
@@ -5832,7 +6174,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0343"
+      "id": "test-0343",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-email",
@@ -5849,7 +6192,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0344"
+      "id": "test-0344",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -5866,7 +6210,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0345"
+      "id": "test-0345",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-analytics",
@@ -5883,7 +6228,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0346"
+      "id": "test-0346",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-deploy",
@@ -5900,7 +6246,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0347"
+      "id": "test-0347",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-email",
@@ -5917,7 +6264,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0348"
+      "id": "test-0348",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-data-sync",
@@ -5934,7 +6282,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0349"
+      "id": "test-0349",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -5951,7 +6300,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0350"
+      "id": "test-0350",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-deploy",
@@ -5968,7 +6318,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0351"
+      "id": "test-0351",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-analytics",
@@ -5985,7 +6336,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0352"
+      "id": "test-0352",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6002,7 +6354,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0353"
+      "id": "test-0353",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-analytics",
@@ -6019,7 +6372,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0354"
+      "id": "test-0354",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-deploy",
@@ -6036,7 +6390,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0355"
+      "id": "test-0355",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-ops",
@@ -6053,7 +6408,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0356"
+      "id": "test-0356",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-infra",
@@ -6070,7 +6426,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0357"
+      "id": "test-0357",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6087,7 +6444,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0358"
+      "id": "test-0358",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-deploy",
@@ -6104,7 +6462,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0359"
+      "id": "test-0359",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-analytics",
@@ -6121,7 +6480,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0360"
+      "id": "test-0360",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-deploy",
@@ -6138,7 +6498,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0361"
+      "id": "test-0361",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-monitor",
@@ -6155,7 +6516,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0362"
+      "id": "test-0362",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-analytics",
@@ -6172,7 +6534,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0363"
+      "id": "test-0363",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-deploy",
@@ -6189,7 +6552,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0364"
+      "id": "test-0364",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-monitor",
@@ -6206,7 +6570,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0365"
+      "id": "test-0365",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-infra",
@@ -6223,7 +6588,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0366"
+      "id": "test-0366",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-infra",
@@ -6240,7 +6606,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0367"
+      "id": "test-0367",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-infra",
@@ -6257,7 +6624,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0368"
+      "id": "test-0368",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-infra",
@@ -6274,7 +6642,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0369"
+      "id": "test-0369",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6291,7 +6660,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0370"
+      "id": "test-0370",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-analytics",
@@ -6308,7 +6678,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0371"
+      "id": "test-0371",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-monitor",
@@ -6325,7 +6696,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0372"
+      "id": "test-0372",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-analytics",
@@ -6342,7 +6714,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0373"
+      "id": "test-0373",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-monitor",
@@ -6359,7 +6732,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0374"
+      "id": "test-0374",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -6376,7 +6750,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0375"
+      "id": "test-0375",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-infra",
@@ -6393,7 +6768,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0376"
+      "id": "test-0376",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6410,7 +6786,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0377"
+      "id": "test-0377",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -6427,7 +6804,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0378"
+      "id": "test-0378",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-monitor",
@@ -6444,7 +6822,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0379"
+      "id": "test-0379",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-ops",
@@ -6461,7 +6840,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0380"
+      "id": "test-0380",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-deploy",
@@ -6478,7 +6858,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0381"
+      "id": "test-0381",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ops",
@@ -6495,7 +6876,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0382"
+      "id": "test-0382",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -6512,7 +6894,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0383"
+      "id": "test-0383",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-ops",
@@ -6529,7 +6912,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0384"
+      "id": "test-0384",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6546,7 +6930,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0385"
+      "id": "test-0385",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6563,7 +6948,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0386"
+      "id": "test-0386",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-ops",
@@ -6580,7 +6966,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0387"
+      "id": "test-0387",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -6597,7 +6984,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0388"
+      "id": "test-0388",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -6614,7 +7002,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0389"
+      "id": "test-0389",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6631,7 +7020,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0390"
+      "id": "test-0390",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ops",
@@ -6648,7 +7038,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0391"
+      "id": "test-0391",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-monitor",
@@ -6665,7 +7056,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0392"
+      "id": "test-0392",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-monitor",
@@ -6682,7 +7074,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0393"
+      "id": "test-0393",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6699,7 +7092,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0394"
+      "id": "test-0394",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-analytics",
@@ -6716,7 +7110,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0395"
+      "id": "test-0395",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-monitor",
@@ -6733,7 +7128,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0396"
+      "id": "test-0396",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-analytics",
@@ -6750,7 +7146,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0397"
+      "id": "test-0397",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-analytics",
@@ -6767,7 +7164,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0398"
+      "id": "test-0398",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-data-sync",
@@ -6784,7 +7182,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0399"
+      "id": "test-0399",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-deploy",
@@ -6801,7 +7200,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0400"
+      "id": "test-0400",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-analytics",
@@ -6818,7 +7218,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0401"
+      "id": "test-0401",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-monitor",
@@ -6835,7 +7236,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0402"
+      "id": "test-0402",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -6852,7 +7254,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0403"
+      "id": "test-0403",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6869,7 +7272,8 @@
         "testsPassing": false,
         "hasHumanApproval": false
       },
-      "id": "test-0404"
+      "id": "test-0404",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-infra",
@@ -6886,7 +7290,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0405"
+      "id": "test-0405",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-analytics",
@@ -6903,7 +7308,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0406"
+      "id": "test-0406",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-monitor",
@@ -6920,7 +7326,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0407"
+      "id": "test-0407",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-infra",
@@ -6937,7 +7344,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0408"
+      "id": "test-0408",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-db-ops",
@@ -6954,7 +7362,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0409"
+      "id": "test-0409",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-deploy",
@@ -6971,7 +7380,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0410"
+      "id": "test-0410",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-ops",
@@ -6988,7 +7398,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0411"
+      "id": "test-0411",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-deploy",
@@ -7005,7 +7416,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0412"
+      "id": "test-0412",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-data-sync",
@@ -7022,7 +7434,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0413"
+      "id": "test-0413",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-analytics",
@@ -7039,7 +7452,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0414"
+      "id": "test-0414",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7056,7 +7470,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0415"
+      "id": "test-0415",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-infra",
@@ -7073,7 +7488,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0416"
+      "id": "test-0416",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7090,7 +7506,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0417"
+      "id": "test-0417",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ops",
@@ -7107,7 +7524,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0418"
+      "id": "test-0418",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-analytics",
@@ -7124,7 +7542,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0419"
+      "id": "test-0419",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-ops",
@@ -7141,7 +7560,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0420"
+      "id": "test-0420",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-monitor",
@@ -7158,7 +7578,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0421"
+      "id": "test-0421",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-ops",
@@ -7175,7 +7596,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0422"
+      "id": "test-0422",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-email",
@@ -7192,7 +7614,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0423"
+      "id": "test-0423",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7209,7 +7632,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0424"
+      "id": "test-0424",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-monitor",
@@ -7226,7 +7650,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0425"
+      "id": "test-0425",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7243,7 +7668,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0426"
+      "id": "test-0426",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-email",
@@ -7260,7 +7686,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0427"
+      "id": "test-0427",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-infra",
@@ -7277,7 +7704,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0428"
+      "id": "test-0428",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-infra",
@@ -7294,7 +7722,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0429"
+      "id": "test-0429",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7311,7 +7740,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0430"
+      "id": "test-0430",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7328,7 +7758,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0431"
+      "id": "test-0431",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-deploy",
@@ -7345,7 +7776,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0432"
+      "id": "test-0432",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-monitor",
@@ -7362,7 +7794,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0433"
+      "id": "test-0433",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-infra",
@@ -7379,7 +7812,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0434"
+      "id": "test-0434",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7396,7 +7830,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0435"
+      "id": "test-0435",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -7413,7 +7848,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0436"
+      "id": "test-0436",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7430,7 +7866,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0437"
+      "id": "test-0437",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7447,7 +7884,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0438"
+      "id": "test-0438",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-data-sync",
@@ -7464,7 +7902,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0439"
+      "id": "test-0439",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7481,7 +7920,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0440"
+      "id": "test-0440",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-infra",
@@ -7498,7 +7938,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0441"
+      "id": "test-0441",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7515,7 +7956,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0442"
+      "id": "test-0442",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7532,7 +7974,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0443"
+      "id": "test-0443",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ops",
@@ -7549,7 +7992,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0444"
+      "id": "test-0444",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-analytics",
@@ -7566,7 +8010,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0445"
+      "id": "test-0445",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7583,7 +8028,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0446"
+      "id": "test-0446",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7600,7 +8046,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0447"
+      "id": "test-0447",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7617,7 +8064,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0448"
+      "id": "test-0448",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-file-ops",
@@ -7634,7 +8082,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0449"
+      "id": "test-0449",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-infra",
@@ -7651,7 +8100,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0450"
+      "id": "test-0450",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7668,7 +8118,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0451"
+      "id": "test-0451",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-monitor",
@@ -7685,7 +8136,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0452"
+      "id": "test-0452",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-analytics",
@@ -7702,7 +8154,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0453"
+      "id": "test-0453",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-infra",
@@ -7719,7 +8172,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0454"
+      "id": "test-0454",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-infra",
@@ -7736,7 +8190,8 @@
         "testsPassing": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0455"
+      "id": "test-0455",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-data-ops",
@@ -7753,7 +8208,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0456"
+      "id": "test-0456",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7770,7 +8226,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0457"
+      "id": "test-0457",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7787,7 +8244,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0458"
+      "id": "test-0458",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-ops",
@@ -7804,7 +8262,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0459"
+      "id": "test-0459",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -7821,7 +8280,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0460"
+      "id": "test-0460",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-file-ops",
@@ -7838,7 +8298,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0461"
+      "id": "test-0461",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-ops",
@@ -7855,7 +8316,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0462"
+      "id": "test-0462",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-file-ops",
@@ -7872,7 +8334,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0463"
+      "id": "test-0463",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-ops",
@@ -7889,7 +8352,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0464"
+      "id": "test-0464",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7906,7 +8370,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0465"
+      "id": "test-0465",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -7923,7 +8388,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0466"
+      "id": "test-0466",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-analytics",
@@ -7940,7 +8406,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0467"
+      "id": "test-0467",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -7957,7 +8424,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0468"
+      "id": "test-0468",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -7974,7 +8442,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0469"
+      "id": "test-0469",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -7991,7 +8460,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0470"
+      "id": "test-0470",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8008,7 +8478,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0471"
+      "id": "test-0471",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-deploy",
@@ -8025,7 +8496,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0472"
+      "id": "test-0472",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-monitor",
@@ -8042,7 +8514,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0473"
+      "id": "test-0473",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-infra",
@@ -8059,7 +8532,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0474"
+      "id": "test-0474",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-analytics",
@@ -8076,7 +8550,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0475"
+      "id": "test-0475",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8093,7 +8568,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0476"
+      "id": "test-0476",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-monitor",
@@ -8110,7 +8586,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0477"
+      "id": "test-0477",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-analytics",
@@ -8127,7 +8604,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0478"
+      "id": "test-0478",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-email",
@@ -8144,7 +8622,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0479"
+      "id": "test-0479",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8161,7 +8640,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0480"
+      "id": "test-0480",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-ops",
@@ -8178,7 +8658,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0481"
+      "id": "test-0481",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8195,7 +8676,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0482"
+      "id": "test-0482",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-ops",
@@ -8212,7 +8694,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0483"
+      "id": "test-0483",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-data-ops",
@@ -8229,7 +8712,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0484"
+      "id": "test-0484",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-monitor",
@@ -8246,7 +8730,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0485"
+      "id": "test-0485",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-infra",
@@ -8263,7 +8748,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0486"
+      "id": "test-0486",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-ops",
@@ -8280,7 +8766,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0487"
+      "id": "test-0487",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-monitor",
@@ -8297,7 +8784,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0488"
+      "id": "test-0488",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-ops",
@@ -8314,7 +8802,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0489"
+      "id": "test-0489",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-analytics",
@@ -8331,7 +8820,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0490"
+      "id": "test-0490",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-infra",
@@ -8348,7 +8838,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0491"
+      "id": "test-0491",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-infra",
@@ -8365,7 +8856,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0492"
+      "id": "test-0492",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8382,7 +8874,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0493"
+      "id": "test-0493",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-ops",
@@ -8399,7 +8892,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0494"
+      "id": "test-0494",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-monitor",
@@ -8416,7 +8910,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0495"
+      "id": "test-0495",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-analytics",
@@ -8433,7 +8928,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0496"
+      "id": "test-0496",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-ops",
@@ -8450,7 +8946,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0497"
+      "id": "test-0497",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -8467,7 +8964,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0498"
+      "id": "test-0498",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8484,7 +8982,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0499"
+      "id": "test-0499",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-analytics",
@@ -8501,7 +9000,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0500"
+      "id": "test-0500",
+      "user": "Kai Nakamura"
     },
     {
       "agent_name": "agent-ops",
@@ -8518,7 +9018,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0501"
+      "id": "test-0501",
+      "user": "Sarah Jones"
     },
     {
       "agent_name": "agent-deploy",
@@ -8535,7 +9036,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0502"
+      "id": "test-0502",
+      "user": "Leo Fischer"
     },
     {
       "agent_name": "agent-analytics",
@@ -8552,7 +9054,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0503"
+      "id": "test-0503",
+      "user": "Ava Quinn"
     },
     {
       "agent_name": "agent-deploy",
@@ -8569,7 +9072,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0504"
+      "id": "test-0504",
+      "user": "Jay Park"
     },
     {
       "agent_name": "agent-data-ops",
@@ -8586,7 +9090,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0505"
+      "id": "test-0505",
+      "user": "Mila Rossi"
     },
     {
       "agent_name": "agent-infra",
@@ -8603,7 +9108,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0506"
+      "id": "test-0506",
+      "user": "Clara Wright"
     },
     {
       "agent_name": "agent-ops",
@@ -8620,7 +9126,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0507"
+      "id": "test-0507",
+      "user": "Omar Said"
     },
     {
       "agent_name": "agent-data-sync",
@@ -8637,7 +9144,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0508"
+      "id": "test-0508",
+      "user": "Finn Hoffman"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8654,7 +9162,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0509"
+      "id": "test-0509",
+      "user": "Ines Garcia"
     },
     {
       "agent_name": "agent-monitor",
@@ -8671,7 +9180,8 @@
         "rollbackPlanPresent": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0510"
+      "id": "test-0510",
+      "user": "Mateo Ruiz"
     },
     {
       "agent_name": "agent-email",
@@ -8688,7 +9198,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": false
       },
-      "id": "test-0511"
+      "id": "test-0511",
+      "user": "Alex Kim"
     },
     {
       "agent_name": "agent-ops",
@@ -8705,7 +9216,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0512"
+      "id": "test-0512",
+      "user": "Dan Osei"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8722,7 +9234,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0513"
+      "id": "test-0513",
+      "user": "Yuki Tanaka"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8739,7 +9252,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0514"
+      "id": "test-0514",
+      "user": "Lena Braun"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8756,7 +9270,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": true
       },
-      "id": "test-0515"
+      "id": "test-0515",
+      "user": "Ravi Mehta"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -8773,7 +9288,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0516"
+      "id": "test-0516",
+      "user": "Chloe Martin"
     },
     {
       "agent_name": "agent-infra",
@@ -8790,7 +9306,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": true
       },
-      "id": "test-0517"
+      "id": "test-0517",
+      "user": "Marcus Chen"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8807,7 +9324,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0518"
+      "id": "test-0518",
+      "user": "Amara Diallo"
     },
     {
       "agent_name": "agent-api-gateway",
@@ -8824,7 +9342,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0519"
+      "id": "test-0519",
+      "user": "Tomas Novak"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8841,7 +9360,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0520"
+      "id": "test-0520",
+      "user": "Preethi Sharma"
     },
     {
       "agent_name": "agent-infra",
@@ -8858,7 +9378,8 @@
         "hasHumanApproval": false,
         "rollbackPlanPresent": true
       },
-      "id": "test-0521"
+      "id": "test-0521",
+      "user": "Priya Patel"
     },
     {
       "agent_name": "agent-ci-cd",
@@ -8875,7 +9396,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0522"
+      "id": "test-0522",
+      "user": "James Okonjo"
     },
     {
       "agent_name": "agent-analytics",
@@ -8892,7 +9414,8 @@
         "rollbackPlanPresent": true,
         "touchesCriticalPaths": false
       },
-      "id": "test-0523"
+      "id": "test-0523",
+      "user": "Nina Kowalski"
     },
     {
       "agent_name": "agent-file-ops",
@@ -8909,7 +9432,8 @@
         "hasHumanApproval": false,
         "touchesCriticalPaths": false
       },
-      "id": "test-0524"
+      "id": "test-0524",
+      "user": "Sam Torres"
     },
     {
       "agent_name": "agent-db-ops",
@@ -8926,7 +9450,8 @@
         "testsPassing": true,
         "hasHumanApproval": false
       },
-      "id": "test-0525"
+      "id": "test-0525",
+      "user": "Kai Nakamura"
     }
   ]
 }

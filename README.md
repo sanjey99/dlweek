@@ -15,8 +15,6 @@ Sentinel is an AI governance platform that acts as a centralised safety monitor 
 2. **Human-in-the-Loop Review Queue**
 3. **Comprehensive Audit Logging**
 
----
-
 ## Project Structure
 
 ```text
@@ -53,11 +51,30 @@ cp .env.example .env
 
 Then update values in `.env` as needed for your machine.
 
-Minimum variables used by this repo:
+Minimum variables used by this repo (see `.env.example` for defaults):
 
 ```env
-OPENAI_API_KEY=your_key_here
+OPENAI_API_KEY=replace_with_your_own_key
+ML_URL=http://localhost:8000
+PORT=4000
+VITE_API_URL=http://localhost:4000
+VITE_WS_URL=ws://localhost:4000
 ```
+
+### Choose either 1. Quick Start (Docker) or 2. Local Development
+## 1. Quick Start (Docker)
+Ensure that Docker Desktop is already running before entering the following commands (avoids ["error during connect"](#error-during-connect) error).
+```bash
+docker compose down
+docker compose up --build -d
+docker compose ps
+```
+
+### Service URLs
+- Frontend: `http://localhost:5173`
+- Backend health: `http://localhost:4000/health`
+- ML health: `http://localhost:8000/health`
+- Realtime WS: `ws://localhost:4000/ws`
 
 ## Local Development (macOS vs non-macOS)
 

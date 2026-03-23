@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Toaster, toast } from 'sonner';
 import { Eye, Building2, ArrowLeft } from 'lucide-react';
 import { TopNav } from './components/nav/TopNav';
@@ -13,7 +13,8 @@ import { OrganisationPage } from './components/organisation/OrganisationPage';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { ActionItem } from './types';
 import { mockActions } from './data/mockData';
-import { teamsData } from './data/organisationData';
+import { TeamData } from './data/organisationData';
+import type { ParsedAuditEvent } from './utils/csvParser';
 import { getTheme } from './utils/theme';
 import { useIsMobile } from './utils/useIsMobile';
 import { useWebSocket, WSMessage } from './hooks/useWebSocket';
@@ -37,6 +38,8 @@ function readStoredTheme(): boolean {
 }
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isDark, setIsDark] = useState(readStoredTheme);
   const [activePage, setActivePage] = useState<PageId>('dashboard');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -48,6 +51,15 @@ export default function App() {
   const [uploadProgress, setUploadProgress] = useState<{ processed: number; total: number } | null>(null);
   const [notifications, setNotifications] = useState<TopNavNotificationItem[]>([]);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+  const [openNotificationsKey, setOpenNotificationsKey] = useState(0);
+  const prevUnreadCountRef = useRef(0);
+  const hasNotificationBaselineRef = useRef(false);
+  const suppressNextNotificationToastRef = useRef(false);
+
+  // CSV-imported organisation data
+  const [importedTeams, setImportedTeams] = useState<TeamData[]>([]);
+  const [importedAuditActions, setImportedAuditActions] = useState<ActionItem[]>([]);
+  const [importedAuditEventsRaw, setImportedAuditEventsRaw] = useState<ParsedAuditEvent[]>([]);
 
   const theme = getTheme(isDark);
   const isMobile = useIsMobile();
@@ -104,6 +116,42 @@ export default function App() {
     return () => clearInterval(timer);
   }, [refreshNotifications]);
 
+  useEffect(() => {
+    if (!hasNotificationBaselineRef.current) {
+      prevUnreadCountRef.current = notificationUnreadCount;
+      hasNotificationBaselineRef.current = true;
+      return;
+    }
+
+    const prev = prevUnreadCountRef.current;
+    const next = notificationUnreadCount;
+    if (suppressNextNotificationToastRef.current) {
+      suppressNextNotificationToastRef.current = false;
+      prevUnreadCountRef.current = next;
+      return;
+    }
+    if (next > prev) {
+      toast('New notifications!', {
+        duration: 5000,
+        action: {
+          label: 'View',
+          onClick: () => setOpenNotificationsKey((k) => k + 1),
+        },
+      });
+    }
+    prevUnreadCountRef.current = next;
+  }, [notificationUnreadCount]);
+
+  useEffect(() => {
+    const state = (location.state || {}) as { openNotifications?: boolean };
+    if (state.openNotifications === true) {
+      suppressNextNotificationToastRef.current = true;
+      setActivePage('dashboard');
+      setOpenNotificationsKey((k) => k + 1);
+      navigate('/', { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
+
   const handleMarkNotificationRead = useCallback(async (id: string) => {
     try {
       const data = await apiMarkNotificationRead(id);
@@ -145,6 +193,7 @@ export default function App() {
   }, []);
 
   const handleOpenAction = useCallback(async (actionId: string) => {
+    setActivePage('dashboard');
     let target = actions.find((a) => a.id === actionId);
 
     if (!target && backendConnected) {
@@ -366,7 +415,8 @@ export default function App() {
     >
       <Toaster
         theme={isDark ? 'dark' : 'light'}
-        position="top-right"
+        position="top-center"
+        closeButton
         toastOptions={{
           style: { fontFamily: 'Inter, sans-serif', fontSize: 13 },
         }}
@@ -387,6 +437,8 @@ export default function App() {
         onMarkAllRead={handleMarkAllNotificationsRead}
         onMarkRead={handleMarkNotificationRead}
         onOpenAction={handleOpenAction}
+        onOpenActivityLogs={() => setActivePage('all-audits')}
+        forceOpenNotificationsKey={openNotificationsKey}
         activePage={activePage}
         onPageChange={setActivePage}
       />
@@ -495,24 +547,32 @@ export default function App() {
               theme={theme}
               isDark={isDark}
               isMobile={isMobile}
-              actions={actions.filter((a) => {
-                const actionUser = (a.user || '').toLowerCase().trim();
-                if (!actionUser) return true; // no user field → show everywhere
+              actions={(() => {
+                // Use only CSV-imported teams — no demo/fallback data
+                const allTeamsData = importedTeams;
 
-                // Check if this user belongs to the selected team
-                const selectedTeam = teamsData.find((t) => t.id === selectedTeamId);
-                const isInSelectedTeam = selectedTeam?.members.some(
-                  (m) => m.name.toLowerCase() === actionUser
-                );
-                if (isInSelectedTeam) return true;
+                const backendFiltered = actions.filter((a) => {
+                  const actionUser = (a.user || '').toLowerCase().trim();
+                  if (!actionUser) return true;
+                  const selectedTeam = allTeamsData.find((t) => t.id === selectedTeamId);
+                  const isInSelectedTeam = selectedTeam?.members.some(
+                    (m) => m.name.toLowerCase() === actionUser
+                  );
+                  if (isInSelectedTeam) return true;
+                  const isInAnyTeam = allTeamsData.some((t) =>
+                    t.members.some((m) => m.name.toLowerCase() === actionUser)
+                  );
+                  return !isInAnyTeam;
+                });
 
-                // Check if this user belongs to ANY team
-                const isInAnyTeam = teamsData.some((t) =>
-                  t.members.some((m) => m.name.toLowerCase() === actionUser)
-                );
-                // If not in any team (system/third-party), show under all teams
-                return !isInAnyTeam;
-              })}
+                // Also include imported audit events that belong to this team
+                const importedForTeam = importedAuditActions.filter((a) => {
+                  const evt = importedAuditEventsRaw.find((e) => e.id === a.id);
+                  return evt?.teamId === selectedTeamId;
+                });
+
+                return [...importedForTeam, ...backendFiltered];
+              })()}
             />
           </>
         ) : activePage === 'all-audits' ? (
@@ -564,7 +624,7 @@ export default function App() {
               theme={theme}
               isDark={isDark}
               isMobile={isMobile}
-              actions={actions}
+              actions={[...importedAuditActions, ...actions]}
             />
           </>
         ) : activePage === 'organisation' ? (
@@ -572,6 +632,16 @@ export default function App() {
             theme={theme}
             isDark={isDark}
             isMobile={isMobile}
+            importedTeams={importedTeams}
+            onImportComplete={(teams, auditActions, auditEventsRaw) => {
+              setImportedTeams(teams);
+              setImportedAuditActions(auditActions);
+              setImportedAuditEventsRaw(auditEventsRaw);
+              toast.success('Organisation data imported', {
+                description: `${teams.length} teams and ${auditActions.length} audit events loaded.`,
+                duration: 4000,
+              });
+            }}
             onViewTeamAudit={(teamId, teamName) => {
               setSelectedTeamId(teamId);
               setSelectedTeamName(teamName);
